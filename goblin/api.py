@@ -99,12 +99,15 @@ class Session:
         while self._pending:
             elem = self._pending.popleft()
             await self.save_element(elem)
-                
+
     async def save_element(self, element):
         if element.__type__ == 'vertex':
-            await self.save_vertex(element)
+            result = await self.save_vertex(element)
         elif element.__type__ == 'edge':
-            await self.save_edge(element)
+            result = await self.save_edge(element)
+        else:
+            raise Exception("Unkown element type")
+        return result
 
     async def save_vertex(self, element):
         result = await self._save_element(element,
