@@ -37,14 +37,11 @@ def map_edge_to_ogm(result, element, mapping):
 
 # DB <-> OGM Mapping
 def create_mapping(namespace, properties):
-    elem_type = namespace.get('__type__', None)
-    if elem_type == 'vertex':
-        return VertexMapping(namespace, properties)
-    elif elem_type == 'edge':
-        return EdgeMapping(namespace, properties)
+    if namespace.get('__type__', None):
+        return Mapping(namespace, properties)
 
 
-class VertexMapping:
+class Mapping:
 
     def __init__(self, namespace, properties):
         self._label = namespace.get('__label__', None)
@@ -74,7 +71,3 @@ class VertexMapping:
             self._type,
             self._label,
             self._properties)
-
-
-class EdgeMapping(VertexMapping):
-    pass
