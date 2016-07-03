@@ -85,7 +85,6 @@ class TestEngine(unittest.TestCase):
                 results += msg.data
                 print(len(results))
             self.assertTrue(len(results) > 1)
-            await stream.close()
             await engine.close()
 
         self.loop.run_until_complete(go())

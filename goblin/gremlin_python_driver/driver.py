@@ -48,10 +48,11 @@ class Driver:
 
 class AsyncResponseIter:
 
-    def __init__(self, ws, loop, conn):
+    def __init__(self, ws, loop, conn, *, force_close=True):
         self._ws = ws
         self._loop = loop
         self._conn = conn
+        self._force_close = force_close
         self._closed = False
 
     async def __aiter__(self):
@@ -62,6 +63,8 @@ class AsyncResponseIter:
         if msg:
             return msg
         else:
+            if self._force_close:
+                await self.close()
             raise StopAsyncIteration
 
     async def close(self):
