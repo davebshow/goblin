@@ -44,7 +44,7 @@ async def create_engine(url, loop):
 class Engine:
     """Class used to encapsulate database connection configuration and generate
        database connections. Used as a factory to create :py:class:`Session`
-       objects."""
+       objects. More config coming soon."""
 
     def __init__(self, url, loop, *, force_close=True, **features):
         self._url = url
@@ -196,7 +196,7 @@ class Session:
         result = await stream.fetch_data()
         if result.data:
             edge = mapper.map_edge_to_ogm(result.data[0], element,
-                                              element.__mapping__)
+                                          element.__mapping__)
             return edge
 
     def _get_edge_by_id(self, eid):

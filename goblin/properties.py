@@ -14,7 +14,8 @@ class Property:
 
 
 class PropertyDescriptor:
-    """Descriptor that validates user property input."""
+    """Descriptor that validates user property input and gets/sets properties
+       as instance attributes."""
 
     def __init__(self, name, data_type, *, initval=None):
         self._name = '_' + name
@@ -22,7 +23,6 @@ class PropertyDescriptor:
         self._initval = initval
 
     def __get__(self, obj, objtype):
-        print(self._data_type)
         if obj is None:
             return self
         return getattr(obj, self._name, self._initval)

@@ -12,7 +12,9 @@ setup(
     packages=["goblin", "goblin.gremlin_python",
               "goblin.gremlin_python_driver", "tests"],
     install_requires=[
-        "aiohttp==0.21.6"
+        "aenum==1.4.5",
+        "aiohttp==0.21.6",
+        "inflection==0.3.1"
     ],
     test_suite="tests",
     classifiers=[
