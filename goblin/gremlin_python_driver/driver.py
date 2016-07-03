@@ -48,11 +48,11 @@ class Driver:
 
 class AsyncResponseIter:
 
-    def __init__(self, ws, loop, conn, *, force_close=True):
+    def __init__(self, ws, loop, conn):
         self._ws = ws
         self._loop = loop
         self._conn = conn
-        self._force_close = force_close
+        self._force_close = self._conn.force_close
         self._closed = False
 
     async def __aiter__(self):
@@ -89,9 +89,14 @@ class AsyncResponseIter:
 
 class Connection:
 
-    def __init__(self, ws, loop):
+    def __init__(self, ws, loop, *, force_close=True):
         self._ws = ws
         self._loop = loop
+        self._force_close = force_close
+
+    @property
+    def force_close(self):
+        return self._force_close
 
     def submit(self,
                gremlin,
