@@ -48,7 +48,7 @@ class VertexMapping:
 
     def __init__(self, namespace, properties):
         self._label = namespace.get('__label__', None)
-        self._type = 'vertex'
+        self._type = namespace['__type__']
         self._properties = []
         self._map_properties(properties)
 

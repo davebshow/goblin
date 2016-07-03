@@ -212,7 +212,7 @@ class ElementMeta(type):
                 v = properties.PropertyDescriptor(v.data_type)
             new_namespace[k] = v
         new_namespace['__mapping__'] = mapper.create_mapping(namespace,
-                                                              props)
+                                                             props)
         result = type.__new__(cls, name, bases, new_namespace)
         return result
 
