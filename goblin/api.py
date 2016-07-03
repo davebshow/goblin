@@ -98,24 +98,20 @@ class Session:
         # Need some optional kwargs etc...
         while self._pending:
             elem = self._pending.popleft()
-            result = await self.save_element(elem)
-            if result:
-                self._current[result.id] = result
-
+            await self.save_element(elem)
+                
     async def save_element(self, element):
         if element.__type__ == 'vertex':
-            result = await self.save_vertex(element)
+            await self.save_vertex(element)
         elif element.__type__ == 'edge':
-            result = await self.save_edge(element)
-        else:
-            result = None
-        return result
+            await self.save_edge(element)
 
     async def save_vertex(self, element):
         result = await self._save_element(element,
                                           self._create_vertex,
                                           self._update_vertex,
                                           mapper.map_vertex_to_ogm)
+        self._current[result.id] = result
         return result
 
     async def save_edge(self, element):
@@ -125,6 +121,7 @@ class Session:
                                           self._create_edge,
                                           self._update_edge,
                                           mapper.map_edge_to_ogm)
+        self._current[result.id] = result
         return result
 
     async def _save_element(self,
