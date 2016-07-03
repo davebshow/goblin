@@ -155,17 +155,17 @@ class Session:
 
     def _get_vertex_by_id(self, element):
         traversal = self.g.V(element.id)
-        return self._get_script_bindings(traversal)
+        return self._parse_traversal(traversal)
 
     def _get_edge_by_id(self, element):
         traversal = self.g.E(element.id)
-        return self._get_script_bindings(traversal)
+        return self._parse_traversal(traversal)
 
     def _create_vertex(self, element):
         props = mapper.map_props_to_db(element, element.__mapping__)
         traversal = self.g.addV(element.__mapping__.label)
         traversal = self._add_properties(traversal, props)
-        return self._get_script_bindings(traversal)
+        return self._parse_traversal(traversal)
 
     def _update_vertex(self, element):
         raise NotImplementedError
@@ -176,7 +176,7 @@ class Session:
         traversal = traversal.addE(element.__mapping__._label)
         traversal = traversal.to(self.g.V(element.target.id))
         traversal = self._add_properties(traversal, props)
-        return self._get_script_bindings(traversal)
+        return self._parse_traversal(traversal)
 
     def _update_edge(self, element):
         raise NotImplementedError
@@ -189,7 +189,7 @@ class Session:
         self._binding = 0
         return traversal
 
-    def _get_script_bindings(self, traversal):
+    def _parse_traversal(self, traversal):
         script = traversal.translator.traversal_script
         bindings = traversal.bindings
         return script, bindings
