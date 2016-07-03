@@ -1,3 +1,11 @@
+"""Query API and helpers"""
+
+
+def parse_traversal(traversal):
+    script = traversal.translator.traversal_script
+    bindings = traversal.bindings
+    return script, bindings
+
 class Query:
 
     def __init__(self, session, element_class):
@@ -18,9 +26,9 @@ class Query:
 
     # Methods that issue a query
     async def all(self):
-        script = self._traversal.translator.traversal_script
+        script, bindings = parse_traversal(self._traversal)
         stream = await self._engine.execute(
-            script, bindings=self._traversal.bindings)
+            script, bindings=bindings)
         # This should return and async iterator wrapper that can see and update
         # parent session object, but for the demo it works
         return stream
