@@ -1,8 +1,12 @@
-# Properties
-class Property:
+"""Classes to handle proerties and data type definitions"""
 
-    def __init__(self, data_type):
+
+class Property:
+    """API class used to define properties. Replaced with
+      :py:class:`PropertyDescriptor` by :py:class:`api.ElementMeta`."""
+    def __init__(self, data_type, *, initval=None):
         self._data_type = data_type
+        self._initval = initval
 
     @property
     def data_type(self):
@@ -10,17 +14,21 @@ class Property:
 
 
 class PropertyDescriptor:
+    """Descriptor that validates user property input."""
 
-    def __init__(self, data_type):
+    def __init__(self, name, data_type, *, initval=None):
+        self._name = '_' + name
         self._data_type = data_type
-        self._val = None
+        self._initval = initval
 
     def __get__(self, obj, objtype):
         print(self._data_type)
-        return self._val
+        if obj is None:
+            return self
+        return getattr(obj, self._name, self._initval)
 
     def __set__(self, obj, val):
-        self._val = self._data_type.validate(val)
+        setattr(obj, self._name, self._data_type.validate(val))
 
     def __delete__(self, obj):
         self._val = None
@@ -28,10 +36,14 @@ class PropertyDescriptor:
 
 # Data types
 class String:
-
+    """Simple string datatype"""
     @classmethod
     def validate(cls, val):
-        return str(val)
+        if val:
+            try:
+                return str(val)
+            except Exception as e:
+                raise Exception("Invalid") from e
 
     @classmethod
     def to_db(cls, val):

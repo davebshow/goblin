@@ -1,3 +1,4 @@
+"""Main OGM API classes and constructors"""
 import collections
 
 from goblin import gremlin_python
@@ -9,6 +10,8 @@ from goblin.gremlin_python_driver import driver
 
 # Constructor API
 async def create_engine(url, loop):
+    """Constructor function for :py:class:`Engine`. Connects to database
+       and builds a dictionary of relevant vendor implmentation features"""
     features = {}
     # Will use a pool here
     async with driver.create_connection(url, loop) as conn:
@@ -39,17 +42,21 @@ async def create_engine(url, loop):
 
 # Main API classes
 class Engine:
+    """Class used to encapsulate database connection configuration and generate
+       database connections. Used as a factory to create :py:class:`Session`
+       objects."""
 
-    def __init__(self, url, loop, **features):
+    def __init__(self, url, loop, *, force_close=True, **features):
         self._url = url
         self._loop = loop
+        self._force_close = force_close
         self._features = features
         self._translator = gremlin_python.GroovyTranslator('g')
         # This will be a pool
         self._driver = driver.Driver(self._url, self._loop)
 
-    def session(self):
-        return Session(self)
+    def session(self, *, use_session=False):
+        return Session(self, use_session=use_session)
 
     @property
     def translator(self):
@@ -59,8 +66,8 @@ class Engine:
     def url(self):
         return url
 
-    async def execute(self, query, *, bindings=None):
-        conn = await self._driver.connect()
+    async def execute(self, query, *, bindings=None, session=None):
+        conn = await self._driver.connect(force_close=self._force_close)
         return conn.submit(query, bindings=bindings)
 
     async def close(self):
@@ -69,9 +76,13 @@ class Engine:
 
 
 class Session:
+    """Provides the main API for interacting with the database. Does not
+       necessarily correpsond to a database session."""
 
-    def __init__(self, engine):
+    def __init__(self, engine, *, use_session=False):
         self._engine = engine
+        self._use_session = False
+        self._session = None
         self._g = gremlin_python.PythonGraphTraversalSource(
             self.engine.translator)
         self._pending = collections.deque()
@@ -86,6 +97,10 @@ class Session:
     def engine(self):
         return self._engine
 
+    @property
+    def current(self):
+        return self._current
+
     def query(self, element_class):
         return query.Query(self, element_class)
 
@@ -94,108 +109,149 @@ class Session:
             self._pending.append(elem)
 
     async def flush(self):
-        # Could optionally use sessions/transactions here
-        # Need some optional kwargs etc...
         while self._pending:
             elem = self._pending.popleft()
-            await self.save_element(elem)
+            await self.save(elem)
 
-    async def save_element(self, element):
+    async def save(self, element):
         if element.__type__ == 'vertex':
             result = await self.save_vertex(element)
         elif element.__type__ == 'edge':
             result = await self.save_edge(element)
         else:
-            raise Exception("Unkown element type")
+            raise Exception("Unknown element type")
         return result
 
     async def save_vertex(self, element):
         result = await self._save_element(element,
+                                          self._get_vertex_by_id,
                                           self._create_vertex,
                                           self._update_vertex,
                                           mapper.map_vertex_to_ogm)
-        self._current[result.id] = result
+        self.current[result.id] = result
         return result
 
     async def save_edge(self, element):
-        if not (element.source and element.target):
+        if not (hasattr(element, 'source') and hasattr(element, 'target')):
             raise Exception("Edges require source/target vetices")
         result = await self._save_element(element,
+                                          self._get_edge_by_id,
                                           self._create_edge,
                                           self._update_edge,
                                           mapper.map_edge_to_ogm)
-        self._current[result.id] = result
+        self.current[result.id] = result
         return result
 
     async def _save_element(self,
                             element,
+                            get_func,
                             create_func,
                             update_func,
                             mapper_func):
         if hasattr(element, 'id'):
-            # Something like
-            # if self._current.get(element.id):
-            #     old = self._current[element.id]
-            #     element = merge_elements(old, element)
-            script, bindings = self._get_edge_by_id(element)
-            stream = await self.engine.execute(script, bindings=bindings)
+            traversal = get_func(element.id)
+            stream = await self._execute_traversal(traversal)
             result = await stream.fetch_data()
-            await stream.close()
             if not result.data:
-                script, bindings = create_func(element)
+                traversal = create_func(element)
             else:
-                script, bindings = update_func(element)
+                traversal = update_func(element)
         else:
-            script, bindings = create_func(element)
-        stream = await self.engine.execute(script, bindings=bindings)
+            traversal = create_func(element)
+        stream = await self._execute_traversal(traversal)
         result = await stream.fetch_data()
-        # Will just release the conn back to pool here
-        await stream.close()
         return mapper_func(result.data[0], element, element.__mapping__)
 
-    async def get_vertex_by_id(self, element):
-        pass
+    async def delete_vertex(self, element):
+        traversal = self.g.V(element.id).drop()
+        result = await self._delete_element(element, traversal)
+        return result
 
-    def _get_vertex_by_id(self, element):
-        traversal = self.g.V(element.id)
-        return query.parse_traversal(traversal)
+    async def delete_edge(self, element):
+        traversal = self.g.E(element.id).drop()
+        result = await self._delete_element(element, traversal)
+        return result
 
-    async def get_edge_by_id(self, element):
-        pass
+    async def _delete_element(self, element, traversal):
+        stream = await self._execute_traversal(traversal)
+        result = await stream.fetch_data()
+        del self.current[element.id]
+        return result
 
-    def _get_edge_by_id(self, element):
-        traversal = self.g.E(element.id)
-        return query.parse_traversal(traversal)
+    async def get_vertex(self, element):
+        traversal = self._get_vertex_by_id(element.id)
+        stream = await self._execute_traversal(traversal)
+        result = await stream.fetch_data()
+        if result.data:
+            vertex = mapper.map_vertex_to_ogm(result.data[0], element,
+                                              element.__mapping__)
+            return vertex
+
+    def _get_vertex_by_id(self, vid):
+        return self.g.V(vid)
+
+    async def get_edge(self, element):
+        traversal = self._get_edge_by_id(element.id)
+        stream = await self._execute_traversal(traversal)
+        result = await stream.fetch_data()
+        if result.data:
+            edge = mapper.map_edge_to_ogm(result.data[0], element,
+                                              element.__mapping__)
+            return edge
+
+    def _get_edge_by_id(self, eid):
+        return self.g.E(eid)
 
     def _create_vertex(self, element):
         props = mapper.map_props_to_db(element, element.__mapping__)
         traversal = self.g.addV(element.__mapping__.label)
-        traversal = self._add_properties(traversal, props)
-        return query.parse_traversal(traversal)
-
-    def _update_vertex(self, element):
-        raise NotImplementedError
+        return self._add_properties(traversal, props)
 
     def _create_edge(self, element):
         props = mapper.map_props_to_db(element, element.__mapping__)
         traversal = self.g.V(element.source.id)
         traversal = traversal.addE(element.__mapping__._label)
         traversal = traversal.to(self.g.V(element.target.id))
-        traversal = self._add_properties(traversal, props)
-        return query.parse_traversal(traversal)
+        return self._add_properties(traversal, props)
+
+    def _update_vertex(self, element):
+        props = mapper.map_props_to_db(element, element.__mapping__)
+        traversal = self.g.V(element.id)
+        return self._add_properties(traversal, props)
 
     def _update_edge(self, element):
-        raise NotImplementedError
+        props = mapper.map_props_to_db(element, element.__mapping__)
+        traversal = self.g.E(element.id)
+        return self._add_properties(traversal, props)
 
     def _add_properties(self, traversal, props):
         for k, v in props:
-            traversal = traversal.property(
-                ('k' + str(self._binding), k), ('v' + str(self._binding), v))
-            self._binding += 1
+            if v:
+                traversal = traversal.property(
+                    ('k' + str(self._binding), k),
+                    ('v' + str(self._binding), v))
+                self._binding += 1
         self._binding = 0
         return traversal
 
+    async def _execute_traversal(self, traversal):
+        script, bindings = query.parse_traversal(traversal)
+        if self.engine._features['transactions'] and not self._use_session():
+            script = self._wrap_in_tx(script)
+        stream = await self.engine.execute(script, bindings=bindings,
+                                           session=self._session)
+        return stream
+
+    def _wrap_in_tx(self):
+        raise NotImplementedError
+
+    def tx(self):
+        raise NotImplementedError
+
     async def commit(self):
+        await self.flush()
+        if self.engine._features['transactions'] and self._use_session():
+            await self.tx()
         raise NotImplementedError
 
     async def rollback(self):
@@ -204,7 +260,10 @@ class Session:
 
 # Graph elements
 class ElementMeta(type):
-
+    """Metaclass for graph elements. Responsible for creating the
+       the :py:class:`mapper.Mapping` object and replacing user defined
+       :py:class:`property.Property` with
+       :py:class:`property.PropertyDescriptor`"""
     def __new__(cls, name, bases, namespace, **kwds):
         if bases:
             namespace['__type__'] = bases[0].__name__.lower()
@@ -213,7 +272,8 @@ class ElementMeta(type):
         for k, v in namespace.items():
             if isinstance(v, properties.Property):
                 props[k] = v
-                v = properties.PropertyDescriptor(v.data_type)
+                v = properties.PropertyDescriptor(k, v.data_type,
+                                                  initval=v._initval)
             new_namespace[k] = v
         new_namespace['__mapping__'] = mapper.create_mapping(namespace,
                                                              props)
@@ -222,10 +282,12 @@ class ElementMeta(type):
 
 
 class Vertex(metaclass=ElementMeta):
+    """Base class for user defined Vertex classes"""
     pass
 
 
 class Edge(metaclass=ElementMeta):
+    """Base class for user defined Edge classes"""
 
     def __init__(self, source=None, target=None):
         if source:

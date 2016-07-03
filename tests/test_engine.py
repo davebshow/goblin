@@ -8,11 +8,12 @@ from goblin.properties import Property, String
 class TestVertex(Vertex):
     __label__ = 'test_vertex'
     name = Property(String)
+    notes = Property(String, initval='N/A')
 
 
 class TestEdge(Edge):
     __label__ = 'test_edge'
-    notes = Property(String)
+    notes = Property(String, initval='N/A')
 
 
 class TestEngine(unittest.TestCase):
@@ -31,13 +32,39 @@ class TestEngine(unittest.TestCase):
             session = engine.session()
             leif = TestVertex()
             leif.name = 'leifur'
+            leif.notes = 'superdev'
             session.add(leif)
             await session.flush()
             current = session._current[leif.id]
             self.assertEqual(current.name, 'leifur')
+            self.assertEqual(current.notes, 'superdev')
             self.assertIs(leif, current)
             self.assertEqual(leif.id, current.id)
             await engine.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_update_vertex(self):
+
+        async def go():
+            engine = await create_engine("http://localhost:8182/", self.loop)
+            session = engine.session()
+            leif = TestVertex()
+            leif.name = 'leifur'
+            session.add(leif)
+            await session.flush()
+            current = session._current[leif.id]
+            self.assertEqual(current.name, 'leifur')
+            self.assertEqual(current.notes, 'N/A')
+
+            leif.name = 'leif'
+            session.add(leif)
+            await session.flush()
+            new_current = session._current[leif.id]
+            self.assertIs(current, new_current)
+            self.assertEqual(new_current.name, 'leif')
+            await engine.close()
+
 
         self.loop.run_until_complete(go())
 
@@ -53,6 +80,7 @@ class TestEngine(unittest.TestCase):
             works_for = TestEdge()
             works_for.source = jon
             works_for.target = leif
+            self.assertEqual(works_for.notes, 'N/A')
             works_for.notes = 'zerofail'
             session.add(leif, jon, works_for)
             await session.flush()
@@ -65,6 +93,34 @@ class TestEngine(unittest.TestCase):
             self.assertIs(jon, current.source)
             self.assertEqual(jon.id, current.source.id)
             await engine.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_update_edge(self):
+
+        async def go():
+            engine = await create_engine("http://localhost:8182/", self.loop)
+            session = engine.session()
+            leif = TestVertex()
+            leif.name = 'leifur'
+            jon = TestVertex()
+            jon.name = 'jonathan'
+            works_for = TestEdge()
+            works_for.source = jon
+            works_for.target = leif
+            session.add(leif, jon, works_for)
+            await session.flush()
+            current = session._current[works_for.id]
+            self.assertEqual(works_for.notes, 'N/A')
+            works_for.notes = 'zerofail'
+            session.add(works_for)
+            await session.flush()
+            new_current = session._current[works_for.id]
+            self.assertEqual(new_current.notes, 'zerofail')
+            await engine.close()
+
+        self.loop.run_until_complete(go())
+
 
         self.loop.run_until_complete(go())
 
@@ -82,9 +138,55 @@ class TestEngine(unittest.TestCase):
             results = []
             stream = await session.query(TestVertex).all()
             async for msg in stream:
-                results += msg.data
-                print(len(results))
-            self.assertTrue(len(results) > 1)
+                    results += msg
+                    print(len(results))
+            self.assertEqual(len(session.current), 2)
+            for result in results:
+                self.assertIsInstance(result, Vertex)
+            await engine.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_delete_vertex(self):
+
+        async def go():
+            engine = await create_engine("http://localhost:8182/", self.loop)
+            session = engine.session()
+            leif = TestVertex()
+            leif.name = 'leifur'
+            session.add(leif)
+            await session.flush()
+            current = session._current[leif.id]
+            self.assertIs(leif, current)
+            await session.delete_vertex(leif)
+            result = await session.get_vertex(leif)
+            self.assertIsNone(result)
+            self.assertEqual(len(list(session.current.items())), 0)
+            await engine.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_delete_edge(self):
+
+        async def go():
+            engine = await create_engine("http://localhost:8182/", self.loop)
+            session = engine.session()
+            leif = TestVertex()
+            leif.name = 'leifur'
+            jon = TestVertex()
+            jon.name = 'jonathan'
+            works_for = TestEdge()
+            works_for.source = jon
+            works_for.target = leif
+            works_for.notes = 'zerofail'
+            session.add(leif, jon, works_for)
+            await session.flush()
+            current = session._current[works_for.id]
+            self.assertIs(current, works_for)
+            await session.delete_edge(works_for)
+            result = await session.get_edge(works_for)
+            self.assertIsNone(result)
+            self.assertEqual(len(list(session.current.items())), 2)
             await engine.close()
 
         self.loop.run_until_complete(go())

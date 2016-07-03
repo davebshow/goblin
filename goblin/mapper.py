@@ -1,10 +1,14 @@
-# Mapping helpers
+"""Helper functions and class to map between OGM Elements <-> DB Elements"""
+import inflection
+
+
 def props_generator(properties):
     for prop in properties:
         yield prop['ogm_name'], prop['db_name'], prop['data_type']
 
 
 def map_props_to_db(element, mapping):
+    """Convert OGM property names/values to DB property names/values"""
     property_tuples = []
     props = mapping.properties
     for ogm_name, db_name, data_type in props_generator(props):
@@ -14,6 +18,7 @@ def map_props_to_db(element, mapping):
 
 
 def map_vertex_to_ogm(result, element, mapping):
+    """Map a vertex returned by DB to OGM vertex"""
     props = mapping.properties
     for ogm_name, db_name, data_type in props_generator(props):
         val = result['properties'].get(db_name, [{'value': None}])[0]['value']
@@ -24,6 +29,7 @@ def map_vertex_to_ogm(result, element, mapping):
 
 
 def map_edge_to_ogm(result, element, mapping):
+    """Map an edge returned by DB to OGM edge"""
     props = mapping.properties
     for ogm_name, db_name, data_type in props_generator(props):
         val = result['properties'].get(db_name, None)
@@ -37,14 +43,16 @@ def map_edge_to_ogm(result, element, mapping):
 
 # DB <-> OGM Mapping
 def create_mapping(namespace, properties):
+    """Constructor for :py:class:`Mapping`"""
     if namespace.get('__type__', None):
         return Mapping(namespace, properties)
 
 
 class Mapping:
-
+    """This class stores the information necessary to map between an
+       OGM element and a DB element"""
     def __init__(self, namespace, properties):
-        self._label = namespace.get('__label__', None)
+        self._label = namespace.get('__label__', None) or self._create_label()
         self._type = namespace['__type__']
         self._properties = []
         self._map_properties(properties)
@@ -56,6 +64,9 @@ class Mapping:
     @property
     def properties(self):
         return self._properties
+
+    def _create_label(self):
+        return inflection.underscore(self.__class__.__name__)
 
     def _map_properties(self, properties):
         for name, prop in properties.items():

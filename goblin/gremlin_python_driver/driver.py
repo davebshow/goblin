@@ -1,3 +1,4 @@
+"""Simple Async driver for the TinkerPop3 Gremlin Server"""
 import collections
 import json
 import uuid
@@ -12,10 +13,12 @@ Message = collections.namedtuple(
 
 
 def create_connection(url, loop):
+    """Driver constructor function."""
     return Driver(url, loop)
 
 
 class Driver:
+
 
     def __init__(self, url, loop):
         self._url = url
@@ -28,16 +31,16 @@ class Driver:
         return self._conn
 
     async def __aenter__(self):
-        conn = await self.connect()
+        conn = await self.connect(force_close=False)
         self._conn = conn
         return conn
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
 
-    async def connect(self):
+    async def connect(self, *, force_close=True):
         ws = await self._session.ws_connect(self._url)
-        return Connection(ws, self._loop)
+        return Connection(ws, self._loop, force_close=force_close)
 
     async def close(self):
         if self._conn:
@@ -63,8 +66,6 @@ class AsyncResponseIter:
         if msg:
             return msg
         else:
-            if self._force_close:
-                await self.close()
             raise StopAsyncIteration
 
     async def close(self):
@@ -82,9 +83,18 @@ class AsyncResponseIter:
                           message["result"]["data"],
                           message["status"]["message"],
                           message["result"]["meta"])
-        if message.status_code != 206:
-            self._closed = True
-        return message
+        if message.status_code in [200, 206, 204]:
+            if message.status_code != 206:
+                self._closed = True
+                if self._force_close:
+                    await self.close()
+            return message
+        elif message.status_code == 407:
+            pass  # auth
+        else:
+            raise RuntimeError("{0} {1}".format(message.status_code,
+                                                message.message))
+
 
 
 class Connection:
@@ -155,7 +165,7 @@ class Connection:
             }
         }
         message = self._finalize_message(message, processor, session)
-        self.conn.send(message, binary=True)
+        self._ws.submit(message, binary=True)
 
     def _finalize_message(self, message, processor, session):
         if processor == "session":
