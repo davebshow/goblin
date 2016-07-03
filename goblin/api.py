@@ -153,9 +153,15 @@ class Session:
         await stream.close()
         return mapper_func(result.data[0], element, element.__mapping__)
 
+    async def get_vertex_by_id(self, element):
+        pass
+
     def _get_vertex_by_id(self, element):
         traversal = self.g.V(element.id)
         return query.parse_traversal(traversal)
+
+    async def get_edge_by_id(self, element):
+        pass
 
     def _get_edge_by_id(self, element):
         traversal = self.g.E(element.id)

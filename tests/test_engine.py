@@ -50,12 +50,11 @@ class TestEngine(unittest.TestCase):
             leif.name = 'leifur'
             jon = TestVertex()
             jon.name = 'jonathan'
-            session.add(leif, jon)
             works_for = TestEdge()
             works_for.source = jon
             works_for.target = leif
             works_for.notes = 'zerofail'
-            session.add(works_for)
+            session.add(leif, jon, works_for)
             await session.flush()
             current = session._current[works_for.id]
             self.assertEqual(current.notes, 'zerofail')
