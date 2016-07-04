@@ -8,12 +8,12 @@ from goblin.properties import Property, String
 class TestVertex(Vertex):
     __label__ = 'test_vertex'
     name = Property(String)
-    notes = Property(String, initval='N/A')
+    notes = Property(String, default='N/A')
 
 
 class TestEdge(Edge):
     __label__ = 'test_edge'
-    notes = Property(String, initval='N/A')
+    notes = Property(String, default='N/A')
 
 
 class TestEngine(unittest.TestCase):

@@ -272,8 +272,9 @@ class ElementMeta(type):
         for k, v in namespace.items():
             if isinstance(v, properties.Property):
                 props[k] = v
-                v = properties.PropertyDescriptor(k, v.data_type,
-                                                  initval=v._initval)
+                data_type = v.data_type
+                v = properties.PropertyDescriptor(k, data_type,
+                                                  default=v._default)
             new_namespace[k] = v
         new_namespace['__mapping__'] = mapper.create_mapping(namespace,
                                                              props)
@@ -303,7 +304,7 @@ class Edge(metaclass=ElementMeta):
         self._source = val
 
     def delsource(self):
-        del self._source
+        raise ValueError("Cant")
 
     source = property(getsource, setsource, delsource)
 
