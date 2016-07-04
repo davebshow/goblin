@@ -19,7 +19,6 @@ def create_connection(url, loop):
 
 class Driver:
 
-
     def __init__(self, url, loop):
         self._url = url
         self._loop = loop

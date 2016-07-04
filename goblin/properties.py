@@ -24,14 +24,14 @@ class PropertyDescriptor:
 
     def __get__(self, obj, objtype):
         if obj is None:
-            return self
+            return self._data_type
         return getattr(obj, self._name, self._initval)
 
     def __set__(self, obj, val):
         setattr(obj, self._name, self._data_type.validate(val))
 
     def __delete__(self, obj):
-        self._val = None
+        raise ValueError("Cannot delete element properties")
 
 
 # Data types
