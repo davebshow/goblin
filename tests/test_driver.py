@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 
-from goblin.gremlin_python_driver.driver import create_connection
+from goblin.gremlin_python_driver.driver import Driver
 
 
 class TestDriver(unittest.TestCase):
@@ -13,16 +13,20 @@ class TestDriver(unittest.TestCase):
     def test_connect(self):
 
         async def go():
-            async with create_connection("http://localhost:8182/", self.loop) as conn:
+            driver = Driver("http://localhost:8182/", self.loop)
+            async with driver.get() as conn:
                 self.assertFalse(conn._ws.closed)
+            await driver.close()
 
         self.loop.run_until_complete(go())
 
     def test_submit(self):
 
         async def go():
-            async with create_connection("http://localhost:8182/", self.loop) as conn:
+            driver = Driver("http://localhost:8182/", self.loop)
+            async with driver.get() as conn:
                 async for msg in conn.submit("1 + 1"):
                     self.assertEqual(msg.data[0], 2)
+            await driver.close()
 
         self.loop.run_until_complete(go())

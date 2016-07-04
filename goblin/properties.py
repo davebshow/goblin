@@ -1,5 +1,9 @@
 """Classes to handle proerties and data type definitions"""
 import abc
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class Property:

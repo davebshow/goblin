@@ -41,6 +41,7 @@ class TestEngine(unittest.TestCase):
             self.assertIs(leif, current)
             self.assertEqual(leif.id, current.id)
             await engine.close()
+            print(engine)
 
         self.loop.run_until_complete(go())
 

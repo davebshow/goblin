@@ -12,40 +12,50 @@ Message = collections.namedtuple(
     ["status_code", "data", "message", "metadata"])
 
 
-def create_connection(url, loop):
-    """Driver constructor function."""
-    return Driver(url, loop)
-
-
 class Driver:
 
-    def __init__(self, url, loop):
+    def __init__(self, url, loop, *, client_session=None):
         self._url = url
         self._loop = loop
-        self._session = aiohttp.ClientSession(loop=self._loop)
-        self._conn = None
+        if not client_session:
+            client_session = aiohttp.ClientSession(loop=self._loop)
+        self._client_session = client_session
 
     @property
     def conn(self):
         return self._conn
 
-    async def __aenter__(self):
-        conn = await self.connect(force_close=False)
-        self._conn = conn
-        return conn
+    def get(self):
+        return AsyncDriverConnectionContextManager(self)
 
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.close()
-
-    async def connect(self, *, force_close=True):
-        ws = await self._session.ws_connect(self._url)
-        return Connection(ws, self._loop, force_close=force_close)
+    async def connect(self, *, force_close=True, force_release=False, pool=None):
+        ws = await self._client_session.ws_connect(self._url)
+        return Connection(ws, self._loop, force_close=force_close,
+                          force_release=force_release, pool=pool)
 
     async def close(self):
         if self._conn:
             await self._conn.close()
             self._conn = None
-        await self._session.close()
+        await self._client_session.close()
+        self._client_session = None
+
+
+class AsyncDriverConnectionContextManager:
+
+    __slots__ = ('_driver', '_conn')
+
+    def __init__(self, driver):
+        self._driver = driver
+
+    async def __aenter__(self):
+        self._conn = await self._driver.connect(force_close=False)
+        return self._conn
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self._conn.close()
+        self._conn = None
+        self._driver = None
 
 
 class AsyncResponseIter:
@@ -55,6 +65,7 @@ class AsyncResponseIter:
         self._loop = loop
         self._conn = conn
         self._force_close = self._conn.force_close
+        self._force_release = self._conn.force_release
         self._closed = False
 
     async def __aiter__(self):
@@ -84,28 +95,52 @@ class AsyncResponseIter:
                           message["result"]["meta"])
         if message.status_code in [200, 206, 204]:
             if message.status_code != 206:
-                self._closed = True
-                if self._force_close:
-                    await self.close()
+                await self._term()
             return message
         elif message.status_code == 407:
             pass  # auth
         else:
+            await self._term()
             raise RuntimeError("{0} {1}".format(message.status_code,
                                                 message.message))
 
-
+    async def _term(self):
+        self._closed = True
+        if self._force_close:
+            await self.close()
+        elif self._force_release:
+            await self._conn.release()
 
 class Connection:
 
-    def __init__(self, ws, loop, *, force_close=True):
+    def __init__(self, ws, loop, *, force_close=True, force_release=False,
+                 pool=None):
         self._ws = ws
         self._loop = loop
         self._force_close = force_close
+        self._force_release = force_release
+        self._pool = pool
+        self._closed = False
+
+    @property
+    def closed(self):
+        return self._closed
 
     @property
     def force_close(self):
         return self._force_close
+
+    @property
+    def force_release(self):
+        return self._force_release
+
+    @property
+    def pool(self):
+        return self._pool
+
+    async def release(self):
+        if self._pool:
+            await self._pool.release(self)
 
     def submit(self,
                gremlin,
@@ -133,6 +168,7 @@ class Connection:
 
     async def close(self):
         await self._ws.close()
+        self._closed = True
 
     def _prepare_message(self, gremlin, bindings, lang, aliases, op, processor,
                          session, request_id):

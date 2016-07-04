@@ -1,20 +1,33 @@
 """Main OGM API classes and constructors"""
 import collections
+import logging
 
 from goblin import gremlin_python
 from goblin import mapper
 from goblin import properties
 from goblin import query
-from goblin.gremlin_python_driver import driver
+from goblin import gremlin_python_driver
+
+
+logger = logging.getLogger(__name__)
 
 
 # Constructor API
-async def create_engine(url, loop):
+async def create_engine(url,
+                        loop,
+                        maxsize=256,
+                        force_close=False,
+                        force_release=True):
     """Constructor function for :py:class:`Engine`. Connects to database
        and builds a dictionary of relevant vendor implmentation features"""
     features = {}
     # Will use a pool here
-    async with driver.create_connection(url, loop) as conn:
+    pool = gremlin_python_driver.create_pool(url,
+                                             loop,
+                                             maxsize=maxsize,
+                                             force_close=force_close,
+                                             force_release=force_release)
+    async with pool.driver.get() as conn:
         # Propbably just use a parser to parse the whole feature list
         stream = conn.submit(
             'graph.features().graph().supportsComputer()')
@@ -37,7 +50,7 @@ async def create_engine(url, loop):
         msg = await stream.fetch_data()
         features['threaded_transactions'] = msg.data[0]
 
-    return Engine(url, loop, **features)
+    return Engine(url, loop, pool=pool, **features)
 
 
 # Main API classes
@@ -46,17 +59,16 @@ class Engine:
        database connections. Used as a factory to create :py:class:`Session`
        objects. More config coming soon."""
 
-    def __init__(self, url, loop, *, force_close=True, **features):
+    def __init__(self, url, loop, *, pool=None, force_close=True, **features):
         self._url = url
         self._loop = loop
         self._force_close = force_close
         self._features = features
         self._translator = gremlin_python.GroovyTranslator('g')
         # This will be a pool
-        self._driver = driver.Driver(self._url, self._loop)
-
-    def session(self, *, use_session=False):
-        return Session(self, use_session=use_session)
+        if pool is None:
+            pool = gremlin_python_driver.Pool(url, loop)
+        self._pool = pool
 
     @property
     def translator(self):
@@ -64,15 +76,22 @@ class Engine:
 
     @property
     def url(self):
-        return url
+        return self._url
+
+    @property
+    def pool(self):
+        return self._pool
+
+    def session(self, *, use_session=False):
+        return Session(self, use_session=use_session)
 
     async def execute(self, query, *, bindings=None, session=None):
-        conn = await self._driver.connect(force_close=self._force_close)
+        conn = await self.pool.acquire()
         return conn.submit(query, bindings=bindings)
 
     async def close(self):
-        await self._driver.close()
-        self._driver = None
+        await self.pool.close()
+        self._pool = None
 
 
 class Session:
@@ -278,6 +297,7 @@ class ElementMeta(type):
             new_namespace[k] = v
         new_namespace['__mapping__'] = mapper.create_mapping(namespace,
                                                              props)
+        logger.warning("Creating new Element class: {}".format(name))
         result = type.__new__(cls, name, bases, new_namespace)
         return result
 
