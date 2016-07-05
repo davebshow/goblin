@@ -25,7 +25,8 @@ class TestDriver(unittest.TestCase):
         async def go():
             driver = Driver("http://localhost:8182/", self.loop)
             async with driver.get() as conn:
-                async for msg in conn.submit("1 + 1"):
+                stream = await conn.submit("1 + 1")
+                async for msg in stream:
                     self.assertEqual(msg.data[0], 2)
             await driver.close()
 

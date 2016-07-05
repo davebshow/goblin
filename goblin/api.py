@@ -25,23 +25,23 @@ async def create_engine(url,
     driver = gremlin_python_driver.Driver(url, loop)
     async with driver.get() as conn:
         # Propbably just use a parser to parse the whole feature list
-        stream = conn.submit(
+        stream = await conn.submit(
             'graph.features().graph().supportsComputer()')
         msg = await stream.fetch_data()
         features['computer'] = msg.data[0]
-        stream = conn.submit(
+        stream = await conn.submit(
             'graph.features().graph().supportsTransactions()')
         msg = await stream.fetch_data()
         features['transactions'] = msg.data[0]
-        stream = conn.submit(
+        stream = await conn.submit(
             'graph.features().graph().supportsPersistence()')
         msg = await stream.fetch_data()
         features['persistence'] = msg.data[0]
-        stream = conn.submit(
+        stream = await conn.submit(
             'graph.features().graph().supportsConcurrentAccess()')
         msg = await stream.fetch_data()
         features['concurrent_access'] = msg.data[0]
-        stream = conn.submit(
+        stream = await conn.submit(
             'graph.features().graph().supportsThreadedTransactions()')
         msg = await stream.fetch_data()
         features['threaded_transactions'] = msg.data[0]
@@ -83,7 +83,7 @@ class Engine:
 
     async def execute(self, query, *, bindings=None, session=None):
         conn = await self.driver.recycle()
-        return conn.submit(query, bindings=bindings)
+        return await conn.submit(query, bindings=bindings)
 
     async def close(self):
         await self.driver.close()
