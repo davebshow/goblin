@@ -169,18 +169,18 @@ class AsyncResponseIter:
         if message.status_code in [200, 206, 204]:
             self._response_queue.put_nowait(message)
             if message.status_code != 206:
-                await self._term()
+                await self.term()
                 self._response_queue.put_nowait(None)
         elif message.status_code == 407:
             self._authenticate(self._username, self._password,
                                self._processor, self._session)
             message = await self.fetch_data()
         else:
-            await self._term()
+            await self.term()
             raise RuntimeError("{0} {1}".format(message.status_code,
                                                 message.message))
 
-    async def _term(self):
+    async def term(self):
         self._closed = True
         if self._force_close:
             await self.close()
