@@ -1,4 +1,5 @@
 """Query API and helpers"""
+import collections
 import logging
 from goblin import mapper
 
@@ -17,25 +18,26 @@ class AsyncQueryResponseIter:
     def __init__(self, async_iter, query):
         self._async_iter = async_iter
         self._query = query
+        self._queue = collections.deque()
 
     async def __aiter__(self):
         return self
 
     async def __anext__(self):
-        msg = await self._async_iter.fetch_data()
-        if msg:
-            results = msg.data
-            processed_results = []
-            for result in results:
-                current = self._query.session.current.get(result['id'], None)
-                if not current:
-                    current = self._query._element_class()
-                element = self._query._mapper(result, current,
-                                              current.__mapping__)
-                processed_results.append(element)
-            return processed_results
-        else:
-            raise StopAsyncIteration
+        if not self._queue:
+            msg = await self._async_iter.fetch_data()
+            if msg:
+                results = msg.data
+                for result in results:
+                    current = self._query.session.current.get(result['id'], None)
+                    if not current:
+                        current = self._query._element_class()
+                    element = self._query._mapper(result, current,
+                                                  current.__mapping__)
+                    self._queue.append(element)
+            else:
+                raise StopAsyncIteration
+        return self._queue.popleft()
 
 
 class Query:

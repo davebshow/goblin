@@ -139,8 +139,8 @@ class TestEngine(unittest.TestCase):
             results = []
             stream = await session.query(TestVertex).all()
             async for msg in stream:
-                    results += msg
-                    print(len(results))
+                results.append(msg)
+                print(len(results))
             self.assertEqual(len(session.current), 2)
             for result in results:
                 self.assertIsInstance(result, Vertex)
