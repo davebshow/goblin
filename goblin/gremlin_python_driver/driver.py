@@ -97,7 +97,6 @@ class Driver:
                 else:
                     await self.driver_condition.wait()
 
-
     async def reclaim(self, conn):
         if self.total_connections <= self.max_connections:
             if conn.closed:
