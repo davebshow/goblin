@@ -1,5 +1,9 @@
 """Helper functions and class to map between OGM Elements <-> DB Elements"""
+import logging
 import inflection
+
+
+logger = logging.getLogger(__name__)
 
 
 def props_generator(properties):

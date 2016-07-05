@@ -1,5 +1,9 @@
 """Query API and helpers"""
+import logging
 from goblin import mapper
+
+
+logger = logging.getLogger(__name__)
 
 
 def parse_traversal(traversal):
