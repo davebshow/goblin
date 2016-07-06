@@ -58,18 +58,6 @@ class AbstractConnection(abc.ABC):
     async def close(self):
         raise NotImplementedError
 
-    @abc.abstractproperty
-    def closed(self):
-        return self._closed
-
-    @abc.abstractproperty
-    def force_close(self):
-        return self._force_close
-
-    @abc.abstractproperty
-    def force_release(self):
-        return self._force_release
-
 
 class Connection(AbstractConnection):
 
@@ -114,15 +102,15 @@ class Connection(AbstractConnection):
 
     @property
     def closed(self):
-        return super().close
+        return self._closed
 
     @property
     def force_close(self):
-        return super().force_close
+        return self._force_close
 
     @property
     def force_release(self):
-        return super().force_release
+        return self._force_release
 
     async def release(self):
         if self.pool:
@@ -165,8 +153,8 @@ class Connection(AbstractConnection):
         self._pool = None
         await self._conn_factory.close()
 
-    def _prepare_message(self, gremlin, bindings, lang, aliases, op, processor,
-                         session, request_id):
+    def _prepare_message(self, gremlin, bindings, lang, aliases, op,
+                         processor, session, request_id):
         message = {
             "requestId": request_id,
             "op": op,

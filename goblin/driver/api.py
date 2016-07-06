@@ -19,10 +19,9 @@ class GremlinServer:
                    pool: pool.Pool=None,
                    username: str=None,
                    password: str=None) -> connection.Connection:
-        # Use connection factory here
         if conn_factory is None:
             conn_factory = aiohttp.ClientSession(loop=loop)
-            ws = await conn_factory.ws_connect(url)
+        ws = await conn_factory.ws_connect(url)
         return connection.Connection(ws, loop, conn_factory,
                                      max_inflight=max_inflight,
                                      force_close=force_close,
