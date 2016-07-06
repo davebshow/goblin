@@ -6,7 +6,7 @@ class AsyncResponseIter:
 
     def __init__(self, response_queue, loop, conn, username, password,
                  processor, session):
-        self._response_queue = self.response_queues
+        self._response_queue = self.response_queue
         self._loop = loop
         self._conn = conn
         self._force_close = self._conn.force_close
