@@ -16,9 +16,10 @@ Message = collections.namedtuple(
 
 class AsyncResponseIter:
 
-    def __init__(self, response_queue, loop:
+    def __init__(self, response_queue, loop, conn):
         self._response_queue = response_queue
         self._loop = loop
+        self._conn = conn
 
     async def __aiter__(self):
         return self
@@ -134,9 +135,7 @@ class Connection(AbstractConnection):
         response_queue = asyncio.Queue(loop=self._loop)
         self.response_queues[request_id] = response_queue
         self._ws.send_bytes(message)
-        return AsyncResponseIter(response_queue, self._loop, self,
-                                 self._username, self._password,
-                                 processor, session)
+        return AsyncResponseIter(response_queue, self._loop, self)
 
     async def close(self):
         await self._ws.close()
