@@ -16,13 +16,9 @@ Message = collections.namedtuple(
 
 class AsyncResponseIter:
 
-    def __init__(self, response_queue, loop, conn, username, password,
-                 processor, session):
+    def __init__(self, response_queue, loop:
         self._response_queue = response_queue
         self._loop = loop
-        self._conn = conn
-        self._force_close = self._conn.force_close
-        self._force_release = self._conn.force_release
 
     async def __aiter__(self):
         return self
@@ -41,11 +37,6 @@ class AsyncResponseIter:
             self._loop.create_task(self._conn.get_data())
             message = await self._response_queue.get()
         return message
-
-    async def close(self):
-        if self._conn:
-            await self._conn.close()
-            self._conn = None
 
 
 class AbstractConnection(abc.ABC):
