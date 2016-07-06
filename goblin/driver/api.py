@@ -1,7 +1,6 @@
 import asyncio
 import aiohttp
 
-from goblin.driver import pool
 from goblin.driver import connection
 
 

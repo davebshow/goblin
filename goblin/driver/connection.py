@@ -34,11 +34,9 @@ class Response:
     async def fetch_data(self):
         if self._done:
             return None
-
         msg = await self._response_queue.get()
-        if msg is None:  # end of response sentinel
+        if msg is None:
             self._done = True
-
         return msg
 
 
@@ -115,7 +113,7 @@ class Connection(AbstractConnection):
         self.response_queues[request_id] = response_queue
         self._ws.send_bytes(message)
         self._loop.create_task(self.receive())
-        return Response(response_queue, self._loop, self)
+        return Response(response_queue, self._loop)
 
     async def close(self):
         await self._ws.close()
@@ -181,19 +179,19 @@ class Connection(AbstractConnection):
                           message["status"]["message"],
                           message["result"]["meta"])
         response_queue = self._response_queues[request_id]
-        if message.status_code not in (206, 407):
-            # this message concludes the response
-            await response_queue.put(None)
-            del self._response_queues[request_id]
         if message.status_code in [200, 206, 204]:
             response_queue.put_nowait(message)
             if message.status_code == 206:
                 self._loop.create_task(self.receive())
+            else:
+                response_queue.put_nowait(None)
+                del self._response_queues[request_id]
         elif message.status_code == 407:
             self._authenticate(self._username, self._password,
                                self._processor, self._session)
             self._loop.create_task(self.receive())
         else:
+            del self._response_queues[request_id]
             raise RuntimeError("{0} {1}".format(message.status_code,
                                                 message.message))
 
