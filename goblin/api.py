@@ -6,7 +6,7 @@ from goblin import gremlin_python
 from goblin import mapper
 from goblin import properties
 from goblin import query
-from goblin import gremlin_python_driver
+from goblin import driver
 
 
 logger = logging.getLogger(__name__)

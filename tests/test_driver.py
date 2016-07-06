@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 
-from goblin.gremlin_python_driver.driver import Driver
+from goblin import driver
 
 
 class TestDriver(unittest.TestCase):
@@ -10,24 +10,35 @@ class TestDriver(unittest.TestCase):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(None)
 
-    def test_connect(self):
+    def test_open(self):
 
         async def go():
-            driver = Driver("http://localhost:8182/", self.loop)
-            async with driver.get() as conn:
-                self.assertFalse(conn._ws.closed)
-            await driver.close()
+            connection = await driver.GremlinServer.open(
+                "http://localhost:8182/", self.loop)
+            async with connection:
+                self.assertFalse(connection._ws.closed)
+            self.assertTrue(connection._ws.closed)
+
+        self.loop.run_until_complete(go())
+
+    def test_open_as_ctx_mng(self):
+
+        async def go():
+            async with await driver.GremlinServer.open(
+                    "http://localhost:8182/", self.loop) as connection:
+                self.assertFalse(connection._ws.closed)
+            self.assertTrue(connection._ws.closed)
 
         self.loop.run_until_complete(go())
 
     def test_submit(self):
 
         async def go():
-            driver = Driver("http://localhost:8182/", self.loop)
-            async with driver.get() as conn:
-                stream = await conn.submit("1 + 1")
-                async for msg in stream:
-                    self.assertEqual(msg.data[0], 2)
-            await driver.close()
+            connection = await driver.GremlinServer.open(
+                "http://localhost:8182/", self.loop)
+            stream = await conn.submit("1 + 1")
+            async for msg in stream:
+                self.assertEqual(msg.data[0], 2)
+            await connection.close()
 
         self.loop.run_until_complete(go())
