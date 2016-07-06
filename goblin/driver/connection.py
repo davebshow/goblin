@@ -53,9 +53,9 @@ class AbstractConnection(abc.ABC):
 
 class Connection(AbstractConnection):
 
-    def __init__(self, ws, loop, conn_factory, *, max_inflight=None,
-                 force_close=True, force_release=False,
-                 pool=None, username=None, password=None):
+    def __init__(self, ws, loop, conn_factory, *, force_close=True,
+                 force_release=False, pool=None, username=None,
+                 password=None):
         self._ws = ws
         self._loop = loop
         self._conn_factory = conn_factory
@@ -66,31 +66,10 @@ class Connection(AbstractConnection):
         self._password = password
         self._closed = False
         self._response_queues = {}
-        self._inflight = 0
-        if not max_inflight:
-            max_inflight = 32
-        self._max_inflight = 32
-        self._semaphore = asyncio.Semaphore(self._max_inflight,
-                                            loop=self._loop)
-
-    @property
-    def max_inflight(self):
-        return self._max_inflight
-
-    @property
-    def max_inflight(self):
-        return self._max_inflight
-
-    def remove_inflight(self):
-        self._inflight -= 1
 
     @property
     def response_queues(self):
         return self._response_queues
-
-    @property
-    def semaphore(self):
-        return self._semaphore
 
     @property
     def closed(self):
@@ -130,8 +109,6 @@ class Connection(AbstractConnection):
                                         processor,
                                         session,
                                         request_id)
-        await self.semaphore.acquire()
-        self._inflight += 1
         response_queue = asyncio.Queue(loop=self._loop)
         self.response_queues[request_id] = response_queue
         self._ws.send_bytes(message)
@@ -216,8 +193,6 @@ class Connection(AbstractConnection):
                                                 message.message))
 
     async def term(self):
-        self.remove_inflight()
-        self.semaphore.release()
         if self._force_close:
             await self.close()
         elif self._force_release:

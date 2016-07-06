@@ -12,29 +12,24 @@ class GremlinServer:
                    url: str,
                    loop: asyncio.BaseEventLoop,
                    *,
-                   conn_factory: aiohttp.ClientSession=None,
-                   max_inflight: int=None,
+                   client_session: aiohttp.ClientSession=None,
                    force_close: bool=False,
-                   force_release: bool=False,
-                   pool: pool.Pool=None,
                    username: str=None,
                    password: str=None) -> connection.Connection:
-        if conn_factory is None:
-            conn_factory = aiohttp.ClientSession(loop=loop)
-        ws = await conn_factory.ws_connect(url)
-        return connection.Connection(ws, loop, conn_factory,
-                                     max_inflight=max_inflight,
+        # Use connection factory here
+        if client_session is None:
+            client_session = aiohttp.ClientSession(loop=loop)
+        ws = await client_session.ws_connect(url)
+        return connection.Connection(ws, loop, client_session,
                                      force_close=force_close,
-                                     force_release=force_release,
-                                     pool=pool, username=username,
-                                     password=password)
+                                     username=username, password=password)
 
     @classmethod
     async def create_client(cls,
                             url: str,
                             loop: asyncio.BaseEventLoop,
                             *,
-                            conn_factory: aiohttp.ClientSession=None,
+                            client_session: aiohttp.ClientSession=None,
                             max_inflight: int=None,
                             max_connections: int=None,
                             force_close: bool=False,
