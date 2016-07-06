@@ -1,19 +1,12 @@
 """Simple Async driver for the TinkerPop3 Gremlin Server"""
 import asyncio
 import collections
-import json
 import logging
-import uuid
 
 import aiohttp
 
 
 logger = logging.getLogger(__name__)
-
-
-Message = collections.namedtuple(
-    "Message",
-    ["status_code", "data", "message", "metadata"])
 
 
 class Pool:

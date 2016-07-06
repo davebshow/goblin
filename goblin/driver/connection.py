@@ -1,12 +1,24 @@
 import abc
 import asyncio
+import collections
+import json
+import logging
+import uuid
+
+
+logger = logging.getLogger(__name__)
+
+
+Message = collections.namedtuple(
+    "Message",
+    ["status_code", "data", "message", "metadata"])
 
 
 class AsyncResponseIter:
 
     def __init__(self, response_queue, loop, conn, username, password,
                  processor, session):
-        self._response_queue = self.response_queue
+        self._response_queue = response_queue
         self._loop = loop
         self._conn = conn
         self._force_close = self._conn.force_close
@@ -35,15 +47,6 @@ class AsyncResponseIter:
             await self._conn.close()
             self._conn = None
 
-    async def term(self):
-        self._conn.remove_inflight()
-        async with self._conn.condition:
-            self._conn.condition.notify()
-        if self._force_close:
-            await self.close()
-        elif self._force_release:
-            await self._conn.release()
-
 
 class AbstractConnection(abc.ABC):
 
@@ -54,10 +57,6 @@ class AbstractConnection(abc.ABC):
     @abc.abstractmethod
     async def close(self):
         raise NotImplementedError
-
-    @abc.abstractproperty
-    def condition(self):
-        return self._condition
 
     @abc.abstractproperty
     def closed(self):
@@ -86,12 +85,13 @@ class Connection(AbstractConnection):
         self._username = username
         self._password = password
         self._closed = False
-        self._condition = asyncio.Condition(loop=loop)
         self._response_queues = {}
         self._inflight = 0
         if not max_inflight:
             max_inflight = 32
         self._max_inflight = 32
+        self._semaphore = asyncio.Semaphore(self._max_inflight,
+                                            loop=self._loop)
 
     @property
     def max_inflight(self):
@@ -109,8 +109,8 @@ class Connection(AbstractConnection):
         return self._response_queues
 
     @property
-    def condition(self):
-        return super().condition
+    def semaphore(self):
+        return self._semaphore
 
     @property
     def closed(self):
@@ -140,6 +140,8 @@ class Connection(AbstractConnection):
                     request_id=None):
         if aliases is None:
             aliases = {}
+        if request_id is None:
+            request_id = str(uuid.uuid4())
         message = self._prepare_message(gremlin,
                                         bindings,
                                         lang,
@@ -148,30 +150,23 @@ class Connection(AbstractConnection):
                                         processor,
                                         session,
                                         request_id)
-        async with self.condition:
-            while True:
-                if (self.inflight < self.max_inflight):
-                    self._inflight += 1
-                    self.response_queues[request_id] = asyncio.Queue(
-                        loop=self._loop)
-                    self._ws.send_bytes(message)
-                    return AsyncResponseIter(request_id, self._loop, self,
-                                             self._username, self._password,
-                                             processor, session)
-                else:
-                    await self.condition.wait()
+        await self.semaphore.acquire()
+        self._inflight += 1
+        response_queue = asyncio.Queue(loop=self._loop)
+        self.response_queues[request_id] = response_queue
+        self._ws.send_bytes(message)
+        return AsyncResponseIter(response_queue, self._loop, self,
+                                 self._username, self._password,
+                                 processor, session)
 
     async def close(self):
-        async with self.condition:
-            await self._ws.close()
-            self._closed = True
-            self._pool = None
+        await self._ws.close()
+        self._closed = True
+        self._pool = None
         await self._conn_factory.close()
 
     def _prepare_message(self, gremlin, bindings, lang, aliases, op, processor,
                          session, request_id):
-        if request_id is None:
-            request_id = str(uuid.uuid4())
         message = {
             "requestId": request_id,
             "op": op,
@@ -222,7 +217,7 @@ class Connection(AbstractConnection):
         data = await self._ws.receive()
         # parse aiohttp response here
         message = json.loads(data.data.decode("utf-8"))
-        request_id = message['request_id']
+        request_id = message['requestId']
         message = Message(message["status"]["code"],
                           message["result"]["data"],
                           message["status"]["message"],
@@ -241,6 +236,14 @@ class Connection(AbstractConnection):
             await self.term()
             raise RuntimeError("{0} {1}".format(message.status_code,
                                                 message.message))
+
+    async def term(self):
+        self.remove_inflight()
+        self.semaphore.release()
+        if self._force_close:
+            await self.close()
+        elif self._force_release:
+            await self.release()
 
     async def __aenter__(self):
         return self

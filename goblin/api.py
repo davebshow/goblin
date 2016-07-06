@@ -21,32 +21,31 @@ async def create_engine(url,
     """Constructor function for :py:class:`Engine`. Connects to database
        and builds a dictionary of relevant vendor implmentation features"""
     features = {}
-    # Will use a driver here
-    driver = gremlin_python_driver.Driver(url, loop)
-    async with driver.get() as conn:
-        # Propbably just use a parser to parse the whole feature list
-        stream = await conn.submit(
-            'graph.features().graph().supportsComputer()')
-        msg = await stream.fetch_data()
-        features['computer'] = msg.data[0]
-        stream = await conn.submit(
-            'graph.features().graph().supportsTransactions()')
-        msg = await stream.fetch_data()
-        features['transactions'] = msg.data[0]
-        stream = await conn.submit(
-            'graph.features().graph().supportsPersistence()')
-        msg = await stream.fetch_data()
-        features['persistence'] = msg.data[0]
-        stream = await conn.submit(
-            'graph.features().graph().supportsConcurrentAccess()')
-        msg = await stream.fetch_data()
-        features['concurrent_access'] = msg.data[0]
-        stream = await conn.submit(
-            'graph.features().graph().supportsThreadedTransactions()')
-        msg = await stream.fetch_data()
-        features['threaded_transactions'] = msg.data[0]
+    # This will be some kind of manager client etc.
+    conn = await driver.GremlinServer.open(url, loop)
+    # Propbably just use a parser to parse the whole feature list
+    stream = await conn.submit(
+        'graph.features().graph().supportsComputer()')
+    msg = await stream.fetch_data()
+    features['computer'] = msg.data[0]
+    stream = await conn.submit(
+        'graph.features().graph().supportsTransactions()')
+    msg = await stream.fetch_data()
+    features['transactions'] = msg.data[0]
+    stream = await conn.submit(
+        'graph.features().graph().supportsPersistence()')
+    msg = await stream.fetch_data()
+    features['persistence'] = msg.data[0]
+    stream = await conn.submit(
+        'graph.features().graph().supportsConcurrentAccess()')
+    msg = await stream.fetch_data()
+    features['concurrent_access'] = msg.data[0]
+    stream = await conn.submit(
+        'graph.features().graph().supportsThreadedTransactions()')
+    msg = await stream.fetch_data()
+    features['threaded_transactions'] = msg.data[0]
 
-    return Engine(url, loop, driver=driver, **features)
+    return Engine(url, conn, loop, **features)
 
 
 # Main API classes
@@ -55,16 +54,13 @@ class Engine:
        database connections. Used as a factory to create :py:class:`Session`
        objects. More config coming soon."""
 
-    def __init__(self, url, loop, *, driver=None, force_close=True, **features):
+    def __init__(self, url, conn, loop, *, force_close=True, **features):
         self._url = url
+        self._conn = conn
         self._loop = loop
         self._force_close = force_close
         self._features = features
         self._translator = gremlin_python.GroovyTranslator('g')
-        # This will be a driver
-        if driver is None:
-            driver = gremlin_python_driver.Driver(url, loop)
-        self._driver = driver
 
     @property
     def translator(self):
@@ -75,19 +71,18 @@ class Engine:
         return self._url
 
     @property
-    def driver(self):
-        return self._driver
+    def conn(self):
+        return self._conn
 
     def session(self, *, use_session=False):
         return Session(self, use_session=use_session)
 
     async def execute(self, query, *, bindings=None, session=None):
-        conn = await self.driver.recycle()
-        return await conn.submit(query, bindings=bindings)
+        return await self._conn.submit(query, bindings=bindings)
 
     async def close(self):
-        await self.driver.close()
-        self._driver = None
+        await self.conn.close()
+        self._conn = None
 
 
 class Session:

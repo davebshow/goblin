@@ -36,7 +36,7 @@ class TestDriver(unittest.TestCase):
         async def go():
             connection = await driver.GremlinServer.open(
                 "http://localhost:8182/", self.loop)
-            stream = await conn.submit("1 + 1")
+            stream = await connection.submit("1 + 1")
             async for msg in stream:
                 self.assertEqual(msg.data[0], 2)
             await connection.close()

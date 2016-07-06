@@ -29,6 +29,7 @@ class GremlinServer:
                                      force_release=force_release,
                                      pool=pool, username=username,
                                      password=password)
+
     @classmethod
     async def create_client(cls,
                             url: str,
@@ -36,7 +37,7 @@ class GremlinServer:
                             *,
                             conn_factory: aiohttp.ClientSession=None,
                             max_inflight: int=None,
-                            max_connections: in=None,
+                            max_connections: int=None,
                             force_close: bool=False,
                             force_release: bool=False,
                             pool: pool.Pool=None,
