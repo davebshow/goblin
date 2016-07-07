@@ -24,9 +24,8 @@ class ElementMeta(type):
                 props[k] = v
                 if not isinstance(v, properties.Property):
                     vertex_property = v.__class__
-                    vertex_property.__data_type__ = v.data_type
                     v = properties.VertexPropertyDescriptor(
-                        k, vertex_property, default=v.default)
+                        k, vertex_property, v.data_type, default=v.default)
                 else:
                     v = properties.PropertyDescriptor(
                         k, v.data_type, default=v.default)

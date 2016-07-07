@@ -31,30 +31,36 @@ class PropertyDescriptor:
             del attr
 
 
-class VertexPropertyDescriptor(PropertyDescriptor):
+class VertexPropertyDescriptor:
     """Descriptor that validates user property input and gets/sets properties
        as instance attributes."""
 
+    def __init__(self, name, vertex_property, data_type, *, default=None):
+        self._name = '_' + name
+        self._vertex_property = vertex_property
+        self._data_type = data_type
+        self._default = default
+
     def __get__(self, obj, objtype):
         if obj is None:
-            return self._data_type
+            return self._vertex_property
         default = self._default
         if default:
-            default = self._data_type(self._default)
+            default = self._data_type.validate(default)
+            default = self._vertex_property(self._default)
         return getattr(obj, self._name, default)
 
     def __set__(self, obj, val):
         if isinstance(val, (list, tuple , set)):
             vertex_property = []
             for v in val:
-                v = self._data_type.__data_type__.validate(v)
+                v = self._data_type.validate(v)
                 vertex_property.append(
-                    self._data_type(self._data_type.__data_type__, value=v))
+                    self._vertex_property(self._data_type, value=v))
 
         else:
-            val = self._data_type.__data_type__.validate(val)
-            vertex_property = self._data_type(
-                self._data_type.__data_type__, value=val)
+            val = self._data_type.validate(val)
+            vertex_property = self._vertex_property(self._data_type, value=val)
         setattr(obj, self._name, vertex_property)
 
 
@@ -73,10 +79,6 @@ class Property(abc.BaseProperty):
     @property
     def data_type(self):
         return self._data_type
-
-    @property
-    def vertex_property(self):
-        return self._vertex_property
 
     @property
     def default(self):
