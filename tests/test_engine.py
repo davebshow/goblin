@@ -1,7 +1,8 @@
 import asyncio
 import unittest
 
-from goblin.api import create_engine, Vertex, Edge
+from goblin.engine import create_engine
+from goblin.element import Vertex, Edge, VertexProperty
 from goblin.properties import Property, String
 
 
@@ -125,28 +126,28 @@ class TestEngine(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
-    def test_query_all(self):
-
-        async def go():
-            engine = await create_engine("http://localhost:8182/", self.loop)
-            session = engine.session()
-            leif = TestVertex()
-            leif.name = 'leifur'
-            jon = TestVertex()
-            jon.name = 'jonathan'
-            session.add(leif, jon)
-            await session.flush()
-            results = []
-            stream = await session.query(TestVertex).all()
-            async for msg in stream:
-                results.append(msg)
-                print(len(results))
-            self.assertEqual(len(session.current), 2)
-            for result in results:
-                self.assertIsInstance(result, Vertex)
-            await engine.close()
-
-        self.loop.run_until_complete(go())
+    # def test_query_all(self):
+    #
+    #     async def go():
+    #         engine = await create_engine("http://localhost:8182/", self.loop)
+    #         session = engine.session()
+    #         leif = TestVertex()
+    #         leif.name = 'leifur'
+    #         jon = TestVertex()
+    #         jon.name = 'jonathan'
+    #         session.add(leif, jon)
+    #         await session.flush()
+    #         results = []
+    #         stream = await session.query(TestVertex).all()
+    #         async for msg in stream:
+    #             results.append(msg)
+    #             print(len(results))
+    #         self.assertEqual(len(session.current), 2)
+    #         for result in results:
+    #             self.assertIsInstance(result, Vertex)
+    #         await engine.close()
+    #
+    #     # self.loop.run_until_complete(go())
 
     def test_remove_vertex(self):
 
