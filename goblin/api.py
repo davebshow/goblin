@@ -92,6 +92,7 @@ class Session:
 
     def __init__(self, engine, *, use_session=False):
         self._engine = engine
+        self._loop = self._engine._loop
         self._use_session = False
         self._session = None
         self._traversal = traversal.TraversalSource(self.engine.translator)
