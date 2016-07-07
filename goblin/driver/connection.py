@@ -53,15 +53,13 @@ class AbstractConnection(abc.ABC):
 
 class Connection(AbstractConnection):
 
-    def __init__(self, ws, loop, conn_factory, *, force_close=True,
-                 force_release=False, pool=None, username=None,
-                 password=None):
+    def __init__(self, url, ws, loop, conn_factory, *, force_close=True,
+                 username=None, password=None):
+        self._url = url
         self._ws = ws
         self._loop = loop
         self._conn_factory = conn_factory
         self._force_close = force_close
-        self._force_release = force_release
-        self._pool = pool
         self._username = username
         self._password = password
         self._closed = False
@@ -78,14 +76,6 @@ class Connection(AbstractConnection):
     @property
     def force_close(self):
         return self._force_close
-
-    @property
-    def force_release(self):
-        return self._force_release
-
-    async def release(self):
-        if self.pool:
-            await self.pool.release(self)
 
     async def submit(self,
                     gremlin,
@@ -111,6 +101,8 @@ class Connection(AbstractConnection):
                                         request_id)
         response_queue = asyncio.Queue(loop=self._loop)
         self.response_queues[request_id] = response_queue
+        if self._ws.closed:
+            self._ws = await self.conn_factory.ws_connect(self._url)
         self._ws.send_bytes(message)
         self._loop.create_task(self.receive())
         return Response(response_queue, self._loop)
@@ -118,7 +110,6 @@ class Connection(AbstractConnection):
     async def close(self):
         await self._ws.close()
         self._closed = True
-        self._pool = None
         await self._conn_factory.close()
 
     def _prepare_message(self, gremlin, bindings, lang, aliases, op,
@@ -198,8 +189,6 @@ class Connection(AbstractConnection):
     async def term(self):
         if self._force_close:
             await self.close()
-        elif self._force_release:
-            await self.release()
 
     async def __aenter__(self):
         return self
@@ -207,4 +196,3 @@ class Connection(AbstractConnection):
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
         self._conn = None
-        self._pool = None

@@ -82,7 +82,5 @@ class Mapping:
 
     def __repr__(self):
         return '<{}(type={}, label={}, properties={})'.format(
-            self.__class__.__name__,
-            self._type,
-            self._label,
+            self.__class__.__name__, self._type, self._label,
             self._properties)

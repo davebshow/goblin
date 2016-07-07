@@ -309,10 +309,15 @@ class Edge(metaclass=meta.ElementMeta):
 
 class VertexProperty(metaclass=meta.ElementMeta):
 
+    __data_type__ = None
+
     def __init__(self, value):
         self._value = value
 
+    @property
+    def value(self):
+        return self._value
+
     def __repr__(self):
         return '<{}(type={}, value={})'.format(self.__class__.__name__,
-                                               self.__data_type__,
-                                               self._value)
+                                               self.__data_type__, self.value)
