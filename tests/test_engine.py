@@ -209,11 +209,11 @@ class TestEngine(unittest.TestCase):
             session.add(leif, jon, works_for)
             await session.flush()
             result = await session.traversal(TestVertex).has(
-                ('k1', 'test_vertex__name'), ('v1', 'the one and only leifur'))._in().all()
+                TestVertex.__mapping__.name, ('v1', 'the one and only leifur'))._in().all()
             async for msg in result:
                 self.assertIs(msg, jon)
             result = await session.traversal(TestVertex).has(
-                ('k1', 'test_vertex__name'), ('v1', 'the one and only jonathan')).out().all()
+                TestVertex.__mapping__.name, ('v1', 'the one and only jonathan')).out().all()
             async for msg in result:
                 self.assertIs(msg, leif)
             await session.remove_vertex(leif)
