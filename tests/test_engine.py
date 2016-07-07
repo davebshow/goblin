@@ -148,7 +148,7 @@ class TestEngine(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
-    def test_delete_vertex(self):
+    def test_remove_vertex(self):
 
         async def go():
             engine = await create_engine("http://localhost:8182/", self.loop)
@@ -159,7 +159,7 @@ class TestEngine(unittest.TestCase):
             await session.flush()
             current = session._current[leif.id]
             self.assertIs(leif, current)
-            await session.delete_vertex(leif)
+            await session.remove_vertex(leif)
             result = await session.get_vertex(leif)
             self.assertIsNone(result)
             self.assertEqual(len(list(session.current.items())), 0)
@@ -167,7 +167,7 @@ class TestEngine(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
-    def test_delete_edge(self):
+    def test_remove_edge(self):
 
         async def go():
             engine = await create_engine("http://localhost:8182/", self.loop)
@@ -184,7 +184,7 @@ class TestEngine(unittest.TestCase):
             await session.flush()
             current = session._current[works_for.id]
             self.assertIs(current, works_for)
-            await session.delete_edge(works_for)
+            await session.remove_edge(works_for)
             result = await session.get_edge(works_for)
             self.assertIsNone(result)
             self.assertEqual(len(list(session.current.items())), 2)

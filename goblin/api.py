@@ -6,6 +6,7 @@ from goblin import gremlin_python
 from goblin import driver
 from goblin import mapper
 from goblin import meta
+from goblin import traversal
 from goblin import query
 
 
@@ -49,7 +50,7 @@ async def create_engine(url,
 
 
 # Main API classes
-class Engine:
+class Engine(driver.AbstractConnection):
     """Class used to encapsulate database connection configuration and generate
        database connections. Used as a factory to create :py:class:`Session`
        objects. More config coming soon."""
@@ -77,7 +78,7 @@ class Engine:
     def session(self, *, use_session=False):
         return Session(self, use_session=use_session)
 
-    async def execute(self, query, *, bindings=None, session=None):
+    async def submit(self, query, *, bindings=None, session=None):
         return await self._conn.submit(query, bindings=bindings)
 
     async def close(self):
@@ -93,19 +94,17 @@ class Session:
         self._engine = engine
         self._use_session = False
         self._session = None
-        self._g = gremlin_python.PythonGraphTraversalSource(
-            self.engine.translator)
+        self._traversal = traversal.TraversalSource(self.engine.translator)
         self._pending = collections.deque()
         self._current = {}
-        self._binding = 0
-
-    @property
-    def g(self):
-        return self._g
 
     @property
     def engine(self):
         return self._engine
+
+    @property
+    def traversal(self):
+        return self._traversal
 
     @property
     def current(self):
@@ -134,9 +133,9 @@ class Session:
 
     async def save_vertex(self, element):
         result = await self._save_element(element,
-                                          self._get_vertex_by_id,
-                                          self._create_vertex,
-                                          self._update_vertex,
+                                          self.traversal.get_vertex_by_id,
+                                          self.traversal.add_vertex,
+                                          self.traversal.update_vertex,
                                           mapper.map_vertex_to_ogm)
         self.current[result.id] = result
         return result
@@ -145,9 +144,9 @@ class Session:
         if not (hasattr(element, 'source') and hasattr(element, 'target')):
             raise Exception("Edges require source/target vetices")
         result = await self._save_element(element,
-                                          self._get_edge_by_id,
-                                          self._create_edge,
-                                          self._update_edge,
+                                          self.traversal.get_edge_by_id,
+                                          self.traversal.add_edge,
+                                          self.traversal.update_edge,
                                           mapper.map_edge_to_ogm)
         self.current[result.id] = result
         return result
@@ -159,8 +158,8 @@ class Session:
                             update_func,
                             mapper_func):
         if hasattr(element, 'id'):
-            traversal = get_func(element.id)
-            stream = await self._execute_traversal(traversal)
+            traversal = get_func(element)
+            stream = await self.execute_traversal(traversal)
             result = await stream.fetch_data()
             if not result.data:
                 traversal = create_func(element)
@@ -168,88 +167,50 @@ class Session:
                 traversal = update_func(element)
         else:
             traversal = create_func(element)
-        stream = await self._execute_traversal(traversal)
+        stream = await self.execute_traversal(traversal)
         result = await stream.fetch_data()
         return mapper_func(result.data[0], element, element.__mapping__)
 
-    async def delete_vertex(self, element):
-        traversal = self.g.V(element.id).drop()
-        result = await self._delete_element(element, traversal)
+    async def remove_vertex(self, element):
+        traversal = self.traversal.remove_vertex(element)
+        result = await self._remove_element(element, traversal)
         return result
 
-    async def delete_edge(self, element):
-        traversal = self.g.E(element.id).drop()
-        result = await self._delete_element(element, traversal)
+    async def remove_edge(self, element):
+        traversal = self.traversal.remove_edge(element)
+        result = await self._remove_element(element, traversal)
         return result
 
-    async def _delete_element(self, element, traversal):
-        stream = await self._execute_traversal(traversal)
+    async def _remove_element(self, element, traversal):
+        stream = await self.execute_traversal(traversal)
         result = await stream.fetch_data()
         del self.current[element.id]
         return result
 
     async def get_vertex(self, element):
-        traversal = self._get_vertex_by_id(element.id)
-        stream = await self._execute_traversal(traversal)
+        traversal = self.traversal.get_vertex_by_id(element)
+        stream = await self.execute_traversal(traversal)
         result = await stream.fetch_data()
         if result.data:
             vertex = mapper.map_vertex_to_ogm(result.data[0], element,
                                               element.__mapping__)
             return vertex
 
-    def _get_vertex_by_id(self, vid):
-        return self.g.V(vid)
-
     async def get_edge(self, element):
-        traversal = self._get_edge_by_id(element.id)
-        stream = await self._execute_traversal(traversal)
+        traversal = self.traversal.get_edge_by_id(element)
+        stream = await self.execute_traversal(traversal)
         result = await stream.fetch_data()
         if result.data:
-            edge = mapper.map_edge_to_ogm(result.data[0], element,
-                                          element.__mapping__)
-            return edge
+            vertex = mapper.map_edge_to_ogm(result.data[0], element,
+                                              element.__mapping__)
+            return vertex
 
-    def _get_edge_by_id(self, eid):
-        return self.g.E(eid)
-
-    def _create_vertex(self, element):
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.g.addV(element.__mapping__.label)
-        return self._add_properties(traversal, props)
-
-    def _create_edge(self, element):
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.g.V(element.source.id)
-        traversal = traversal.addE(element.__mapping__._label)
-        traversal = traversal.to(self.g.V(element.target.id))
-        return self._add_properties(traversal, props)
-
-    def _update_vertex(self, element):
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.g.V(element.id)
-        return self._add_properties(traversal, props)
-
-    def _update_edge(self, element):
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.g.E(element.id)
-        return self._add_properties(traversal, props)
-
-    def _add_properties(self, traversal, props):
-        for k, v in props:
-            if v:
-                traversal = traversal.property(
-                    ('k' + str(self._binding), k),
-                    ('v' + str(self._binding), v))
-                self._binding += 1
-        self._binding = 0
-        return traversal
-
-    async def _execute_traversal(self, traversal):
+    async def execute_traversal(self, traversal):
         script, bindings = query.parse_traversal(traversal)
         if self.engine._features['transactions'] and not self._use_session():
             script = self._wrap_in_tx(script)
-        stream = await self.engine.execute(script, bindings=bindings,
-                                           session=self._session)
+        stream = await self.engine.submit(script, bindings=bindings,
+                                          session=self._session)
         return stream
 
     def _wrap_in_tx(self):
