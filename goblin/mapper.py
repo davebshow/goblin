@@ -46,20 +46,20 @@ def map_edge_to_ogm(result, element, mapping):
 
 
 # DB <-> OGM Mapping
-def create_mapping(namespace, properties, vertex_properties):
+def create_mapping(namespace, properties):
     """Constructor for :py:class:`Mapping`"""
     if namespace.get('__type__', None):
-        return Mapping(namespace, properties, vertex_properties)
+        return Mapping(namespace, properties)
 
 
 class Mapping:
     """This class stores the information necessary to map between an
        OGM element and a DB element"""
-    def __init__(self, namespace, properties, vertex_properties):
+    def __init__(self, namespace, properties):
         self._label = namespace.get('__label__', None) or self._create_label()
         self._type = namespace['__type__']
         self._properties = []
-        self._map_properties(properties, vertex_properties)
+        self._map_properties(properties)
 
     @property
     def label(self):
@@ -72,7 +72,7 @@ class Mapping:
     def _create_label(self):
         return inflection.underscore(self.__class__.__name__)
 
-    def _map_properties(self, properties, vertex_properties):
+    def _map_properties(self, properties):
         for name, prop in properties.items():
             data_type = prop.data_type
             db_name = '{}__{}'.format(self._label, name)

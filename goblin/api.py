@@ -2,6 +2,7 @@
 import collections
 import logging
 
+from goblin import abc
 from goblin import gremlin_python
 from goblin import driver
 from goblin import mapper
@@ -230,12 +231,12 @@ class Session:
         raise NotImplementedError
 
 
-class Vertex(metaclass=meta.ElementMeta):
+class Vertex(meta.Element):
     """Base class for user defined Vertex classes"""
     pass
 
 
-class Edge(metaclass=meta.ElementMeta):
+class Edge(meta.Element):
     """Base class for user defined Edge classes"""
 
     def __init__(self, source=None, target=None):
@@ -269,14 +270,47 @@ class Edge(metaclass=meta.ElementMeta):
     target = property(gettarget, settarget, deltarget)
 
 
-class VertexProperty(metaclass=meta.ElementMeta):
+class VertexPropertyDescriptor:
+    """Descriptor that validates user property input and gets/sets properties
+       as instance attributes."""
 
-    __data_type__ = None
+    def __init__(self, name, vertex_property):
+        self._name = '_' + name
+        self._vertex_property = vertex_property.__class__
+        self._data_type = vertex_property.data_type
+        self._default = vertex_property.default
+
+    def __get__(self, obj, objtype):
+        if obj is None:
+            return self._vertex_property
+        default = self._default
+        if default:
+            default = self._data_type.validate(default)
+            default = self._vertex_property(self._default)
+        return getattr(obj, self._name, default)
+
+    def __set__(self, obj, val):
+        if isinstance(val, (list, tuple , set)):
+            vertex_property = []
+            for v in val:
+                v = self._data_type.validate(v)
+                vertex_property.append(
+                    self._vertex_property(self._data_type, value=v))
+
+        else:
+            val = self._data_type.validate(val)
+            vertex_property = self._vertex_property(self._data_type, value=val)
+        setattr(obj, self._name, vertex_property)
+
+
+class VertexProperty(meta.Element, abc.BaseProperty):
+
+    __descriptor__ = VertexPropertyDescriptor
 
     def __init__(self, data_type, *, value=None, default=None):
         if isinstance(data_type, type):
             data_type = data_type()
-        self.__data_type__ = data_type
+        self._data_type = data_type
         self._value = value
         self._default = default
 
@@ -286,7 +320,7 @@ class VertexProperty(metaclass=meta.ElementMeta):
 
     @property
     def data_type(self):
-        return self.__data_type__
+        return self._data_type
 
     @property
     def value(self):
@@ -294,4 +328,4 @@ class VertexProperty(metaclass=meta.ElementMeta):
 
     def __repr__(self):
         return '<{}(type={}, value={})'.format(self.__class__.__name__,
-                                               self.__data_type__, self.value)
+                                               self._data_type, self.value)
