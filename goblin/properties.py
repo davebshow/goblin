@@ -48,11 +48,13 @@ class VertexPropertyDescriptor(PropertyDescriptor):
             vertex_property = []
             for v in val:
                 v = self._data_type.__data_type__.validate(v)
-                vertex_property.append(self._data_type(v))
+                vertex_property.append(
+                    self._data_type(self._data_type.__data_type__, value=v))
 
         else:
             val = self._data_type.__data_type__.validate(val)
-            vertex_property = self._data_type(val)
+            vertex_property = self._data_type(
+                self._data_type.__data_type__, value=val)
         setattr(obj, self._name, vertex_property)
 
 
@@ -62,13 +64,10 @@ class Property:
 
     descriptor = PropertyDescriptor
 
-    def __init__(self, data_type, *, vertex_property=None, default=None):
+    def __init__(self, data_type, *, default=None):
         if isinstance(data_type, type):
             data_type = data_type()
         self._data_type = data_type
-        if vertex_property:
-            vertex_property.__data_type__ = data_type
-        self._vertex_property = vertex_property
         self._default = default
 
     @property

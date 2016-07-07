@@ -273,8 +273,20 @@ class VertexProperty(metaclass=meta.ElementMeta):
 
     __data_type__ = None
 
-    def __init__(self, value):
+    def __init__(self, data_type, *, value=None, default=None):
+        if isinstance(data_type, type):
+            data_type = data_type()
+        self.__data_type__ = data_type
         self._value = value
+        self._default = default
+
+    @property
+    def default(self):
+        self._default
+
+    @property
+    def data_type(self):
+        return self.__data_type__
 
     @property
     def value(self):

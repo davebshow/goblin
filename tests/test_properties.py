@@ -11,7 +11,7 @@ class TestVertexProperty(VertexProperty):
 
 class TestVertex(Vertex):
     __label__ = 'test_vertex'
-    name = Property(String, vertex_property=TestVertexProperty)
+    name = TestVertexProperty(String)
     address = Property(String)
 
 
