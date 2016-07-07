@@ -3,10 +3,10 @@ import collections
 import logging
 
 from goblin import gremlin_python
-from goblin import mapper
-from goblin import properties
-from goblin import query
 from goblin import driver
+from goblin import mapper
+from goblin import meta
+from goblin import query
 
 
 logger = logging.getLogger(__name__)
@@ -268,37 +268,12 @@ class Session:
         raise NotImplementedError
 
 
-# Graph elements
-class ElementMeta(type):
-    """Metaclass for graph elements. Responsible for creating the
-       the :py:class:`mapper.Mapping` object and replacing user defined
-       :py:class:`property.Property` with
-       :py:class:`property.PropertyDescriptor`"""
-    def __new__(cls, name, bases, namespace, **kwds):
-        if bases:
-            namespace['__type__'] = bases[0].__name__.lower()
-        props = {}
-        new_namespace = {}
-        for k, v in namespace.items():
-            if isinstance(v, properties.Property):
-                props[k] = v
-                data_type = v.data_type
-                v = properties.PropertyDescriptor(k, data_type,
-                                                  default=v._default)
-            new_namespace[k] = v
-        new_namespace['__mapping__'] = mapper.create_mapping(namespace,
-                                                             props)
-        logger.warning("Creating new Element class: {}".format(name))
-        result = type.__new__(cls, name, bases, new_namespace)
-        return result
-
-
-class Vertex(metaclass=ElementMeta):
+class Vertex(metaclass=meta.ElementMeta):
     """Base class for user defined Vertex classes"""
     pass
 
 
-class Edge(metaclass=ElementMeta):
+class Edge(metaclass=meta.ElementMeta):
     """Base class for user defined Edge classes"""
 
     def __init__(self, source=None, target=None):
@@ -315,7 +290,7 @@ class Edge(metaclass=ElementMeta):
         self._source = val
 
     def delsource(self):
-        raise ValueError("Cant")
+        del self._source
 
     source = property(getsource, setsource, delsource)
 
@@ -330,3 +305,14 @@ class Edge(metaclass=ElementMeta):
         del self._target
 
     target = property(gettarget, settarget, deltarget)
+
+
+class VertexProperty(metaclass=meta.ElementMeta):
+
+    def __init__(self, value):
+        self._value = value
+
+    def __repr__(self):
+        return '<{}(type={}, value={})'.format(self.__class__.__name__,
+                                               self.__data_type__,
+                                               self._value)
