@@ -270,7 +270,42 @@ class Edge(meta.Element):
     target = property(gettarget, settarget, deltarget)
 
 
+class VertexPropertyDescriptor:
+    """Descriptor that validates user property input and gets/sets properties
+       as instance attributes."""
+
+    def __init__(self, name, vertex_property):
+        self._name = '_' + name
+        self._vertex_property = vertex_property.__class__
+        self._data_type = vertex_property.data_type
+        self._default = vertex_property.default
+
+    def __get__(self, obj, objtype):
+        if obj is None:
+            return self._vertex_property
+        default = self._default
+        if default:
+            default = self._data_type.validate(default)
+            default = self._vertex_property(self._default)
+        return getattr(obj, self._name, default)
+
+    def __set__(self, obj, val):
+        if isinstance(val, (list, tuple , set)):
+            vertex_property = []
+            for v in val:
+                v = self._data_type.validate(v)
+                vertex_property.append(
+                    self._vertex_property(self._data_type, value=v))
+
+        else:
+            val = self._data_type.validate(val)
+            vertex_property = self._vertex_property(self._data_type, value=val)
+        setattr(obj, self._name, vertex_property)
+
+
 class VertexProperty(meta.Element, abc.BaseProperty):
+
+    __descriptor__ = VertexPropertyDescriptor
 
     def __init__(self, data_type, *, value=None, default=None):
         if isinstance(data_type, type):
@@ -293,4 +328,4 @@ class VertexProperty(meta.Element, abc.BaseProperty):
 
     def __repr__(self):
         return '<{}(type={}, value={})'.format(self.__class__.__name__,
-                                               self.__data_type__, self.value)
+                                               self._data_type, self.value)

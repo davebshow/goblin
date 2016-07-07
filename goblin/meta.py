@@ -22,13 +22,7 @@ class ElementMeta(type):
         for k, v in namespace.items():
             if isinstance(v, abc.BaseProperty):
                 props[k] = v
-                if not isinstance(v, properties.Property):
-                    vertex_property = v.__class__
-                    v = properties.VertexPropertyDescriptor(
-                        k, vertex_property, v.data_type, default=v.default)
-                else:
-                    v = properties.PropertyDescriptor(
-                        k, v.data_type, default=v.default)
+                v = v.__descriptor__(k, v)
             new_namespace[k] = v
         new_namespace['__mapping__'] = mapper.create_mapping(namespace,
                                                              props)
