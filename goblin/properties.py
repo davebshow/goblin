@@ -68,8 +68,6 @@ class Property(abc.BaseProperty):
     """API class used to define properties. Replaced with
       :py:class:`PropertyDescriptor` by :py:class:`api.ElementMeta`."""
 
-    descriptor = PropertyDescriptor
-
     def __init__(self, data_type, *, default=None):
         if isinstance(data_type, type):
             data_type = data_type()

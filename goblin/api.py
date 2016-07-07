@@ -272,12 +272,10 @@ class Edge(meta.Element):
 
 class VertexProperty(meta.Element, abc.BaseProperty):
 
-    __data_type__ = None
-
     def __init__(self, data_type, *, value=None, default=None):
         if isinstance(data_type, type):
             data_type = data_type()
-        self.__data_type__ = data_type
+        self._data_type = data_type
         self._value = value
         self._default = default
 
@@ -287,7 +285,7 @@ class VertexProperty(meta.Element, abc.BaseProperty):
 
     @property
     def data_type(self):
-        return self.__data_type__
+        return self._data_type
 
     @property
     def value(self):
