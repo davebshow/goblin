@@ -1,7 +1,7 @@
 """Classes to handle proerties and data type definitions"""
-import abc
 import logging
 
+from goblin import abc
 from goblin import mapper
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class VertexPropertyDescriptor(PropertyDescriptor):
         setattr(obj, self._name, vertex_property)
 
 
-class Property:
+class Property(abc.BaseProperty):
     """API class used to define properties. Replaced with
       :py:class:`PropertyDescriptor` by :py:class:`api.ElementMeta`."""
 
@@ -83,23 +83,8 @@ class Property:
         return self._default
 
 
-class DataType(abc.ABC):
-
-    @abc.abstractmethod
-    def validate(self):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def to_db(self, val):
-        return val
-
-    @abc.abstractmethod
-    def to_ogm(self, val):
-        return val
-
-
 # Data types
-class String(DataType):
+class String(abc.DataType):
     """Simple string datatype"""
 
     def validate(self, val):

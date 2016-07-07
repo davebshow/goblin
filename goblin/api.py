@@ -2,6 +2,7 @@
 import collections
 import logging
 
+from goblin import abc
 from goblin import gremlin_python
 from goblin import driver
 from goblin import mapper
@@ -230,12 +231,12 @@ class Session:
         raise NotImplementedError
 
 
-class Vertex(metaclass=meta.ElementMeta):
+class Vertex(meta.Element):
     """Base class for user defined Vertex classes"""
     pass
 
 
-class Edge(metaclass=meta.ElementMeta):
+class Edge(meta.Element):
     """Base class for user defined Edge classes"""
 
     def __init__(self, source=None, target=None):
@@ -269,7 +270,7 @@ class Edge(metaclass=meta.ElementMeta):
     target = property(gettarget, settarget, deltarget)
 
 
-class VertexProperty(metaclass=meta.ElementMeta):
+class VertexProperty(meta.Element, abc.BaseProperty):
 
     __data_type__ = None
 
