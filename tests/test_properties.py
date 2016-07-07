@@ -1,7 +1,8 @@
 import asyncio
 import unittest
 
-from goblin.api import create_engine, Vertex, Edge, VertexProperty
+from goblin.engine import create_engine
+from goblin.element import Vertex, Edge, VertexProperty
 from goblin.properties import Property, String
 
 

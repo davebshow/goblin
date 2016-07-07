@@ -2,7 +2,6 @@
 import logging
 
 from goblin import abc
-from goblin import mapper
 
 logger = logging.getLogger(__name__)
 
