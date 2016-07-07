@@ -18,7 +18,7 @@ class Session:
         self._loop = self._engine._loop
         self._use_session = False
         self._session = None
-        self._query = query.Query(self, self.engine.translator)
+        self._query = query.Query(self, self.engine.translator, self._loop)
         self._pending = collections.deque()
         self._current = {}
 
@@ -42,6 +42,9 @@ class Session:
         while self._pending:
             elem = self._pending.popleft()
             await self.save(elem)
+
+    def traversal(self, element_class):
+        return self.query.traversal(element_class)
 
     async def save(self, element):
         if element.__type__ == 'vertex':

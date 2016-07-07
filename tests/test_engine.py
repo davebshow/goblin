@@ -126,28 +126,28 @@ class TestEngine(unittest.TestCase):
 
         self.loop.run_until_complete(go())
 
-    # def test_query_all(self):
-    #
-    #     async def go():
-    #         engine = await create_engine("http://localhost:8182/", self.loop)
-    #         session = engine.session()
-    #         leif = TestVertex()
-    #         leif.name = 'leifur'
-    #         jon = TestVertex()
-    #         jon.name = 'jonathan'
-    #         session.add(leif, jon)
-    #         await session.flush()
-    #         results = []
-    #         stream = await session.query(TestVertex).all()
-    #         async for msg in stream:
-    #             results.append(msg)
-    #             print(len(results))
-    #         self.assertEqual(len(session.current), 2)
-    #         for result in results:
-    #             self.assertIsInstance(result, Vertex)
-    #         await engine.close()
-    #
-    #     # self.loop.run_until_complete(go())
+    def test_query_all(self):
+
+        async def go():
+            engine = await create_engine("http://localhost:8182/", self.loop)
+            session = engine.session()
+            leif = TestVertex()
+            leif.name = 'leifur'
+            jon = TestVertex()
+            jon.name = 'jonathan'
+            session.add(leif, jon)
+            await session.flush()
+            results = []
+            stream = await session.traversal(TestVertex).all()
+            async for msg in stream:
+                results.append(msg)
+                print(len(results))
+            self.assertEqual(len(session.current), 2)
+            for result in results:
+                self.assertIsInstance(result, Vertex)
+            await engine.close()
+
+        self.loop.run_until_complete(go())
 
     def test_remove_vertex(self):
 
@@ -189,6 +189,35 @@ class TestEngine(unittest.TestCase):
             result = await session.get_edge(works_for)
             self.assertIsNone(result)
             self.assertEqual(len(list(session.current.items())), 2)
+            await engine.close()
+
+        self.loop.run_until_complete(go())
+
+    def test_traversal(self):
+
+        async def go():
+            engine = await create_engine("http://localhost:8182/", self.loop)
+            session = engine.session()
+            leif = TestVertex()
+            leif.name = 'the one and only leifur'
+            jon = TestVertex()
+            jon.name = 'the one and only jonathan'
+            works_for = TestEdge()
+            works_for.source = jon
+            works_for.target = leif
+            works_for.notes = 'the one and only zerofail'
+            session.add(leif, jon, works_for)
+            await session.flush()
+            result = await session.traversal(TestVertex).has(
+                ('k1', 'test_vertex__name'), ('v1', 'the one and only leifur'))._in().all()
+            async for msg in result:
+                self.assertIs(msg, jon)
+            result = await session.traversal(TestVertex).has(
+                ('k1', 'test_vertex__name'), ('v1', 'the one and only jonathan')).out().all()
+            async for msg in result:
+                self.assertIs(msg, leif)
+            await session.remove_vertex(leif)
+            await session.remove_vertex(jon)
             await engine.close()
 
         self.loop.run_until_complete(go())
