@@ -1,5 +1,7 @@
 """Helper functions and class to map between OGM Elements <-> DB Elements"""
 import logging
+import functools
+
 import inflection
 
 
@@ -23,7 +25,7 @@ def map_props_to_db(element, mapping):
     return property_tuples
 
 
-def map_vertex_to_ogm(result, element, mapping):
+def map_vertex_to_ogm(result, element, *, mapping=None):
     """Map a vertex returned by DB to OGM vertex"""
     props = mapping.properties
     for ogm_name, db_name, data_type in props_generator(props):
@@ -34,7 +36,7 @@ def map_vertex_to_ogm(result, element, mapping):
     return element
 
 
-def map_edge_to_ogm(result, element, mapping):
+def map_edge_to_ogm(result, element, *, mapping=None):
     """Map an edge returned by DB to OGM edge"""
     props = mapping.properties
     for ogm_name, db_name, data_type in props_generator(props):
@@ -50,22 +52,33 @@ def map_edge_to_ogm(result, element, mapping):
 # DB <-> OGM Mapping
 def create_mapping(namespace, properties):
     """Constructor for :py:class:`Mapping`"""
-    if namespace.get('__type__', None):
-        return Mapping(namespace, properties)
+    element_type = namespace.get('__type__', None)
+    if element_type:
+        if element_type == 'vertex':
+            mapping_func = map_vertex_to_ogm
+            return Mapping(namespace, element_type, mapping_func, properties)
+        elif element_type == 'edge':
+            mapping_func = map_edge_to_ogm
+            return Mapping(namespace, element_type, mapping_func, properties)
 
 
 class Mapping:
     """This class stores the information necessary to map between an
        OGM element and a DB element"""
-    def __init__(self, namespace, properties):
+    def __init__(self, namespace, element_type, mapper_func, properties):
         self._label = namespace.get('__label__', None) or self._create_label()
-        self._type = namespace['__type__']
+        self._type = element_type
+        self._mapper_func = functools.partial(mapper_func, mapping=self)
         self._properties = {}
         self._map_properties(properties)
 
     @property
     def label(self):
         return self._label
+
+    @property
+    def mapper_func(self):
+        return self._mapper_func
 
     @property
     def properties(self):
@@ -86,7 +99,6 @@ class Mapping:
             data_type = prop.data_type
             db_name = '{}__{}'.format(self._label, name)
             self._properties[name] = (db_name, data_type)
-
 
     def __repr__(self):
         return '<{}(type={}, label={}, properties={})'.format(

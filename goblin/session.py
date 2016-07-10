@@ -59,8 +59,7 @@ class Session:
         result = await self._save_element(element,
                                           self.query.get_vertex_by_id,
                                           self.query.add_vertex,
-                                          self.query.update_vertex,
-                                          mapper.map_vertex_to_ogm)
+                                          self.query.update_vertex)
         self.current[result.id] = result
         return result
 
@@ -70,8 +69,7 @@ class Session:
         result = await self._save_element(element,
                                           self.query.get_edge_by_id,
                                           self.query.add_edge,
-                                          self.query.update_edge,
-                                          mapper.map_edge_to_ogm)
+                                          self.query.update_edge)
         self.current[result.id] = result
         return result
 
@@ -79,8 +77,7 @@ class Session:
                             element,
                             get_func,
                             create_func,
-                            update_func,
-                            mapper_func):
+                            update_func):
         if hasattr(element, 'id'):
             traversal = get_func(element)
             stream = await self.execute_traversal(traversal)
@@ -93,7 +90,7 @@ class Session:
             traversal = create_func(element)
         stream = await self.execute_traversal(traversal)
         result = await stream.fetch_data()
-        return mapper_func(result.data[0], element, element.__mapping__)
+        return element.__mapping__.mapper_func(result.data[0], element)
 
     async def remove_vertex(self, element):
         traversal = self.query.remove_vertex(element)
@@ -116,8 +113,7 @@ class Session:
         stream = await self.execute_traversal(traversal)
         result = await stream.fetch_data()
         if result.data:
-            vertex = mapper.map_vertex_to_ogm(result.data[0], element,
-                                              element.__mapping__)
+            vertex = element.__mapping__.mapper_func(result.data[0], element)
             return vertex
 
     async def get_edge(self, element):
@@ -125,8 +121,7 @@ class Session:
         stream = await self.execute_traversal(traversal)
         result = await stream.fetch_data()
         if result.data:
-            vertex = mapper.map_edge_to_ogm(result.data[0], element,
-                                              element.__mapping__)
+            vertex = element.__mapping__.mapper_func(result.data[0], element)
             return vertex
 
     async def execute_traversal(self, traversal):

@@ -37,11 +37,10 @@ class QueryResponse:
 
 class GoblinTraversal(gremlin_python.PythonGraphTraversal):
 
-    def __init__(self, translator, query, element_class, mapper_func):
+    def __init__(self, translator, query, element_class):
         super().__init__(translator, remote_connection=None)
         self._query = query
         self._element_class = element_class
-        self._mapper_func = mapper_func
 
     async def all(self):
         result = await self._query._all(self)
@@ -51,10 +50,6 @@ class GoblinTraversal(gremlin_python.PythonGraphTraversal):
     @property
     def element_class(self):
         return self._element_class
-
-    @property
-    def mapper_func(self):
-        return self._mapper_func
 
 
 class Query:
@@ -87,14 +82,10 @@ class Query:
     def traversal(self, element_class):
 
         if element_class.__type__ == 'vertex':
-            mapper_func = mapper.map_vertex_to_ogm
-            traversal = GoblinTraversal(self._translator, self, element_class,
-                                        mapper_func)
+            traversal = GoblinTraversal(self._translator, self, element_class)
             traversal.translator.addSpawnStep(traversal, "V")
         if element_class.__type__ == 'edge':
-            mapper_func = mapper.map_edge_to_ogm
-            traversal = GoblinTraversal(self._translator, self, element_class,
-                                        mapper_func)
+            traversal = GoblinTraversal(self._translator, self, element_class)
             traversal.translator.addSpawnStep(traversal, "E")
         return traversal.hasLabel(element_class.__mapping__.label)
 
@@ -104,21 +95,19 @@ class Query:
         async_iter = await self.session.execute_traversal(traversal)
         response_queue = asyncio.Queue(loop=self._loop)
         self._loop.create_task(
-            self._receive(async_iter, response_queue, traversal.element_class,
-                          traversal.mapper_func))
+            self._receive(async_iter, response_queue, traversal.element_class))
         return QueryResponse(response_queue)
 
-    async def _receive(self, async_iter, response_queue, element_class,
-                       mapper_func):
+    async def _receive(self, async_iter, response_queue, element_class):
         async for msg in async_iter:
-            # import ipdb; ipdb.set_trace()
             results = msg.data
             if results:
                 for result in results:
                     current = self.session.current.get(result['id'], None)
                     if not current:
                         current = element_class()
-                    element = mapper_func(result, current, current.__mapping__)
+                    element = element_class.__mapping__.mapper_func(
+                        result, current)
                     response_queue.put_nowait(element)
         response_queue.put_nowait(None)
 
