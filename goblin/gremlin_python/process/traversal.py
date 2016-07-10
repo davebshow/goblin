@@ -16,19 +16,21 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 '''
+from abc import abstractmethod
 from aenum import Enum
-from . import statics
+from gremlin_python import statics
 
-class PythonTraversal(object):
-    def __init__(self, translator, remote_connection=None):
-        self.translator = translator
-        self.remote_connection = remote_connection
+class Traversal(object):
+    def __init__(self, graph, traversal_strategies, bytecode):
+        self.graph = graph
+        self.traversal_strategies = traversal_strategies
+        self.bytecode = bytecode
         self.results = None
         self.last_traverser = None
         self.bindings = {}
 
     def __repr__(self):
-        return self.translator.traversal_script
+        return self.graph.translator.translate(self.bytecode)
 
     def __getitem__(self, index):
         if isinstance(index, int):
@@ -46,8 +48,7 @@ class PythonTraversal(object):
 
     def __next__(self):
         if self.results is None:
-            self.results = self.remote_connection.submit(self.translator.target_language,
-                                                         self.translator.traversal_script, self.bindings)
+            self.traversal_strategies.apply_strategies(self)
         if self.last_traverser is None:
             self.last_traverser = next(self.results)
         object = self.last_traverser.object
@@ -191,54 +192,67 @@ def _not(*args):
       return P._not(*args)
 
 statics.add_static('_not',_not)
+
 def between(*args):
       return P.between(*args)
 
 statics.add_static('between',between)
+
 def eq(*args):
       return P.eq(*args)
 
 statics.add_static('eq',eq)
+
 def gt(*args):
       return P.gt(*args)
 
 statics.add_static('gt',gt)
+
 def gte(*args):
       return P.gte(*args)
 
 statics.add_static('gte',gte)
+
 def inside(*args):
       return P.inside(*args)
 
 statics.add_static('inside',inside)
+
 def lt(*args):
       return P.lt(*args)
 
 statics.add_static('lt',lt)
+
 def lte(*args):
       return P.lte(*args)
 
 statics.add_static('lte',lte)
+
 def neq(*args):
       return P.neq(*args)
 
 statics.add_static('neq',neq)
+
 def outside(*args):
       return P.outside(*args)
 
 statics.add_static('outside',outside)
+
 def test(*args):
       return P.test(*args)
 
 statics.add_static('test',test)
+
 def within(*args):
       return P.within(*args)
 
 statics.add_static('within',within)
+
 def without(*args):
       return P.without(*args)
 
 statics.add_static('without',without)
+
 
 class RawExpression(object):
    def __init__(self, *args):
@@ -258,3 +272,106 @@ class Raw(object):
 
    def __str__(self):
       return str(self.value)
+
+
+'''
+TRAVERSER
+'''
+
+class Traverser(object):
+    def __init__(self, object, bulk):
+        self.object = object
+        self.bulk = bulk
+    def __repr__(self):
+        return str(self.object)
+
+'''
+TRAVERSAL STRATEGIES
+'''
+
+class TraversalStrategies(object):
+    global_cache = {}
+
+    def __init__(self, traversal_strategies):
+        self.traversal_strategies = traversal_strategies
+        return
+
+    def apply_strategies(self, traversal):
+        for traversal_strategy in self.traversal_strategies:
+            traversal_strategy.apply(traversal)
+        return
+
+
+class TraversalStrategy(object):
+    @abstractmethod
+    def apply(self, traversal):
+        return
+
+'''
+BYTECODE AND TRANSLATOR
+'''
+
+class Bytecode(object):
+    def __init__(self, bytecode=None):
+        self.source_instructions = []
+        self.step_instructions = []
+        if bytecode is not None:
+            self.source_instructions = list(bytecode.source_instructions)
+            self.step_instructions = list(bytecode.step_instructions)
+
+    def add_source(self, source_name, *args):
+        newArgs = ()
+        for arg in args:
+            newArgs = newArgs + (Bytecode.__convertArgument(arg),)
+        self.source_instructions.append((source_name, newArgs))
+        return
+
+    def add_step(self, step_name, *args):
+        newArgs = ()
+        for arg in args:
+            newArgs = newArgs + (Bytecode.__convertArgument(arg),)
+        self.step_instructions.append((step_name, newArgs))
+        return
+
+    @staticmethod
+    def __convertArgument(arg):
+        if isinstance(arg, Traversal):
+            return arg.bytecode
+        else:
+            return arg
+
+
+TO_JAVA_MAP = {"_global": "global", "_as": "as", "_in": "in", "_and": "and",
+               "_or": "or", "_is": "is", "_not": "not", "_from": "from",
+               "Cardinality": "VertexProperty.Cardinality", "Barrier": "SackFunctions.Barrier"}
+
+
+class Translator(object):
+    def __init__(self, traversal_source, anonymous_traversal, target_language):
+        self.traversal_source = traversal_source
+        self.anonymous_traversal = anonymous_traversal
+        self.target_language = target_language
+
+    @abstractmethod
+    def translate(self, bytecode):
+        return
+
+    @abstractmethod
+    def __repr__(self):
+        return "translator[" + self.traversal_source + ":" + self.target_language + "]"
+
+
+class SymbolHelper(object):
+    @staticmethod
+    def toJava(symbol):
+        if (symbol in TO_JAVA_MAP):
+            return TO_JAVA_MAP[symbol]
+        else:
+            return symbol
+
+    @staticmethod
+    def mapEnum(enum):
+        if (enum in enumMap):
+            return enumMap[enum]
+        else:
+            return enum

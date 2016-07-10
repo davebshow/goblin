@@ -16,6 +16,28 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 '''
-import statics
+import json
+import requests
+
+from gremlin_python.process.traversal import Traverser
+from remote_connection import RemoteConnection
 
 __author__ = 'Marko A. Rodriguez (http://markorodriguez.com)'
+
+
+class RESTRemoteConnection(RemoteConnection):
+    def __init__(self, url):
+        RemoteConnection.__init__(self, url)
+
+    def __repr__(self):
+        return "RESTRemoteConnection[" + self.url + "]"
+
+    def submit(self, target_language, script, bindings):
+        response = requests.post(self.url, data=json.dumps(
+            {"gremlin": script, "language": target_language, "bindings": bindings}))
+        if response.status_code != requests.codes.ok:
+            raise BaseException(response.text)
+        results = []
+        for x in response.json()['result']['data']:
+            results.append(Traverser(x, 1))
+        return iter(results)
