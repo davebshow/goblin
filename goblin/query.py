@@ -1,16 +1,17 @@
 """Query API and helpers"""
 import asyncio
+import functools
 import logging
 
-from goblin.gremlin_python import process
 from goblin import mapper
+from goblin.gremlin_python import structure, process
 
 
 logger = logging.getLogger(__name__)
 
 
 def parse_traversal(traversal):
-    script = traversal.translator.traversal_script
+    script = repr(traversal)
     bindings = traversal.bindings
     return script, bindings
 
@@ -35,10 +36,12 @@ class QueryResponse:
             raise StopAsyncIteration
 
 
+# This is all a hack until we figure out GLV integration...
 class GoblinTraversal(process.GraphTraversal):
 
-    def __init__(self, translator, query, element_class):
-        super().__init__(translator, remote_connection=None)
+    def __init__(self, graph, traversal_strategies, bytecode, *, query=None,
+                 element_class=None):
+        super().__init__(graph, traversal_strategies, bytecode)
         self._query = query
         self._element_class = element_class
 
@@ -51,14 +54,39 @@ class GoblinTraversal(process.GraphTraversal):
     def element_class(self):
         return self._element_class
 
+    def next(self):
+        raise NotImplementedError
+
+    def __repr__(self):
+        return self.graph.translator.translate(self.bytecode)
+
+    def toList(self):
+        raise NotImplementedError
+
+    def toSet(self):
+        raise NotImplementedError
+
+
+class NoOpGraph(structure.Graph):
+    """A silly graph that doesn't have traversal strategies and doesn't use a
+       connection."""
+    def __init__(self, translator):
+        self.translator = translator
+
+    def traversal(self, *, query=None, element_class=None):
+        traversal = functools.partial(
+            GoblinTraversal, query=query, element_class=element_class)
+        return process.GraphTraversalSource(self,
+                                            None,
+                                            graph_traversal=traversal)
+
 
 class Query:
     """Provides interface for user generated queries"""
     def __init__(self, session, translator, loop):
         self._session = session
         self._translator = translator
-        self._traversal_source = process.PythonGraphTraversalSource(
-            self._translator)
+        self._graph = NoOpGraph(self._translator)
         self._loop = loop
         self._binding = 0
 
@@ -72,7 +100,7 @@ class Query:
 
     @property
     def traversal_source(self):
-        return self._traversal_source
+        return self._graph.traversal()
 
     # Generative query methods...
     def filter(self, **kwargs):
@@ -80,13 +108,12 @@ class Query:
         raise NotImplementedError
 
     def traversal(self, element_class):
-
+        traversal = self._graph.traversal(query=self,
+                                          element_class=element_class)
         if element_class.__type__ == 'vertex':
-            traversal = GoblinTraversal(self._translator, self, element_class)
-            traversal.translator.addSpawnStep(traversal, "V")
+            traversal = traversal.V()
         if element_class.__type__ == 'edge':
-            traversal = GoblinTraversal(self._translator, self, element_class)
-            traversal.translator.addSpawnStep(traversal, "E")
+            traversal = traversal.E()
         return traversal.hasLabel(element_class.__mapping__.label)
 
     # Methods that issue a traversal query to server

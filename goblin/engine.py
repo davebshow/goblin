@@ -2,7 +2,7 @@
 import collections
 import logging
 
-from goblin import gremlin_python
+from goblin.gremlin_python import process
 from goblin import driver
 from goblin import session
 
@@ -58,7 +58,7 @@ class Engine(driver.AbstractConnection):
         self._loop = loop
         self._force_close = force_close
         self._features = features
-        self._translator = gremlin_python.GroovyTranslator('g')
+        self._translator = process.GroovyTranslator('g')
 
     @property
     def translator(self):
