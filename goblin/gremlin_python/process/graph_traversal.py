@@ -16,20 +16,23 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 '''
-from traversal import RawExpression
-from traversal import Traversal
-from traversal import Bytecode
-from gremlin_python import statics
+from .traversal import RawExpression
+from .traversal import Traversal
+from .traversal import Bytecode
+from goblin.gremlin_python import statics
 
 class GraphTraversalSource(object):
-  def __init__(self, graph, traversal_strategies, bytecode=Bytecode()):
+  def __init__(self, graph, traversal_strategies, graph_traversal=None, bytecode=Bytecode()):
     self.graph = graph
     self.traversal_strategies = traversal_strategies
+    if graph_traversal is None:
+        graph_traversal = GraphTraversal
+    self.graph_traversal = graph_traversal
     self.bytecode = bytecode
   def __repr__(self):
     return "graphtraversalsource[" + str(self.graph) + "]"
   def E(self, *args):
-    traversal = GraphTraversal(self.graph, self.traversal_strategies, Bytecode(self.bytecode))
+    traversal = self.graph_traversal(self.graph, self.traversal_strategies, Bytecode(self.bytecode))
     traversal.bytecode.add_step("E", *args)
     for arg in args:
       if isinstance(arg, tuple) and 2 == len(arg) and isinstance(arg[0], str):
@@ -38,7 +41,7 @@ class GraphTraversalSource(object):
         self.bindings.update(arg.bindings)
     return traversal
   def V(self, *args):
-    traversal = GraphTraversal(self.graph, self.traversal_strategies, Bytecode(self.bytecode))
+    traversal = self.graph_traversal(self.graph, self.traversal_strategies, Bytecode(self.bytecode))
     traversal.bytecode.add_step("V", *args)
     for arg in args:
       if isinstance(arg, tuple) and 2 == len(arg) and isinstance(arg[0], str):
@@ -47,7 +50,7 @@ class GraphTraversalSource(object):
         self.bindings.update(arg.bindings)
     return traversal
   def addV(self, *args):
-    traversal = GraphTraversal(self.graph, self.traversal_strategies, Bytecode(self.bytecode))
+    traversal = self.graph_traversal(self.graph, self.traversal_strategies, Bytecode(self.bytecode))
     traversal.bytecode.add_step("addV", *args)
     for arg in args:
       if isinstance(arg, tuple) and 2 == len(arg) and isinstance(arg[0], str):
@@ -56,7 +59,7 @@ class GraphTraversalSource(object):
         self.bindings.update(arg.bindings)
     return traversal
   def inject(self, *args):
-    traversal = GraphTraversal(self.graph, self.traversal_strategies, Bytecode(self.bytecode))
+    traversal = self.graph_traversal(self.graph, self.traversal_strategies, Bytecode(self.bytecode))
     traversal.bytecode.add_step("inject", *args)
     for arg in args:
       if isinstance(arg, tuple) and 2 == len(arg) and isinstance(arg[0], str):
@@ -1684,6 +1687,3 @@ def where(*args):
       return __.where(*args)
 
 statics.add_static('where', where)
-
-
-

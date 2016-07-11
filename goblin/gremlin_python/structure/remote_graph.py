@@ -19,9 +19,9 @@ under the License.
 
 __author__ = 'Marko A. Rodriguez (http://markorodriguez.com)'
 
-from graph import Graph
-from gremlin_python.process.traversal import TraversalStrategies
-from gremlin_python.process.traversal import TraversalStrategy
+from .graph import Graph
+from goblin.gremlin_python.process.traversal import TraversalStrategies
+from goblin.gremlin_python.process.traversal import TraversalStrategy
 
 
 class RemoteGraph(Graph):

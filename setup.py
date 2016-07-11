@@ -9,7 +9,8 @@ setup(
     author="davebshow",
     author_email="davebshow@gmail.com",
     description="Python driver for TP3 Gremlin Server",
-    packages=["goblin", "goblin.gremlin_python",
+    packages=["goblin", "goblin.gremlin_python", "goblin.gremlin_python.process",
+              "goblin.gremlin_python.driver", "goblin.gremlin_python.structure",
               "goblin.driver", "tests"],
     install_requires=[
         "aenum==1.4.5",

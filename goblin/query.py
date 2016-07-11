@@ -2,7 +2,7 @@
 import asyncio
 import logging
 
-from goblin import gremlin_python
+from goblin.gremlin_python import process
 from goblin import mapper
 
 
@@ -35,7 +35,7 @@ class QueryResponse:
             raise StopAsyncIteration
 
 
-class GoblinTraversal(gremlin_python.PythonGraphTraversal):
+class GoblinTraversal(process.GraphTraversal):
 
     def __init__(self, translator, query, element_class):
         super().__init__(translator, remote_connection=None)
@@ -57,7 +57,7 @@ class Query:
     def __init__(self, session, translator, loop):
         self._session = session
         self._translator = translator
-        self._traversal_source = gremlin_python.PythonGraphTraversalSource(
+        self._traversal_source = process.PythonGraphTraversalSource(
             self._translator)
         self._loop = loop
         self._binding = 0
