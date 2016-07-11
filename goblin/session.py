@@ -3,13 +3,14 @@ import collections
 import logging
 
 from goblin import mapper
-from goblin import query
+from goblin import traversal
+from goblin.driver import connection
 
 
 logger = logging.getLogger(__name__)
 
 
-class Session:
+class Session(connection.AbstractConnection):
     """Provides the main API for interacting with the database. Does not
        necessarily correpsond to a database session."""
 
@@ -18,7 +19,8 @@ class Session:
         self._loop = self._engine._loop
         self._use_session = False
         self._session = None
-        self._query = query.Query(self, self.engine.translator, self._loop)
+        self._traversal_factory = traversal.TraversalFactory(
+            self, self.engine.translator, self._loop)
         self._pending = collections.deque()
         self._current = {}
 
@@ -27,8 +29,8 @@ class Session:
         return self._engine
 
     @property
-    def query(self):
-        return self._query
+    def traversal_factory(self):
+        return self._traversal_factory
 
     @property
     def current(self):
@@ -44,7 +46,9 @@ class Session:
             await self.save(elem)
 
     def traversal(self, element_class):
-        return self.query.traversal(element_class)
+        label = element_class.__mapping__.label
+        return self.traversal_factory.traversal(
+            element_class).traversal().hasLabel(label)
 
     async def save(self, element):
         if element.__type__ == 'vertex':
@@ -56,20 +60,20 @@ class Session:
         return result
 
     async def save_vertex(self, element):
-        result = await self._save_element(element,
-                                          self.query.get_vertex_by_id,
-                                          self.query.add_vertex,
-                                          self.query.update_vertex)
+        result = await self._save_element(
+            element, self.traversal_factory.get_vertex_by_id,
+            self.traversal_factory.add_vertex,
+            self.traversal_factory.update_vertex)
         self.current[result.id] = result
         return result
 
     async def save_edge(self, element):
         if not (hasattr(element, 'source') and hasattr(element, 'target')):
             raise Exception("Edges require source/target vetices")
-        result = await self._save_element(element,
-                                          self.query.get_edge_by_id,
-                                          self.query.add_edge,
-                                          self.query.update_edge)
+        result = await self._save_element(
+            element, self.traversal_factory.get_edge_by_id,
+            self.traversal_factory.add_edge,
+            self.traversal_factory.update_edge)
         self.current[result.id] = result
         return result
 
@@ -93,12 +97,12 @@ class Session:
         return element.__mapping__.mapper_func(result.data[0], element)
 
     async def remove_vertex(self, element):
-        traversal = self.query.remove_vertex(element)
+        traversal = self.traversal_factory.remove_vertex(element)
         result = await self._remove_element(element, traversal)
         return result
 
     async def remove_edge(self, element):
-        traversal = self.query.remove_edge(element)
+        traversal = self.traversal_factory.remove_edge(element)
         result = await self._remove_element(element, traversal)
         return result
 
@@ -109,7 +113,7 @@ class Session:
         return result
 
     async def get_vertex(self, element):
-        traversal = self.query.get_vertex_by_id(element)
+        traversal = self.traversal_factory.get_vertex_by_id(element)
         stream = await self.execute_traversal(traversal)
         result = await stream.fetch_data()
         if result.data:
@@ -117,7 +121,7 @@ class Session:
             return vertex
 
     async def get_edge(self, element):
-        traversal = self.query.get_edge_by_id(element)
+        traversal = self.traversal_factory.get_edge_by_id(element)
         stream = await self.execute_traversal(traversal)
         result = await stream.fetch_data()
         if result.data:
@@ -125,11 +129,19 @@ class Session:
             return vertex
 
     async def execute_traversal(self, traversal):
-        # Move parsing to query
-        script, bindings = query.parse_traversal(traversal)
+        script = repr(traversal)
+        bindings = traversal.bindings
+        lang = traversal.graph.translator.target_language
+        return await self.submit(script, bindings=bindings, lang=lang)
+
+    async def submit(self,
+                    gremlin,
+                    *,
+                    bindings=None,
+                    lang='gremlin-groovy'):
         if self.engine._features['transactions'] and not self._use_session():
-            script = self._wrap_in_tx(script)
-        stream = await self.engine.submit(script, bindings=bindings,
+            gremlin = self._wrap_in_tx(gremlin)
+        stream = await self.engine.submit(gremlin, bindings=bindings,
                                           session=self._session)
         return stream
 

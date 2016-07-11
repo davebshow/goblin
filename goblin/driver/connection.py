@@ -46,10 +46,6 @@ class AbstractConnection(abc.ABC):
     async def submit(self):
         raise NotImplementedError
 
-    @abc.abstractmethod
-    async def close(self):
-        raise NotImplementedError
-
 
 class Connection(AbstractConnection):
 

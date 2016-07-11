@@ -29,17 +29,20 @@ class AsyncRemoteStrategy(TraversalStrategy):
         return result
 
 
-class AsyncGraph(object):
+class AsyncGraph:
     def traversal(self):
         return GraphTraversalSource(self, self.traversal_strategy,
-                                    graph_traversal=AsyncGraphTraversal)
+                                    graph_traversal=self.graph_traversal)
 
 
 class AsyncRemoteGraph(AsyncGraph):
-    def __init__(self, translator, remote_connection):
+    def __init__(self, translator, remote_connection, *, graph_traversal=None):
         self.traversal_strategy = AsyncRemoteStrategy()  # A single traversal strategy
         self.translator = translator
         self.remote_connection = remote_connection
+        if graph_traversal is None:
+            graph_traversal = AsyncGraphTraversal
+        self.graph_traversal = graph_traversal
 
     def __repr__(self):
         return "remotegraph[" + self.remote_connection.url + "]"
