@@ -2,6 +2,8 @@ import asyncio
 import unittest
 
 from goblin import driver
+from goblin.driver import graph
+from goblin.gremlin_python import process
 
 
 class TestDriver(unittest.TestCase):
@@ -41,4 +43,18 @@ class TestDriver(unittest.TestCase):
                 self.assertEqual(msg.data[0], 2)
             await connection.close()
 
+        self.loop.run_until_complete(go())
+
+    def test_async_graph(self):
+
+        async def go():
+            translator = process.GroovyTranslator('g')
+            connection = await driver.GremlinServer.open(
+                "http://localhost:8182/", self.loop)
+            g = graph.AsyncRemoteGraph(translator, connection)
+            traversal = g.traversal()
+            resp = await traversal.V().next()
+            async for msg in resp:
+                print(msg)
+            await connection.close()
         self.loop.run_until_complete(go())

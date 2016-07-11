@@ -21,13 +21,14 @@ import inspect
 import sys
 from aenum import Enum
 
-from .translator import SymbolHelper
-from .translator import Translator
 from .traversal import Barrier
+from .traversal import Bytecode
 from .traversal import Cardinality
 from .traversal import Column
 from .traversal import P
 from .traversal import RawExpression
+from .traversal import SymbolHelper
+from .traversal import Translator
 
 if sys.version_info.major > 2:
     long = int
@@ -36,36 +37,27 @@ __author__ = 'Marko A. Rodriguez (http://markorodriguez.com)'
 
 
 class JythonTranslator(Translator):
-    def __init__(self, alias, source_language="python", target_language="gremlin-jython"):
-        Translator.__init__(self, alias, source_language, target_language)
+    def __init__(self, traversal_source, anonymous_traversal="__", target_language="gremlin-jython"):
+        Translator.__init__(self, traversal_source, anonymous_traversal, target_language)
 
-    def addStep(self, traversal, step_name, *args):
-        self.traversal_script = self.traversal_script + "." + SymbolHelper.toJava(
-            step_name) + "(" + JythonTranslator.stringify(*args) + ")"
+    def translate(self, bytecode):
+        return self.__internalTranslate(self.traversal_source, bytecode)
 
-    def addSpawnStep(self, traversal, step_name, *args):
-        newTranslator = JythonTranslator(self.alias, self.source_language, self.target_language)
-        newTranslator.traversal_script = self.traversal_script
-        newTranslator.traversal_script = newTranslator.traversal_script + "." + SymbolHelper.toJava(
-            step_name) + "(" + JythonTranslator.stringify(*args) + ")"
-        traversal.translator = newTranslator
+    def __internalTranslate(self, start, bytecode):
+        traversal_script = start
+        for instruction in bytecode.source_instructions:
+            traversal_script = traversal_script + "." + SymbolHelper.toJava(
+                instruction[0]) + "(" + self.stringify(*instruction[1]) + ")"
+        for instruction in bytecode.step_instructions:
+            traversal_script = traversal_script + "." + SymbolHelper.toJava(
+                instruction[0]) + "(" + self.stringify(*instruction[1]) + ")"
+        return traversal_script
 
-    def addSource(self, traversal_source, source_name, *args):
-        newTranslator = JythonTranslator(self.alias, self.source_language, self.target_language)
-        newTranslator.traversal_script = self.traversal_script
-        newTranslator.traversal_script = newTranslator.traversal_script + "." + SymbolHelper.toJava(
-            source_name) + "(" + JythonTranslator.stringify(*args) + ")"
-        traversal_source.translator = newTranslator
-
-    def getAnonymousTraversalTranslator(self):
-        return JythonTranslator("__", self.source_language, self.target_language)
-
-    @staticmethod
-    def stringOrObject(arg):
+    def stringOrObject(self, arg):
         if isinstance(arg, str):
             return "\"" + arg + "\""
         elif isinstance(arg, long):
-            return str(arg) + "L" if arg > 9223372036854775807 else "Long(" + str(arg) + ")"
+            return str(arg)
         elif isinstance(arg, Barrier):
             return "Barrier" + "." + SymbolHelper.toJava(str(arg.name))
         elif isinstance(arg, Column):
@@ -76,11 +68,13 @@ class JythonTranslator(Translator):
             return SymbolHelper.toJava(type(arg).__name__) + "." + SymbolHelper.toJava(str(arg.name))
         elif isinstance(arg, P):
             if arg.other is None:
-                return "P." + SymbolHelper.toJava(arg.operator) + "(" + JythonTranslator.stringOrObject(
+                return "P." + SymbolHelper.toJava(arg.operator) + "(" + self.stringOrObject(
                     arg.value) + ")"
             else:
-                return JythonTranslator.stringOrObject(arg.other) + "." + SymbolHelper.toJava(
-                    arg.operator) + "(" + JythonTranslator.stringOrObject(arg.value) + ")"
+                return self.stringOrObject(arg.other) + "." + SymbolHelper.toJava(
+                    arg.operator) + "(" + self.stringOrObject(arg.value) + ")"
+        elif isinstance(arg, Bytecode):
+            return self.__internalTranslate(self.anonymous_traversal, arg)
         elif callable(arg):  # lambda that produces a string that is a lambda
             argLambdaString = arg().strip()
             argLength = len(inspect.getargspec(eval(argLambdaString)).args)
@@ -95,15 +89,14 @@ class JythonTranslator(Translator):
         elif isinstance(arg, tuple) and 2 == len(arg) and isinstance(arg[0], str):  # bindings
             return arg[0]
         elif isinstance(arg, RawExpression):
-            return "".join(JythonTranslator.stringOrObject(i) for i in arg.parts)
+            return "".join(self.stringOrObject(i) for i in arg.parts)
         else:
             return str(arg)
 
-    @staticmethod
-    def stringify(*args):
+    def stringify(self, *args):
         if len(args) == 0:
             return ""
         elif len(args) == 1:
-            return JythonTranslator.stringOrObject(args[0])
+            return self.stringOrObject(args[0])
         else:
-            return ", ".join(JythonTranslator.stringOrObject(i) for i in args)
+            return ", ".join(self.stringOrObject(i) for i in args)

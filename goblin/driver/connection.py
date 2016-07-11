@@ -77,6 +77,10 @@ class Connection(AbstractConnection):
     def force_close(self):
         return self._force_close
 
+    @property
+    def url(self):
+        return self._url
+
     async def submit(self,
                     gremlin,
                     *,
