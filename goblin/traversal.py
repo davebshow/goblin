@@ -66,6 +66,7 @@ class Traversal(connection.AbstractConnection):
         return self._session
 
     def traversal(self):
+        traversal = self.graph.traversal()
         if self._element_class:
             label = self._element_class.__mapping__.label
             traversal = self._graph.traversal()
@@ -74,8 +75,6 @@ class Traversal(connection.AbstractConnection):
             if self._element_class.__type__ == 'edge':
                 traversal = traversal.E()
             traversal = traversal.hasLabel(label)
-        else:
-            traversal = self.graph.traversal()
         return traversal
 
     async def submit(self,
