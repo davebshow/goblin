@@ -37,17 +37,25 @@ class GoblinTraversal(graph.AsyncGraphTraversal):
     async def all(self):
         return await self.next()
 
+    async def one(self):
+        # Idk really know how one will work
+        async for element in await self.all():
+            return element
+
 
 class Traversal(connection.AbstractConnection):
-    """Provides interface for user generated queries"""
-    def __init__(self, element_class, session, translator, loop):
-        self._element_class = element_class
+    """Wrapper for AsyncRemoteGraph that functions as a remote connection.
+       Used to generate/submit traversals."""
+    def __init__(self, session, translator, loop, *, element=None,
+                 element_class=None):
         self._session = session
         self._translator = translator
+        self._loop = loop
+        self._element = element
+        self._element_class = element_class
         self._graph = graph.AsyncRemoteGraph(self._translator,
                                              self,  # Traversal implements RC
                                              graph_traversal=GoblinTraversal)
-        self._loop = loop
 
     @property
     def graph(self):
@@ -57,19 +65,18 @@ class Traversal(connection.AbstractConnection):
     def session(self):
         return self._session
 
-    # Generative query methods...
-    def filter(self, **kwargs):
-        """Add a filter to the query"""
-        raise NotImplementedError
-
     def traversal(self):
-        label = self._element_class.__mapping__.label
-        traversal = self._graph.traversal()
-        if self._element_class.__type__ == 'vertex':
-            traversal = traversal.V()
-        if self._element_class.__type__ == 'edge':
-            traversal = traversal.E()
-        return traversal.hasLabel(label)
+        if self._element_class:
+            label = self._element_class.__mapping__.label
+            traversal = self._graph.traversal()
+            if self._element_class.__type__ == 'vertex':
+                traversal = traversal.V()
+            if self._element_class.__type__ == 'edge':
+                traversal = traversal.E()
+            traversal = traversal.hasLabel(label)
+        else:
+            traversal = self.graph.traversal()
+        return traversal
 
     async def submit(self,
                     gremlin,
@@ -81,18 +88,22 @@ class Traversal(connection.AbstractConnection):
             gremlin, bindings=bindings, lang=lang)
         response_queue = asyncio.Queue(loop=self._loop)
         self._loop.create_task(
-            self._receive(async_iter, response_queue, self._element_class))
+            self._receive(async_iter, response_queue))
         return TraversalResponse(response_queue)
 
-    async def _receive(self, async_iter, response_queue, element_class):
+    async def _receive(self, async_iter, response_queue):
         async for msg in async_iter:
             results = msg.data
             if results:
                 for result in results:
                     current = self.session.current.get(result['id'], None)
                     if not current:
-                        current = element_class()
-                    element = element_class.__mapping__.mapper_func(
+                        if self._element or self._element_class:
+                            current = self._element or self._element_class()
+                        else:
+                            # build generic element here
+                            pass
+                    element = current.__mapping__.mapper_func(
                         result, current)
                     response_queue.put_nowait(element)
         response_queue.put_nowait(None)
@@ -106,55 +117,55 @@ class TraversalFactory:
         self._loop = loop
         self._binding = 0
 
-    def traversal(self, element_class):
-        return Traversal(element_class,
-                         self._session,
+    def traversal(self, *, element=None, element_class=None):
+        return Traversal(self._session,
                          self._translator,
-                         self._loop)
+                         self._loop,
+                         element=element,
+                         element_class=element_class)
 
-    # Common CRUD methods that generate traversals
-    def remove_vertex(self, element):
-        traversal = self.traversal(element.__class__)
-        return traversal.graph.traversal().V(element.id).drop()
+    async def remove_vertex(self, element):
+        traversal = self.traversal(element=element)
+        return await traversal.graph.traversal().V(element.id).drop().one()
 
-    def remove_edge(self, element):
-        traversal = self.traversal(element.__class__)
-        return traversal.graph.traversal().E(element.id).drop()
+    async def remove_edge(self, element):
+        traversal = self.traversal(element=element)
+        return await traversal.graph.traversal().E(element.id).drop().one()
 
-    def get_vertex_by_id(self, element):
-        traversal = self.traversal(element.__class__)
-        return traversal.graph.traversal().V(element.id)
+    async def get_vertex_by_id(self, element):
+        traversal = self.traversal(element=element)
+        return await traversal.graph.traversal().V(element.id).one()
 
-    def get_edge_by_id(self, element):
-        traversal = self.traversal(element.__class__)
-        return traversal.graph.traversal().E(element.id)
+    async def get_edge_by_id(self, element):
+        traversal = self.traversal(element=element)
+        return await traversal.graph.traversal().E(element.id).one()
 
-    def add_vertex(self, element):
+    async def add_vertex(self, element):
         props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal(element.__class__)
+        traversal = self.traversal(element=element)
         traversal = traversal.graph.traversal().addV(element.__mapping__.label)
-        return self._add_properties(traversal, props)
+        return await self._add_properties(traversal, props).one()
 
-    def add_edge(self, element):
+    async def add_edge(self, element):
         props = mapper.map_props_to_db(element, element.__mapping__)
-        base_traversal = self.traversal(element.__class__)
+        base_traversal = self.traversal(element=element)
         traversal = base_traversal.graph.traversal().V(element.source.id)
         traversal = traversal.addE(element.__mapping__._label)
         traversal = traversal.to(
             base_traversal.graph.traversal().V(element.target.id))
-        return self._add_properties(traversal, props)
+        return await self._add_properties(traversal, props).one()
 
-    def update_vertex(self, element):
+    async def update_vertex(self, element):
         props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal(element.__class__)
+        traversal = self.traversal(element=element)
         traversal = traversal.graph.traversal().V(element.id)
-        return self._add_properties(traversal, props)
+        return await self._add_properties(traversal, props).one()
 
-    def update_edge(self, element):
+    async def update_edge(self, element):
         props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal(element.__class__)
+        traversal = self.traversal(element=element)
         traversal = traversal.graph.traversal().E(element.id)
-        return self._add_properties(traversal, props)
+        return await self._add_properties(traversal, props).one()
 
     def _add_properties(self, traversal, props):
         for k, v in props:

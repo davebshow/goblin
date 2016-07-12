@@ -45,10 +45,16 @@ class Session(connection.AbstractConnection):
             elem = self._pending.popleft()
             await self.save(elem)
 
+    @property
+    def g(self):
+        """Returns a simple traversal source"""
+        return self.traversal_factory.traversal().graph.traversal()
+
     def traversal(self, element_class):
+        """Returns a traversal spawned from an element class"""
         label = element_class.__mapping__.label
         return self.traversal_factory.traversal(
-            element_class).traversal().hasLabel(label)
+            element_class=element_class).traversal()
 
     async def save(self, element):
         if element.__type__ == 'vertex':
@@ -61,7 +67,7 @@ class Session(connection.AbstractConnection):
 
     async def save_vertex(self, element):
         result = await self._save_element(
-            element, self.traversal_factory.get_vertex_by_id,
+            element, self._check_vertex,
             self.traversal_factory.add_vertex,
             self.traversal_factory.update_vertex)
         self.current[result.id] = result
@@ -71,7 +77,7 @@ class Session(connection.AbstractConnection):
         if not (hasattr(element, 'source') and hasattr(element, 'target')):
             raise Exception("Edges require source/target vetices")
         result = await self._save_element(
-            element, self.traversal_factory.get_edge_by_id,
+            element, self._check_edge,
             self.traversal_factory.add_edge,
             self.traversal_factory.update_edge)
         self.current[result.id] = result
@@ -79,60 +85,47 @@ class Session(connection.AbstractConnection):
 
     async def _save_element(self,
                             element,
-                            get_func,
+                            check_func,
                             create_func,
                             update_func):
         if hasattr(element, 'id'):
-            traversal = get_func(element)
-            stream = await self.execute_traversal(traversal)
-            result = await stream.fetch_data()
+            result = await check_func(element)
             if not result.data:
-                traversal = create_func(element)
+                element = await create_func(element)
             else:
-                traversal = update_func(element)
+                element = await update_func(element)
         else:
-            traversal = create_func(element)
-        stream = await self.execute_traversal(traversal)
-        result = await stream.fetch_data()
-        return element.__mapping__.mapper_func(result.data[0], element)
+            element = await create_func(element)
+        return element
 
     async def remove_vertex(self, element):
-        traversal = self.traversal_factory.remove_vertex(element)
-        result = await self._remove_element(element, traversal)
+        result = await self.traversal_factory.remove_vertex(element)
+        del self.current[element.id]
         return result
 
     async def remove_edge(self, element):
-        traversal = self.traversal_factory.remove_edge(element)
-        result = await self._remove_element(element, traversal)
-        return result
-
-    async def _remove_element(self, element, traversal):
-        stream = await self.execute_traversal(traversal)
-        result = await stream.fetch_data()
+        result = await self.traversal_factory.remove_edge(element)
         del self.current[element.id]
         return result
 
     async def get_vertex(self, element):
-        traversal = self.traversal_factory.get_vertex_by_id(element)
-        stream = await self.execute_traversal(traversal)
-        result = await stream.fetch_data()
-        if result.data:
-            vertex = element.__mapping__.mapper_func(result.data[0], element)
-            return vertex
+        return await self.traversal_factory.get_vertex_by_id(element)
 
     async def get_edge(self, element):
-        traversal = self.traversal_factory.get_edge_by_id(element)
-        stream = await self.execute_traversal(traversal)
-        result = await stream.fetch_data()
-        if result.data:
-            vertex = element.__mapping__.mapper_func(result.data[0], element)
-            return vertex
+        return await self.traversal_factory.get_edge_by_id(element)
 
-    async def execute_traversal(self, traversal):
-        script = repr(traversal)
-        bindings = traversal.bindings
-        lang = traversal.graph.translator.target_language
-        return await self.submit(script, bindings=bindings, lang=lang)
+    async def _check_vertex(self, element):
+        """Used to check for existence, does not update session element"""
+        traversal = self.g.V(element.id)
+        stream = await self.submit(repr(traversal))
+        return await stream.fetch_data()
+
+    async def _check_edge(self, element):
+        """Used to check for existence, does not update session element"""
+        traversal = self.g.E(element.id)
+        stream = await self.submit(repr(traversal))
+        return await stream.fetch_data()
+
 
     async def submit(self,
                     gremlin,

@@ -13,9 +13,7 @@ logger = logging.getLogger(__name__)
 # Constructor API
 async def create_engine(url,
                         loop,
-                        maxsize=256,
-                        force_close=False,
-                        force_release=True):
+                        force_close=False):
     """Constructor function for :py:class:`Engine`. Connects to database
        and builds a dictionary of relevant vendor implmentation features"""
     features = {}
@@ -43,7 +41,7 @@ async def create_engine(url,
     msg = await stream.fetch_data()
     features['threaded_transactions'] = msg.data[0]
 
-    return Engine(url, conn, loop, **features)
+    return Engine(url, conn, loop, force_close=force_close, **features)
 
 
 # Main API classes
