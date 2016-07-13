@@ -6,7 +6,6 @@ import logging
 from goblin import mapper
 from goblin import traversal
 from goblin.driver import connection, graph
-from goblin.gremlin_python import process
 
 
 logger = logging.getLogger(__name__)
