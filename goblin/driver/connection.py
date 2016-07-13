@@ -46,16 +46,19 @@ class AbstractConnection(abc.ABC):
     async def submit(self):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    async def close(self):
+        raise NotImplementedError
+
 
 class Connection(AbstractConnection):
 
-    def __init__(self, url, ws, loop, conn_factory, *, force_close=True,
-                 username=None, password=None):
+    def __init__(self, url, ws, loop, conn_factory, *, username=None,
+                 password=None):
         self._url = url
         self._ws = ws
         self._loop = loop
         self._conn_factory = conn_factory
-        self._force_close = force_close
         self._username = username
         self._password = password
         self._closed = False
@@ -68,10 +71,6 @@ class Connection(AbstractConnection):
     @property
     def closed(self):
         return self._closed
-
-    @property
-    def force_close(self):
-        return self._force_close
 
     @property
     def url(self):
@@ -171,24 +170,23 @@ class Connection(AbstractConnection):
                           message["result"]["meta"])
         response_queue = self._response_queues[request_id]
         if message.status_code in [200, 206, 204]:
-            response_queue.put_nowait(message)
+            if message.data:
+                for result in message.data:
+                    response_queue.put_nowait(result)
             if message.status_code == 206:
                 self._loop.create_task(self.receive())
             else:
                 response_queue.put_nowait(None)
                 del self._response_queues[request_id]
         elif message.status_code == 407:
-            self._authenticate(self._username, self._password,
-                               self._processor, self._session)
+            await self._authenticate(self._username, self._password,
+                                     self._processor, self._session)
             self._loop.create_task(self.receive())
         else:
             del self._response_queues[request_id]
             raise RuntimeError("{0} {1}".format(message.status_code,
                                                 message.message))
 
-    async def term(self):
-        if self._force_close:
-            await self.close()
 
     async def __aenter__(self):
         return self

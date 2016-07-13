@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 
-from goblin.engine import create_engine
+from goblin.app import create_app
 from goblin.element import Vertex, Edge, VertexProperty
 from goblin.properties import Property, String
 
@@ -28,9 +28,12 @@ class TestEngine(unittest.TestCase):
 
     def test_add_vertex(self):
 
+        app = self.loop.run_until_complete(
+            create_app("http://localhost:8182/", self.loop))
+        app.register(TestVertex)
+
         async def go():
-            engine = await create_engine("http://localhost:8182/", self.loop)
-            session = engine.session()
+            session = await app.session()
             leif = TestVertex()
             leif.name = 'leifur'
             leif.notes = 'superdev'
@@ -41,16 +44,18 @@ class TestEngine(unittest.TestCase):
             self.assertEqual(current.notes, 'superdev')
             self.assertIs(leif, current)
             self.assertEqual(leif.id, current.id)
-            await engine.close()
-            print(engine)
+            await session.close()
 
         self.loop.run_until_complete(go())
 
     def test_update_vertex(self):
 
+        app = self.loop.run_until_complete(
+            create_app("http://localhost:8182/", self.loop))
+        app.register(TestVertex)
+
         async def go():
-            engine = await create_engine("http://localhost:8182/", self.loop)
-            session = engine.session()
+            session = await app.session()
             leif = TestVertex()
             leif.name = 'leifur'
             session.add(leif)
@@ -65,16 +70,19 @@ class TestEngine(unittest.TestCase):
             new_current = session._current[leif.id]
             self.assertIs(current, new_current)
             self.assertEqual(new_current.name, 'leif')
-            await engine.close()
+            await session.close()
 
 
         self.loop.run_until_complete(go())
 
     def test_add_edge(self):
 
+        app = self.loop.run_until_complete(
+            create_app("http://localhost:8182/", self.loop))
+        app.register(TestVertex, TestEdge)
+
         async def go():
-            engine = await create_engine("http://localhost:8182/", self.loop)
-            session = engine.session()
+            session = await app.session()
             leif = TestVertex()
             leif.name = 'leifur'
             jon = TestVertex()
@@ -94,15 +102,18 @@ class TestEngine(unittest.TestCase):
             self.assertEqual(leif.id, current.target.id)
             self.assertIs(jon, current.source)
             self.assertEqual(jon.id, current.source.id)
-            await engine.close()
+            await session.close()
 
         self.loop.run_until_complete(go())
 
     def test_update_edge(self):
 
+        app = self.loop.run_until_complete(
+            create_app("http://localhost:8182/", self.loop))
+        app.register(TestVertex, TestEdge)
+
         async def go():
-            engine = await create_engine("http://localhost:8182/", self.loop)
-            session = engine.session()
+            session = await app.session()
             leif = TestVertex()
             leif.name = 'leifur'
             jon = TestVertex()
@@ -119,7 +130,7 @@ class TestEngine(unittest.TestCase):
             await session.flush()
             new_current = session._current[works_for.id]
             self.assertEqual(new_current.notes, 'zerofail')
-            await engine.close()
+            await session.close()
 
         self.loop.run_until_complete(go())
 
@@ -128,9 +139,12 @@ class TestEngine(unittest.TestCase):
 
     def test_query_all(self):
 
+        app = self.loop.run_until_complete(
+            create_app("http://localhost:8182/", self.loop))
+        app.register(TestVertex)
+
         async def go():
-            engine = await create_engine("http://localhost:8182/", self.loop)
-            session = engine.session()
+            session = await app.session()
             leif = TestVertex()
             leif.name = 'leifur'
             jon = TestVertex()
@@ -145,15 +159,18 @@ class TestEngine(unittest.TestCase):
             self.assertEqual(len(session.current), 2)
             for result in results:
                 self.assertIsInstance(result, Vertex)
-            await engine.close()
+            await session.close()
 
         self.loop.run_until_complete(go())
 
     def test_remove_vertex(self):
 
+        app = self.loop.run_until_complete(
+            create_app("http://localhost:8182/", self.loop))
+        app.register(TestVertex, TestEdge)
+
         async def go():
-            engine = await create_engine("http://localhost:8182/", self.loop)
-            session = engine.session()
+            session = await app.session()
             leif = TestVertex()
             leif.name = 'leifur'
             session.add(leif)
@@ -164,15 +181,18 @@ class TestEngine(unittest.TestCase):
             result = await session.get_vertex(leif)
             self.assertIsNone(result)
             self.assertEqual(len(list(session.current.items())), 0)
-            await engine.close()
+            await session.close()
 
         self.loop.run_until_complete(go())
 
     def test_remove_edge(self):
 
+        app = self.loop.run_until_complete(
+            create_app("http://localhost:8182/", self.loop))
+        app.register(TestVertex, TestEdge)
+
         async def go():
-            engine = await create_engine("http://localhost:8182/", self.loop)
-            session = engine.session()
+            session = await app.session()
             leif = TestVertex()
             leif.name = 'leifur'
             jon = TestVertex()
@@ -189,15 +209,18 @@ class TestEngine(unittest.TestCase):
             result = await session.get_edge(works_for)
             self.assertIsNone(result)
             self.assertEqual(len(list(session.current.items())), 2)
-            await engine.close()
+            await session.close()
 
         self.loop.run_until_complete(go())
 
     def test_traversal(self):
 
+        app = self.loop.run_until_complete(
+            create_app("http://localhost:8182/", self.loop))
+        app.register(TestVertex, TestEdge)
+
         async def go():
-            engine = await create_engine("http://localhost:8182/", self.loop)
-            session = engine.session()
+            session = await app.session()
             leif = TestVertex()
             leif.name = 'the one and only leifur'
             jon = TestVertex()
@@ -209,15 +232,15 @@ class TestEngine(unittest.TestCase):
             session.add(leif, jon, works_for)
             await session.flush()
             result = await session.traversal(TestVertex).has(
-                TestVertex.__mapping__.name, ('v1', 'the one and only leifur'))._in().all()
+                TestVertex.name, ('v1', 'the one and only leifur'))._in().all()
             async for msg in result:
                 self.assertIs(msg, jon)
             result = await session.traversal(TestVertex).has(
-                TestVertex.__mapping__.name, ('v1', 'the one and only jonathan')).out().all()
+                TestVertex.name, ('v1', 'the one and only jonathan')).out().all()
             async for msg in result:
                 self.assertIs(msg, leif)
             await session.remove_vertex(leif)
             await session.remove_vertex(jon)
-            await engine.close()
+            await session.close()
 
         self.loop.run_until_complete(go())

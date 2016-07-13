@@ -11,13 +11,14 @@ class PropertyDescriptor:
        as instance attributes."""
 
     def __init__(self, name, prop):
+        self._prop_name = name
         self._name = '_' + name
         self._data_type = prop.data_type
         self._default = prop.default
 
     def __get__(self, obj, objtype):
         if obj is None:
-            return self._data_type
+            return getattr(objtype.__mapping__, self._prop_name)
         return getattr(obj, self._name, self._default)
 
     def __set__(self, obj, val):
