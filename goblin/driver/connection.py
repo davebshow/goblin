@@ -170,15 +170,17 @@ class Connection(AbstractConnection):
                           message["result"]["meta"])
         response_queue = self._response_queues[request_id]
         if message.status_code in [200, 206, 204]:
-            response_queue.put_nowait(message)
+            if message.data:
+                for result in message.data:
+                    response_queue.put_nowait(result)
             if message.status_code == 206:
                 self._loop.create_task(self.receive())
             else:
                 response_queue.put_nowait(None)
                 del self._response_queues[request_id]
         elif message.status_code == 407:
-            self._authenticate(self._username, self._password,
-                               self._processor, self._session)
+            await self._authenticate(self._username, self._password,
+                                     self._processor, self._session)
             self._loop.create_task(self.receive())
         else:
             del self._response_queues[request_id]

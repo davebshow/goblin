@@ -79,26 +79,22 @@ class Session(connection.AbstractConnection):
         return traversal.TraversalResponse(response_queue)
 
     async def _receive(self, async_iter, response_queue):
-        async for msg in async_iter:
-            results = msg.data
-            if results:
-                for result in results:
-                    current = self.current.get(result['id'], None)
-                    if not current:
-                        element_type = result['type']
-                        label = result['label']
-                        if element_type == 'vertex':
-                            current = self.app.vertices.get(label, None)
-                        else:
-                            current = self.app.edges.get(label, None)
-                        if not current:
-                            # build generic element here
-                            pass
-                        else:
-                            current = current()
-                    element = current.__mapping__.mapper_func(
-                        result, current)
-                    response_queue.put_nowait(element)
+        async for result in async_iter:
+            current = self.current.get(result['id'], None)
+            if not current:
+                element_type = result['type']
+                label = result['label']
+                if element_type == 'vertex':
+                    current = self.app.vertices.get(label, None)
+                else:
+                    current = self.app.edges.get(label, None)
+                if not current:
+                    # build generic element here
+                    pass
+                else:
+                    current = current()
+            element = current.__mapping__.mapper_func(result, current)
+            response_queue.put_nowait(element)
         response_queue.put_nowait(None)
 
     # Creation API
@@ -151,10 +147,12 @@ class Session(connection.AbstractConnection):
         return result
 
     async def get_vertex(self, element):
-        return await self.traversal_factory.get_vertex_by_id(element).one_or_none()
+        return await self.traversal_factory.get_vertex_by_id(
+            element).one_or_none()
 
     async def get_edge(self, element):
-        return await self.traversal_factory.get_edge_by_id(element).one_or_none()
+        return await self.traversal_factory.get_edge_by_id(
+            element).one_or_none()
 
     # Transaction support
     def tx(self):
@@ -177,8 +175,8 @@ class Session(connection.AbstractConnection):
         stream = await self.conn.submit(
             repr(traversal), bindings=traversal.bindings)
         msg = await stream.fetch_data()
-        if msg.data:
-            msg = element.__mapping__.mapper_func(msg.data[0], element)
+        if msg:
+            msg = element.__mapping__.mapper_func(msg, element)
             return msg
 
     async def _save_element(self,
@@ -188,7 +186,7 @@ class Session(connection.AbstractConnection):
                             update_func):
         if hasattr(element, 'id'):
             result = await check_func(element)
-            if not result.data:
+            if not result:
                 traversal = create_func(element)
             else:
                 traversal = update_func(element)

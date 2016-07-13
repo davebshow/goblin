@@ -1,4 +1,4 @@
-"""Main OGM API classes and constructors"""
+"""Goblin application class and class constructor"""
 import collections
 import logging
 
@@ -10,7 +10,6 @@ from goblin import session
 logger = logging.getLogger(__name__)
 
 
-# Constructor API
 async def create_app(url, loop, **config):
     """Constructor function for :py:class:`Engine`. Connects to database
        and builds a dictionary of relevant vendor implmentation features"""
@@ -20,23 +19,23 @@ async def create_app(url, loop, **config):
         stream = await conn.submit(
             'graph.features().graph().supportsComputer()')
         msg = await stream.fetch_data()
-        features['computer'] = msg.data[0]
+        features['computer'] = msg
         stream = await conn.submit(
             'graph.features().graph().supportsTransactions()')
         msg = await stream.fetch_data()
-        features['transactions'] = msg.data[0]
+        features['transactions'] = msg
         stream = await conn.submit(
             'graph.features().graph().supportsPersistence()')
         msg = await stream.fetch_data()
-        features['persistence'] = msg.data[0]
+        features['persistence'] = msg
         stream = await conn.submit(
             'graph.features().graph().supportsConcurrentAccess()')
         msg = await stream.fetch_data()
-        features['concurrent_access'] = msg.data[0]
+        features['concurrent_access'] = msg
         stream = await conn.submit(
             'graph.features().graph().supportsThreadedTransactions()')
         msg = await stream.fetch_data()
-        features['threaded_transactions'] = msg.data[0]
+        features['threaded_transactions'] = msg
     return App(url, loop, features=features, **config)
 
 
