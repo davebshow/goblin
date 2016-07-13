@@ -51,7 +51,6 @@ class Session(connection.AbstractConnection):
 
     async def close(self):
         await self.conn.close()
-        self._traversal_factory = None
         self._app = None
 
     # Traversal API
