@@ -1,0 +1,94 @@
+"""Main OGM API classes and constructors"""
+import collections
+import logging
+
+from goblin.gremlin_python import process
+from goblin import driver
+from goblin import session
+
+
+logger = logging.getLogger(__name__)
+
+
+# Constructor API
+async def create_app(url, loop, **config):
+    """Constructor function for :py:class:`Engine`. Connects to database
+       and builds a dictionary of relevant vendor implmentation features"""
+    features = {}
+    async with await driver.GremlinServer.open(url, loop) as conn:
+        # Propbably just use a parser to parse the whole feature list
+        stream = await conn.submit(
+            'graph.features().graph().supportsComputer()')
+        msg = await stream.fetch_data()
+        features['computer'] = msg.data[0]
+        stream = await conn.submit(
+            'graph.features().graph().supportsTransactions()')
+        msg = await stream.fetch_data()
+        features['transactions'] = msg.data[0]
+        stream = await conn.submit(
+            'graph.features().graph().supportsPersistence()')
+        msg = await stream.fetch_data()
+        features['persistence'] = msg.data[0]
+        stream = await conn.submit(
+            'graph.features().graph().supportsConcurrentAccess()')
+        msg = await stream.fetch_data()
+        features['concurrent_access'] = msg.data[0]
+        stream = await conn.submit(
+            'graph.features().graph().supportsThreadedTransactions()')
+        msg = await stream.fetch_data()
+        features['threaded_transactions'] = msg.data[0]
+    return App(url, loop, features=features, **config)
+
+
+# Main API classes
+class App:
+    """Class used to encapsulate database connection configuration and generate
+       database connections. Used as a factory to create :py:class:`Session`
+       objects. More config coming soon."""
+    DEFAULT_CONFIG = {
+        'translator': process.GroovyTranslator('g')
+    }
+
+    def __init__(self, url, loop, *, features=None, **config):
+        self._url = url
+        self._loop = loop
+        self._features = features
+        self._config = self.DEFAULT_CONFIG
+        self._config.update(config)
+        self._vertices = {}
+        self._edges = {}
+
+    @property
+    def vertices(self):
+        return self._vertices
+
+    @property
+    def edges(self):
+        return self._edges
+
+    def from_file(filepath):
+        pass
+
+    def from_obj(obj):
+        pass
+
+    @property
+    def translator(self):
+        return self._config['translator']
+
+    @property
+    def url(self):
+        return self._url
+
+    def register(self, *elements):
+        for element in elements:
+            if element.__type__ == 'vertex':
+                self._vertices[element.__label__] = element
+            if element.__type__ == 'edge':
+                self._edges[element.__label__] = element
+
+    async def session(self, *, use_session=False):
+        conn = await driver.GremlinServer.open(self.url, self._loop)
+        return session.Session(self,
+                               conn,
+                               use_session=use_session)

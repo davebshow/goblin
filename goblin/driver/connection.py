@@ -49,13 +49,12 @@ class AbstractConnection(abc.ABC):
 
 class Connection(AbstractConnection):
 
-    def __init__(self, url, ws, loop, conn_factory, *, force_close=True,
-                 username=None, password=None):
+    def __init__(self, url, ws, loop, conn_factory, *, username=None,
+                 password=None):
         self._url = url
         self._ws = ws
         self._loop = loop
         self._conn_factory = conn_factory
-        self._force_close = force_close
         self._username = username
         self._password = password
         self._closed = False
@@ -68,10 +67,6 @@ class Connection(AbstractConnection):
     @property
     def closed(self):
         return self._closed
-
-    @property
-    def force_close(self):
-        return self._force_close
 
     @property
     def url(self):
@@ -186,9 +181,6 @@ class Connection(AbstractConnection):
             raise RuntimeError("{0} {1}".format(message.status_code,
                                                 message.message))
 
-    async def term(self):
-        if self._force_close:
-            await self.close()
 
     async def __aenter__(self):
         return self
