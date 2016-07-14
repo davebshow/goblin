@@ -68,3 +68,29 @@ class String(abc.DataType):
 
     def to_ogm(self, val):
         return super().to_ogm(val)
+
+
+class Integer(abc.DataType):
+    """Simple string datatype"""
+
+    def validate(self, val):
+        """Need to think about this."""
+        if val is not None:
+            try:
+                return int(val)
+            except Exception as e:
+                raise Exception("Invalid") from e
+
+    def to_db(self, val):
+        return super().to_db(val)
+
+    def to_ogm(self, val):
+        return super().to_ogm(val)
+
+
+class Float(abc.DataType):
+    pass
+
+
+class Bool(abc.DataType):
+    pass

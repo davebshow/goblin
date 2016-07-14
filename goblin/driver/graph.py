@@ -46,3 +46,13 @@ class AsyncRemoteGraph(AsyncGraph):
 
     def __repr__(self):
         return "remotegraph[" + self.remote_connection.url + "]"
+
+    async def close(self):
+        await self.remote_connection.close()
+        self.remote_connection = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.close()

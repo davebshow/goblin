@@ -2,6 +2,7 @@
 import asyncio
 import collections
 import logging
+import weakref
 
 from goblin import mapper
 from goblin import traversal
@@ -21,7 +22,7 @@ class Session(connection.AbstractConnection):
         self._loop = self._app._loop
         self._use_session = False
         self._pending = collections.deque()
-        self._current = {}
+        self._current = weakref.WeakValueDictionary()
         remote_graph = graph.AsyncRemoteGraph(
             self._app.translator, self,
             graph_traversal=traversal.GoblinTraversal)
@@ -46,7 +47,7 @@ class Session(connection.AbstractConnection):
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self):
+    async def __aexit__(self, exc_type, exc, tb):
         await self.close()
 
     async def close(self):
@@ -84,14 +85,11 @@ class Session(connection.AbstractConnection):
                 element_type = result['type']
                 label = result['label']
                 if element_type == 'vertex':
-                    current = self.app.vertices.get(label, None)
+                    current = self.app.vertices[label]()
                 else:
-                    current = self.app.edges.get(label, None)
-                if not current:
-                    # build generic element here
-                    pass
-                else:
-                    current = current()
+                    current = self.app.edges[label]()
+                    current.source = element.Vertex()
+                    current.target = element.Vertex()
             element = current.__mapping__.mapper_func(result, current)
             response_queue.put_nowait(element)
         response_queue.put_nowait(None)
@@ -109,13 +107,15 @@ class Session(connection.AbstractConnection):
     async def remove_vertex(self, element):
         traversal = self.traversal_factory.remove_vertex(element)
         result = await self._simple_traversal(traversal, element)
-        del self.current[element.id]
+        element = self.current.pop(element.id)
+        del element
         return result
 
     async def remove_edge(self, element):
         traversal = self.traversal_factory.remove_edge(element)
         result = await self._simple_traversal(traversal, element)
-        del self.current[element.id]
+        element = self.current.pop(element.id)
+        del element
         return result
 
     async def save(self, element):
@@ -131,7 +131,7 @@ class Session(connection.AbstractConnection):
         result = await self._save_element(
             element, self._check_vertex,
             self.traversal_factory.add_vertex,
-            self.traversal_factory.update_vertex)
+            self.update_vertex)
         self.current[result.id] = result
         return result
 
@@ -141,7 +141,7 @@ class Session(connection.AbstractConnection):
         result = await self._save_element(
             element, self._check_edge,
             self.traversal_factory.add_edge,
-            self.traversal_factory.update_edge)
+            self.update_edge)
         self.current[result.id] = result
         return result
 
@@ -152,6 +152,16 @@ class Session(connection.AbstractConnection):
     async def get_edge(self, element):
         return await self.traversal_factory.get_edge_by_id(
             element).one_or_none()
+
+    async def update_vertex(self, element):
+        props = mapper.map_props_to_db(element, element.__mapping__)
+        traversal = self.traversal().V(element.id)
+        traversal = await self._update_properties(element, traversal, props)
+
+    async def update_edge(self, element):
+        props = mapper.map_props_to_db(element, element.__mapping__)
+        traversal = self.traversal().E(element.id)
+        return await self._update_properties(element, traversal, props)
 
     # Transaction support
     def tx(self):
@@ -188,7 +198,7 @@ class Session(connection.AbstractConnection):
             if not result:
                 traversal = create_func(element)
             else:
-                traversal = update_func(element)
+                traversal = await update_func(element)
         else:
             traversal = create_func(element)
         return await self._simple_traversal(traversal, element)
@@ -204,3 +214,16 @@ class Session(connection.AbstractConnection):
         traversal = self.g.E(element.id)
         stream = await self.conn.submit(repr(traversal))
         return await stream.fetch_data()
+
+    async def _update_properties(self, element, traversal, props):
+        binding = 0
+        for k, v in props:
+            if v:
+                traversal = traversal.property(
+                    ('k' + str(binding), k),
+                    ('v' + str(binding), v))
+            else:
+                await self.g.V(element.id).properties(
+                    ('k' + str(binding), k)).drop().one_or_none()
+            binding += 1
+        return traversal

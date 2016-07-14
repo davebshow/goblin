@@ -1,5 +1,7 @@
 import logging
 
+import inflection
+
 from goblin import abc
 from goblin import mapper
 from goblin import properties
@@ -16,6 +18,8 @@ class ElementMeta(type):
     def __new__(cls, name, bases, namespace, **kwds):
         if bases:
             namespace['__type__'] = bases[0].__name__.lower()
+        if not namespace.get('__label__', None):
+            namespace['__label__'] = inflection.underscore(name)
         props = {}
         new_namespace = {}
         for k, v in namespace.items():
@@ -23,8 +27,7 @@ class ElementMeta(type):
                 props[k] = v
                 v = v.__descriptor__(k, v)
             new_namespace[k] = v
-        new_namespace['__mapping__'] = mapper.create_mapping(namespace,
-                                                             props)
+        new_namespace['__mapping__'] = mapper.create_mapping(namespace, props)
         logger.warning("Creating new Element class {}: {}".format(
             name, new_namespace['__mapping__']))
         result = type.__new__(cls, name, bases, new_namespace)
@@ -44,10 +47,8 @@ class Edge(Element):
     """Base class for user defined Edge classes"""
 
     def __init__(self, source=None, target=None):
-        if source:
-            self._source = source
-        if target:
-            self._target = target
+        self._source = source
+        self._target = target
 
     def getsource(self):
         return self._source

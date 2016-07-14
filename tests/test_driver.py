@@ -1,60 +1,73 @@
-import asyncio
-import unittest
-
-from goblin import driver
-from goblin.driver import graph
-from goblin.gremlin_python import process
+import pytest
 
 
-class TestDriver(unittest.TestCase):
+@pytest.mark.asyncio
+async def test_get_close_conn(connection):
+    ws = connection._ws
+    assert not ws.closed
+    assert not connection.closed
+    await connection.close()
+    assert connection.closed
+    assert ws.closed
 
-    def setUp(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(None)
 
-    def test_open(self):
+@pytest.mark.asyncio
+async def test_conn_context_manager(connection):
+    async with connection:
+        assert not connection.closed
+    assert connection.closed
 
-        async def go():
-            connection = await driver.GremlinServer.open(
-                "http://localhost:8182/", self.loop)
-            async with connection:
-                self.assertFalse(connection._ws.closed)
-            self.assertTrue(connection._ws.closed)
 
-        self.loop.run_until_complete(go())
+@pytest.mark.asyncio
+async def test_submit(connection):
+    async with connection:
+        stream = await connection.submit("1 + 1")
+        results = []
+        async for msg in stream:
+            results.append(msg)
+        assert len(results) == 1
+        assert results[0] == 2
 
-    def test_open_as_ctx_mng(self):
 
-        async def go():
-            async with await driver.GremlinServer.open(
-                    "http://localhost:8182/", self.loop) as connection:
-                self.assertFalse(connection._ws.closed)
-            self.assertTrue(connection._ws.closed)
+@pytest.mark.asyncio
+async def test_204_empty_stream(connection):
+    resp = False
+    async with connection:
+        stream = await connection.submit('g.V().has("unlikely", "even less likely")')
+        async for msg in stream:
+            resp = True
+    assert not resp
 
-        self.loop.run_until_complete(go())
 
-    def test_submit(self):
-
-        async def go():
-            connection = await driver.GremlinServer.open(
-                "http://localhost:8182/", self.loop)
-            stream = await connection.submit("1 + 1")
+@pytest.mark.asyncio
+async def test_server_error(connection):
+    async with connection:
+        stream = await connection.submit('g. V jla;sdf')
+        with pytest.raises(Exception):
             async for msg in stream:
-                self.assertEqual(msg.data[0], 2)
-            await connection.close()
+                pass
 
-        self.loop.run_until_complete(go())
 
-    def test_async_graph(self):
+@pytest.mark.asyncio
+async def test_cant_connect(event_loop, gremlin_server, unused_server_url):
+    with pytest.raises(Exception):
+        await gremlin_server.open(unused_server_url, event_loop)
 
-        async def go():
-            translator = process.GroovyTranslator('g')
-            connection = await driver.GremlinServer.open(
-                "http://localhost:8182/", self.loop)
-            g = graph.AsyncRemoteGraph(translator, connection)
-            traversal = g.traversal()
-            resp = await traversal.V().next()
-            async for msg in resp:
-                print(msg)
-            await connection.close()
-        self.loop.run_until_complete(go())
+
+@pytest.mark.asyncio
+async def test_resp_queue_removed_from_conn(connection):
+    async with connection:
+        stream = await connection.submit("1 + 1")
+        async for msg in stream:
+            pass
+        assert stream._response_queue not in list(
+            connection._response_queues.values())
+
+
+@pytest.mark.asyncio
+async def test_stream_done(connection):
+    async with connection:
+        stream = await connection.submit("1 + 1")
+        async for msg in stream:
+            pass
+        assert stream._done
