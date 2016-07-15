@@ -27,9 +27,11 @@ class ElementMeta(type):
                 props[k] = v
                 v = v.__descriptor__(k, v)
             new_namespace[k] = v
-        new_namespace['__mapping__'] = mapper.create_mapping(namespace, props)
-        logger.warning("Creating new Element class {}: {}".format(
-            name, new_namespace['__mapping__']))
+        new_namespace['__mapping__'] = mapper.create_mapping(namespace,
+                                                             props)
+        if name not in ('Element', 'Vertex', 'Edge', 'VertexProperty'):
+            logger.warning("Creating new Element class {}: {}".format(
+                name, new_namespace['__mapping__']))
         result = type.__new__(cls, name, bases, new_namespace)
         return result
 
