@@ -1,6 +1,7 @@
 import abc
 import asyncio
 import collections
+import functools
 import json
 import logging
 import uuid
@@ -11,7 +12,20 @@ logger = logging.getLogger(__name__)
 
 Message = collections.namedtuple(
     "Message",
-    ["status_code", "data", "message", "metadata"])
+    ["status_code", "data", "message"])
+
+
+def error_handler(fn):
+    @functools.wraps(fn)
+    async def wrapper(self):
+        msg = await fn(self)
+        if msg:
+            if msg.status_code not in [200, 206, 204]:
+                raise RuntimeError(
+                    "{0}: {1}".format(msg.status_code, msg.message))
+            msg = msg.data
+        return msg
+    return wrapper
 
 
 class Response:
@@ -31,6 +45,7 @@ class Response:
         else:
             raise StopAsyncIteration
 
+    @error_handler
     async def fetch_data(self):
         if self._done:
             return None
@@ -101,7 +116,7 @@ class Connection(AbstractConnection):
         response_queue = asyncio.Queue(loop=self._loop)
         self.response_queues[request_id] = response_queue
         if self._ws.closed:
-            self._ws = await self.conn_factory.ws_connect(self._url)
+            self._ws = await self.conn_factory.ws_connect(self.url)
         self._ws.send_bytes(message)
         self._loop.create_task(self.receive())
         return Response(response_queue, self._loop)
@@ -164,29 +179,27 @@ class Connection(AbstractConnection):
         # parse aiohttp response here
         message = json.loads(data.data.decode("utf-8"))
         request_id = message['requestId']
-        message = Message(message["status"]["code"],
-                          message["result"]["data"],
-                          message["status"]["message"],
-                          message["result"]["meta"])
+        status_code = message['status']['code']
+        data = message["result"]["data"]
+        msg = message["status"]["message"]
         response_queue = self._response_queues[request_id]
-        if message.status_code in [200, 206, 204]:
-            if message.data:
-                for result in message.data:
-                    response_queue.put_nowait(result)
-            if message.status_code == 206:
-                self._loop.create_task(self.receive())
-            else:
-                response_queue.put_nowait(None)
-                del self._response_queues[request_id]
-        elif message.status_code == 407:
+        if status_code == 407:
             await self._authenticate(self._username, self._password,
                                      self._processor, self._session)
             self._loop.create_task(self.receive())
         else:
-            del self._response_queues[request_id]
-            raise RuntimeError("{0} {1}".format(message.status_code,
-                                                message.message))
-
+            if data:
+                for result in data:
+                    message = Message(status_code, result, msg)
+                    response_queue.put_nowait(message)
+            else:
+                message = Message(status_code, data, msg)
+                response_queue.put_nowait(message)
+            if status_code == 206:
+                self._loop.create_task(self.receive())
+            else:
+                response_queue.put_nowait(None)
+                del self._response_queues[request_id]
 
     async def __aenter__(self):
         return self

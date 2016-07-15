@@ -3,8 +3,7 @@ import collections
 import logging
 
 from goblin.gremlin_python import process
-from goblin import driver
-from goblin import session
+from goblin import driver, element, session
 
 
 logger = logging.getLogger(__name__)
@@ -36,11 +35,11 @@ async def create_app(url, loop, **config):
             'graph.features().graph().supportsThreadedTransactions()')
         msg = await stream.fetch_data()
         features['threaded_transactions'] = msg
-    return App(url, loop, features=features, **config)
+    return Goblin(url, loop, features=features, **config)
 
 
 # Main API classes
-class App:
+class Goblin:
     """Class used to encapsulate database connection configuration and generate
        database connections. Used as a factory to create :py:class:`Session`
        objects. More config coming soon."""
@@ -54,8 +53,9 @@ class App:
         self._features = features
         self._config = self.DEFAULT_CONFIG
         self._config.update(config)
-        self._vertices = {}
-        self._edges = {}
+        self._vertices = collections.defaultdict(
+            lambda: element.GenericVertex)
+        self._edges = collections.defaultdict(lambda: element.GenericEdge)
 
     @property
     def vertices(self):
@@ -64,6 +64,10 @@ class App:
     @property
     def edges(self):
         return self._edges
+
+    @property
+    def features(self):
+        return self._features
 
     def from_file(filepath):
         pass

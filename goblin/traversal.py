@@ -30,22 +30,23 @@ class TraversalResponse:
             raise StopAsyncIteration
 
 
-# This is all a hack until we figure out GLV integration...
+# This is all until we figure out GLV integration...
 class GoblinTraversal(graph.AsyncGraphTraversal):
 
     async def all(self):
         return await self.next()
 
     async def one_or_none(self):
+        result = None
         async for msg in await self.next():
-            return resp
+            result = msg
+        return result
 
 
 class TraversalFactory:
     """Helper that wraps a AsyncRemoteGraph"""
     def __init__(self, graph):
         self._graph = graph
-        self._binding = 0
 
     @property
     def graph(self):
@@ -88,22 +89,12 @@ class TraversalFactory:
             self.traversal().V(element.target.id))
         return self._add_properties(traversal, props)
 
-    def update_vertex(self, element):
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal().V(element.id)
-        return self._add_properties(traversal, props)
-
-    def update_edge(self, element):
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal().E(element.id)
-        return self._add_properties(traversal, props)
-
     def _add_properties(self, traversal, props):
+        binding = 0
         for k, v in props:
             if v:
                 traversal = traversal.property(
-                    ('k' + str(self._binding), k),
-                    ('v' + str(self._binding), v))
-                self._binding += 1
-        self._binding = 0
+                    ('k' + str(binding), k),
+                    ('v' + str(binding), v))
+                binding += 1
         return traversal

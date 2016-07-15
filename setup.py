@@ -18,6 +18,8 @@ setup(
         "inflection==0.3.1"
     ],
     test_suite="tests",
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest-asyncio', 'pytest'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',

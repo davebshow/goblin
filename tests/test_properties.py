@@ -1,39 +1,61 @@
-import asyncio
-import unittest
-
-from goblin.engine import create_engine
-from goblin.element import Vertex, Edge, VertexProperty
-from goblin.properties import Property, String
+import pytest
 
 
-class TestVertexProperty(VertexProperty):
-    notes = Property(String)
+def test_set_change_property(person, lives_in):
+    # vertex
+    assert not person.name
+    person.name = 'leif'
+    assert person.name == 'leif'
+    person.name = 'leifur'
+    assert person.name == 'leifur'
+    # edge
+    assert not lives_in.notes
+    lives_in.notes = 'notable'
+    assert lives_in.notes == 'notable'
+    lives_in.notes = 'more notable'
+    assert lives_in.notes == 'more notable'
 
 
-class TestVertex(Vertex):
-    __label__ = 'test_vertex'
-    name = TestVertexProperty(String)
-    address = Property(String)
+def test_property_default(knows):
+    assert knows.notes == 'N/A'
+    knows.notes = 'notable'
+    assert knows.notes == 'notable'
 
 
-class TestProperties(unittest.TestCase):
+def test_validation(person):
+    person.age = 10
+    with pytest.raises(Exception):
+        person.age = 'hello'
 
-    def setUp(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(None)
 
-    def tearDown(self):
-        self.loop.close()
+def test_setattr_validation(person):
+    setattr(person, 'age', 10)
+    assert person.age == 10
+    with pytest.raises(Exception):
+        setattr(person, 'age', 'hello')
 
-    def test_vertex_property(self):
 
-        t = TestVertex()
-        self.assertIsNone(t.name)
-        t.name = 'leif'
-        self.assertEqual(t.name._value, 'leif')
-        self.assertIsNone(t.name.notes)
-        t.name.notes = 'notes'
-        self.assertEqual(t.name.notes, 'notes')
-        t.name = ['leif', 'jon']
-        self.assertEqual(t.name[0]._value, 'leif')
-        self.assertEqual(t.name[1]._value, 'jon')
+class TestString:
+
+    def test_validation(self, string):
+        assert string.validate(1) == '1'
+
+    def test_to_db(self, string):
+        assert string.to_db('hello') == 'hello'
+
+    def test_to_ogm(self, string):
+        assert string.to_ogm('hello') == 'hello'
+
+
+class TestInteger:
+
+    def test_validation(self, integer):
+        assert integer.validate('1') == 1
+        with pytest.raises(Exception):
+            integer.validate('hello')
+
+    def test_to_db(self, integer):
+        assert integer.to_db(1) == 1
+
+    def test_to_ogm(self, integer):
+        assert integer.to_db(1) == 1
