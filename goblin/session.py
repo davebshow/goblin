@@ -4,8 +4,7 @@ import collections
 import logging
 import weakref
 
-from goblin import mapper
-from goblin import traversal
+from goblin import exception, mapper, traversal
 from goblin.driver import connection, graph
 from goblin.element import GenericVertex
 
@@ -125,7 +124,8 @@ class Session(connection.AbstractConnection):
         elif element.__type__ == 'edge':
             result = await self.save_edge(element)
         else:
-            raise Exception("Unknown element type")
+            raise exception.ElementError(
+                "Unknown element type: {}".format(element.__type__))
         return result
 
     async def save_vertex(self, element):
@@ -138,7 +138,8 @@ class Session(connection.AbstractConnection):
 
     async def save_edge(self, element):
         if not (hasattr(element, 'source') and hasattr(element, 'target')):
-            raise Exception("Edges require source/target vetices")
+            raise exception.ElementError(
+                "Edges require both source/target vertices")
         result = await self._save_element(
             element, self._check_edge,
             self.traversal_factory.add_edge,

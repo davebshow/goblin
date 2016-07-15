@@ -1,6 +1,6 @@
 import pytest
 
-from goblin import properties
+from goblin import exception, properties
 
 
 def test_property_mapping(person, lives_in):
@@ -35,5 +35,5 @@ def test_getattr_getdbname(person, lives_in):
 
 
 def test_getattr_doesnt_exist(person):
-    with pytest.raises(Exception):
+    with pytest.raises(exception.MappingError):
         db_name = person.__mapping__.doesnt_exits

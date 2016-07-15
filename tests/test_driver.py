@@ -1,5 +1,7 @@
 import pytest
 
+from  goblin import exception
+
 
 @pytest.mark.asyncio
 async def test_get_close_conn(connection):
@@ -43,7 +45,7 @@ async def test_204_empty_stream(connection):
 async def test_server_error(connection):
     async with connection:
         stream = await connection.submit('g. V jla;sdf')
-        with pytest.raises(Exception):
+        with pytest.raises(exception.GremlinServerError):
             async for msg in stream:
                 pass
 

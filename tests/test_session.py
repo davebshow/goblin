@@ -228,7 +228,6 @@ class TestTraversalApi:
             resp = await session.traversal(person_class).one_or_none()
             assert isinstance(resp, person_class)
 
-
     @pytest.mark.asyncio
     async def test_one_or_none_none(self, session):
         async with session:
@@ -266,7 +265,6 @@ class TestTraversalApi:
             assert isinstance(dave, element.GenericVertex)
             assert dave.name == 'dave'
             assert dave.__label__ == 'unregistered'
-
 
     @pytest.mark.asyncio
     async def test_unregistered_edge_desialization(self, session):

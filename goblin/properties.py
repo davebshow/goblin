@@ -1,7 +1,7 @@
 """Classes to handle proerties and data type definitions"""
 import logging
 
-from goblin import abc
+from goblin import abc, exception
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +60,9 @@ class String(abc.DataType):
         if val is not None:
             try:
                 return str(val)
-            except Exception as e:
-                raise Exception("Invalid") from e
+            except ValueError as e:
+                raise exception.ValidationError(
+                    '{} is not a valid string'.format(val)) from e
 
     def to_db(self, val):
         return super().to_db(val)
@@ -78,8 +79,9 @@ class Integer(abc.DataType):
         if val is not None:
             try:
                 return int(val)
-            except Exception as e:
-                raise Exception("Invalid") from e
+            except ValueError as e:
+                raise exception.ValidationError(
+                    '{} is not a valid integer'.format(val)) from e
 
     def to_db(self, val):
         return super().to_db(val)

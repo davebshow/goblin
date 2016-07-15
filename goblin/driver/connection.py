@@ -6,6 +6,10 @@ import json
 import logging
 import uuid
 
+import aiohttp
+
+from goblin import exception
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +25,7 @@ def error_handler(fn):
         msg = await fn(self)
         if msg:
             if msg.status_code not in [200, 206, 204]:
-                raise RuntimeError(
+                raise exception.GremlinServerError(
                     "{0}: {1}".format(msg.status_code, msg.message))
             msg = msg.data
         return msg
@@ -176,30 +180,40 @@ class Connection(AbstractConnection):
 
     async def receive(self):
         data = await self._ws.receive()
-        # parse aiohttp response here
-        message = json.loads(data.data.decode("utf-8"))
-        request_id = message['requestId']
-        status_code = message['status']['code']
-        data = message["result"]["data"]
-        msg = message["status"]["message"]
-        response_queue = self._response_queues[request_id]
-        if status_code == 407:
-            await self._authenticate(self._username, self._password,
-                                     self._processor, self._session)
-            self._loop.create_task(self.receive())
+        if data.tp == aiohttp.MsgType.close:
+            await ws.close()
+        elif data.tp == aiohttp.MsgType.error:
+            raise data.data
+        elif data.tp == aiohttp.MsgType.closed:
+            pass
         else:
-            if data:
-                for result in data:
-                    message = Message(status_code, result, msg)
-                    response_queue.put_nowait(message)
-            else:
-                message = Message(status_code, data, msg)
-                response_queue.put_nowait(message)
-            if status_code == 206:
+            if data.tp == aiohttp.MsgType.binary:
+                data = data.data.decode()
+            elif data.tp == aiohttp.MsgType.text:
+                data = data.strip()
+            message = json.loads(data)
+            request_id = message['requestId']
+            status_code = message['status']['code']
+            data = message["result"]["data"]
+            msg = message["status"]["message"]
+            response_queue = self._response_queues[request_id]
+            if status_code == 407:
+                await self._authenticate(self._username, self._password,
+                                         self._processor, self._session)
                 self._loop.create_task(self.receive())
             else:
-                response_queue.put_nowait(None)
-                del self._response_queues[request_id]
+                if data:
+                    for result in data:
+                        message = Message(status_code, result, msg)
+                        response_queue.put_nowait(message)
+                else:
+                    message = Message(status_code, data, msg)
+                    response_queue.put_nowait(message)
+                if status_code == 206:
+                    self._loop.create_task(self.receive())
+                else:
+                    response_queue.put_nowait(None)
+                    del self._response_queues[request_id]
 
     async def __aenter__(self):
         return self

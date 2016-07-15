@@ -2,6 +2,7 @@
 import logging
 import functools
 
+from goblin import exception
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class Mapping:
        OGM element and a DB element"""
     def __init__(self, namespace, element_type, mapper_func, properties):
         self._label = namespace['__label__']
-        self._type = element_type
+        self._element_type = element_type
         self._mapper_func = functools.partial(mapper_func, mapping=self)
         self._properties = {}
         self._map_properties(properties)
@@ -103,7 +104,9 @@ class Mapping:
             mapping, _ = self._properties[value]
             return mapping
         except:
-            raise Exception("Unknown property")
+            raise exception.MappingError(
+                "unrecognized property {} for class: {}".format(
+                    value, self._element_type))
 
     def _map_properties(self, properties):
         for name, prop in properties.items():
@@ -114,5 +117,5 @@ class Mapping:
 
     def __repr__(self):
         return '<{}(type={}, label={}, properties={})'.format(
-            self.__class__.__name__, self._type, self._label,
+            self.__class__.__name__, self._element_type, self._label,
             self._properties)
