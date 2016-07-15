@@ -1,5 +1,7 @@
 import pytest
 
+from goblin import element
+
 
 @pytest.mark.asyncio
 async def test_session_close(session):
@@ -156,32 +158,123 @@ class TestCreationApi:
             result = await session.g.E(rid).one_or_none()
             assert not result
 
-    def test_update_vertex(self):
-        pass
+    @pytest.mark.asyncio
+    async def test_update_vertex(self, session, person):
+        async with session:
+            person.name = 'dave'
+            person.age = 35
+            result = await session.save(person)
+            assert result.age == 35
+            person.name = 'david'
+            person.age = None
+            result = await session.save(person)
+            assert result is person
+            assert result.name == 'david'
+            assert not result.age
 
-    def test_update_edge(self):
-        pass
+    @pytest.mark.asyncio
+    async def test_update_edge(self, session, person_class, knows):
+        async with session:
+            dave = person_class()
+            leif = person_class()
+            knows.source = dave
+            knows.target = leif
+            knows.notes = 'online'
+            session.add(dave, leif)
+            await session.flush()
+            result = await session.save(knows)
+            assert knows.notes == 'online'
+            knows.notes = None
+            result = await session.save(knows)
+            assert result is knows
+            assert not result.notes
 
 
 class TestTraversalApi:
 
-    def test_all(self):
-        pass
+    @pytest.mark.asyncio
+    async def test_traversal_source_generation(self, session, person_class,
+                                               knows_class):
+        async with session:
+            traversal = session.traversal(person_class)
+            assert repr(traversal) == 'g.V().hasLabel("person")'
+            traversal = session.traversal(knows_class)
+            assert repr(traversal) == 'g.E().hasLabel("knows")'
 
-    def test_one_or_none_one(self):
-        pass
 
-    def test_one_or_none_none(self):
-        pass
+    @pytest.mark.asyncio
+    async def test_all(self, session, person_class):
+        async with session:
+            dave = person_class()
+            leif = person_class()
+            jon = person_class()
+            session.add(dave, leif, jon)
+            await session.flush()
+            resp = await session.traversal(person_class).all()
+            results = []
+            async for msg in resp:
+                assert isinstance(msg, person_class)
+                results.append(msg)
+            assert len(results) > 2
 
-    def test_vertex_deserialization(self):
-        pass
+    @pytest.mark.asyncio
+    async def test_one_or_none_one(self, session, person_class):
+        async with session:
+            dave = person_class()
+            leif = person_class()
+            jon = person_class()
+            session.add(dave, leif, jon)
+            await session.flush()
+            resp = await session.traversal(person_class).one_or_none()
+            assert isinstance(resp, person_class)
 
-    def test_edge_desialization(self):
-        pass
 
-    def test_unregistered_vertex_deserialization(self):
-        pass
+    @pytest.mark.asyncio
+    async def test_one_or_none_none(self, session):
+        async with session:
+            none = await session.g.V().hasLabel(
+                'a very unlikey label').one_or_none()
+            assert not none
 
-    def test_unregistered_edge_desialization(self):
-        pass
+    @pytest.mark.asyncio
+    async def test_vertex_deserialization(self, session, person_class):
+        async with session:
+            resp = await session.g.addV('person').property(
+                person_class.name, 'leif').property('birthplace', 'detroit').one_or_none()
+            assert isinstance(resp, person_class)
+            assert resp.name == 'leif'
+            assert resp.birthplace == 'detroit'
+
+    @pytest.mark.asyncio
+    async def test_edge_desialization(self, session, knows_class):
+        async with session:
+            p1 = await session.g.addV('person').one_or_none()
+            p2 = await session.g.addV('person').one_or_none()
+            e1 = await session.g.V(p1.id).addE('knows').to(
+                session.g.V(p2.id)).property(
+                    knows_class.notes, 'somehow').property(
+                    'how_long', 1).one_or_none()
+            assert isinstance(e1, knows_class)
+            assert e1.notes == 'somehow'
+            assert e1.how_long == 1
+
+    @pytest.mark.asyncio
+    async def test_unregistered_vertex_deserialization(self, session):
+        async with session:
+            dave = await session.g.addV(
+                'unregistered').property('name', 'dave').one_or_none()
+            assert isinstance(dave, element.GenericVertex)
+            assert dave.name == 'dave'
+            assert dave.__label__ == 'unregistered'
+
+
+    @pytest.mark.asyncio
+    async def test_unregistered_edge_desialization(self, session):
+        async with session:
+            p1 = await session.g.addV('person').one_or_none()
+            p2 = await session.g.addV('person').one_or_none()
+            e1 = await session.g.V(p1.id).addE('unregistered').to(
+                session.g.V(p2.id)).property('how_long', 1).one_or_none()
+            assert isinstance(e1, element.GenericEdge)
+            assert e1.how_long == 1
+            assert e1.__label__ == 'unregistered'

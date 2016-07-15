@@ -37,8 +37,10 @@ class GoblinTraversal(graph.AsyncGraphTraversal):
         return await self.next()
 
     async def one_or_none(self):
+        result = None
         async for msg in await self.next():
-            return msg
+            result = msg
+        return result
 
 
 class TraversalFactory:

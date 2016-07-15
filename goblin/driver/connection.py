@@ -181,6 +181,7 @@ class Connection(AbstractConnection):
         request_id = message['requestId']
         status_code = message['status']['code']
         data = message["result"]["data"]
+        msg = message["status"]["message"]
         response_queue = self._response_queues[request_id]
         if status_code == 407:
             await self._authenticate(self._username, self._password,
@@ -189,12 +190,10 @@ class Connection(AbstractConnection):
         else:
             if data:
                 for result in data:
-                    message = Message(status_code, result,
-                                      message["status"]["message"])
+                    message = Message(status_code, result, msg)
                     response_queue.put_nowait(message)
             else:
-                message = Message(status_code, data,
-                                  message["status"]["message"])
+                message = Message(status_code, data, msg)
                 response_queue.put_nowait(message)
             if status_code == 206:
                 self._loop.create_task(self.receive())

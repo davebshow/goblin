@@ -32,7 +32,7 @@ def map_vertex_to_ogm(result, element, *, mapping=None):
 
 def map_edge_to_ogm(result, element, *, mapping=None):
     """Map an edge returned by DB to OGM edge"""
-    for db_name, value in result.items():
+    for db_name, value in result.get('properties', {}).items():
         name, data_type = mapping.properties.get(db_name, (db_name, None))
         if data_type:
             value = data_type.to_ogm(value)

@@ -54,8 +54,8 @@ class Goblin:
         self._config = self.DEFAULT_CONFIG
         self._config.update(config)
         self._vertices = collections.defaultdict(
-            lambda: element.Vertex)
-        self._edges = collections.defaultdict(lambda: element.Edge)
+            lambda: element.GenericVertex)
+        self._edges = collections.defaultdict(lambda: element.GenericEdge)
 
     @property
     def vertices(self):

@@ -43,6 +43,10 @@ class Vertex(Element):
     pass
 
 
+class GenericVertex(Vertex):
+    pass
+
+
 class Edge(Element):
     """Base class for user defined Edge classes"""
 
@@ -73,6 +77,10 @@ class Edge(Element):
         del self._target
 
     target = property(gettarget, settarget, deltarget)
+
+
+class GenericEdge(Edge):
+    pass
 
 
 class VertexPropertyDescriptor:

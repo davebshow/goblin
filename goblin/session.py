@@ -7,6 +7,7 @@ import weakref
 from goblin import mapper
 from goblin import traversal
 from goblin.driver import connection, graph
+from goblin.element import GenericVertex
 
 
 logger = logging.getLogger(__name__)
@@ -88,8 +89,8 @@ class Session(connection.AbstractConnection):
                     current = self.app.vertices[label]()
                 else:
                     current = self.app.edges[label]()
-                    current.source = element.Vertex()
-                    current.target = element.Vertex()
+                    current.source = GenericVertex()
+                    current.target = GenericVertex()
             element = current.__mapping__.mapper_func(result, current)
             response_queue.put_nowait(element)
         response_queue.put_nowait(None)
@@ -155,12 +156,12 @@ class Session(connection.AbstractConnection):
 
     async def update_vertex(self, element):
         props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal().V(element.id)
-        traversal = await self._update_properties(element, traversal, props)
+        traversal = self.g.V(element.id)
+        return await self._update_properties(element, traversal, props)
 
     async def update_edge(self, element):
         props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal().E(element.id)
+        traversal = self.g.E(element.id)
         return await self._update_properties(element, traversal, props)
 
     # Transaction support
@@ -223,7 +224,11 @@ class Session(connection.AbstractConnection):
                     ('k' + str(binding), k),
                     ('v' + str(binding), v))
             else:
-                await self.g.V(element.id).properties(
+                if element.__type__ == 'vertex':
+                    traversal_source = self.g.V(element.id)
+                else:
+                    traversal_source = self.g.E(element.id)
+                await traversal_source.properties(
                     ('k' + str(binding), k)).drop().one_or_none()
             binding += 1
         return traversal
