@@ -181,7 +181,7 @@ class Connection(AbstractConnection):
     async def receive(self):
         data = await self._ws.receive()
         if data.tp == aiohttp.MsgType.close:
-            await ws.close()
+            await self._ws.close()
         elif data.tp == aiohttp.MsgType.error:
             raise data.data
         elif data.tp == aiohttp.MsgType.closed:
