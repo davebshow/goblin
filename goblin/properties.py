@@ -91,8 +91,25 @@ class Integer(abc.DataType):
 
 
 class Float(abc.DataType):
-    pass
+    def validate(self, val):
+        try:
+            0 + val
+        except ValueError:
+            raise exception.ValidationError("Must be a number")
+
+    def to_db(self, val):
+        return val
+
+    def to_ogm(self, val):
+        return float(val)
 
 
 class Bool(abc.DataType):
-    pass
+    def validate(self, val):
+        return val
+
+    def to_db(self, val):
+        return bool(val)
+
+    def to_ogm(self, val):
+        return bool(val)

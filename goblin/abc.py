@@ -4,7 +4,7 @@ import abc
 class DataType(abc.ABC):
 
     @abc.abstractmethod
-    def validate(self):
+    def validate(self, val):
         raise NotImplementedError
 
     @abc.abstractmethod
