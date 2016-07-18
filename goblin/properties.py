@@ -96,6 +96,7 @@ class Float(abc.DataType):
             0 + val
         except ValueError:
             raise exception.ValidationError("Must be a number")
+        return val
 
     def to_db(self, val):
         return val
