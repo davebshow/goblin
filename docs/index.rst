@@ -57,7 +57,7 @@ Submit scripts and bindings to the `Gremlin Server`_::
 
 Generate and submit Gremlin traversals in native Python::
 
-    >>> from goblin.gremlin_python import process  # This will change when released
+    >>> from gremlin_python import process
 
 
     >>> connection = loop.run_until_complete(

@@ -17,7 +17,7 @@
 
 import pytest
 from goblin import create_app, driver, element, properties
-from goblin.gremlin_python import process
+from gremlin_python import process
 
 
 class Person(element.Vertex):

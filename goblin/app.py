@@ -20,7 +20,7 @@
 import collections
 import logging
 
-from goblin.gremlin_python import process
+from gremlin_python import process
 from goblin import driver, element, session
 
 

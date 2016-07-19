@@ -17,7 +17,7 @@
 
 import pytest
 
-from goblin.gremlin_python import process
+from gremlin_python import process
 
 
 @pytest.mark.asyncio

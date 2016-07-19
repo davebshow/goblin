@@ -17,9 +17,9 @@
 
 """A temporary solution to allow integration with gremlin_python package."""
 
-from goblin.gremlin_python.process.graph_traversal import (
+from gremlin_python.process.graph_traversal import (
     GraphTraversalSource, GraphTraversal)
-from goblin.gremlin_python.process.traversal import (
+from gremlin_python.process.traversal import (
     TraversalStrategy, TraversalStrategies)
 
 

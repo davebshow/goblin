@@ -16,7 +16,7 @@
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
 from goblin import element
-from goblin.gremlin_python import process
+from gremlin_python import process
 
 
 def test_registry(app, person, place, knows, lives_in):

@@ -19,7 +19,7 @@ under the License.
 import json
 import requests
 
-from goblin.gremlin_python.process.traversal import Traverser
+from gremlin_python.process.traversal import Traverser
 from .remote_connection import RemoteConnection
 
 __author__ = 'Marko A. Rodriguez (http://markorodriguez.com)'
