@@ -87,7 +87,7 @@ class String(abc.DataType):
                 return str(val)
             except ValueError as e:
                 raise exception.ValidationError(
-                    '{} is not a valid string'.format(val)) from e
+                    'Not a valid string: {}'.format(val)) from e
 
     def to_db(self, val=None):
         return super().to_db(val=val)
@@ -105,7 +105,7 @@ class Integer(abc.DataType):
                 return int(val)
             except ValueError as e:
                 raise exception.ValidationError(
-                    '{} is not a valid integer'.format(val)) from e
+                    'Not a valid integer: {}'.format(val)) from e
 
     def to_db(self, val=None):
         return super().to_db(val=val)
@@ -119,14 +119,15 @@ class Float(abc.DataType):
         try:
             val = float(val)
         except ValueError:
-            raise exception.ValidationError("Not a valid float: {}".format(val))
+            raise exception.ValidationError(
+                "Not a valid float: {}".format(val)) from e
         return val
 
-    def to_db(self, val):
-        return val
+    def to_db(self, val=None):
+        return super().to_db(val=val)
 
     def to_ogm(self, val):
-        return float(val)
+        return super().to_ogm(val)
 
 
 class Bool(abc.DataType):
@@ -134,11 +135,12 @@ class Bool(abc.DataType):
         try:
             val = bool(val)
         except ValueError:
-            raise exception.ValidationError("Not a valid bool: {}".format(val))
+            raise exception.ValidationError(
+                "Not a valid boolean: {val}".format(val)) from e
         return val
 
-    def to_db(self, val):
-        return bool(val)
+    def to_db(self, val=None):
+        return super().to_db(val=val)
 
     def to_ogm(self, val):
-        return bool(val)
+        return super().to_ogm(val)

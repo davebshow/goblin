@@ -41,6 +41,11 @@ class DataType(abc.ABC):
     @abc.abstractmethod
     def to_ogm(self, val):
         """Convert property value to a Python compatible format"""
+        try:
+            self.validate(val)
+        except exception.ValidationError:
+            logger.warning(
+                "DB val {} Fails OGM validation for {}".format(val, self))
         return val
 
 
