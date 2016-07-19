@@ -28,6 +28,26 @@ from goblin.driver import connection, graph
 logger = logging.getLogger(__name__)
 
 
+def bindprop(element_class, ogm_name, val, *, binding=None):
+    """
+    Helper function for binding ogm properties/values to corresponding db
+    properties/values for traversals.
+
+    :param goblin.element.Element element_class: User defined element class
+    :param str ogm_name: Name of property as defined in the ogm
+    :param val: The property value
+    :param str binding: The binding for val (optional)
+
+    :returns: tuple object ('db_property_name', ('binding(if passed)', val))
+    """
+    db_name = getattr(element_class, ogm_name, ogm_name)
+    _, data_type = element_class.__mapping__.properties[ogm_name]
+    val = data_type.to_db(val)
+    if binding:
+        val = (binding, val)
+    return db_name, val
+
+
 class TraversalResponse:
     """Asynchronous iterator that encapsulates a traversal response queue"""
     def __init__(self, response_queue):
