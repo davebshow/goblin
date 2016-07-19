@@ -18,6 +18,7 @@
 import pytest
 
 from goblin import element
+from goblin.traversal import bindprop
 
 
 @pytest.mark.asyncio
@@ -246,6 +247,16 @@ class TestTraversalApi:
             assert isinstance(resp, person_class)
 
     @pytest.mark.asyncio
+    async def test_traversal_bindprop(self, session, person_class):
+        async with session:
+            itziri = person_class()
+            itziri.name = 'itziri'
+            result1 = await session.save(itziri)
+            bound_name = bindprop(person_class, 'name', 'itziri', binding='v1')
+            p1 = await session.traversal(person_class).has(
+                *bound_name).one_or_none()
+
+    @pytest.mark.asyncio
     async def test_one_or_none_none(self, session):
         async with session:
             none = await session.g.V().hasLabel(
@@ -293,3 +304,20 @@ class TestTraversalApi:
             assert isinstance(e1, element.GenericEdge)
             assert e1.how_long == 1
             assert e1.__label__ == 'unregistered'
+
+    @pytest.mark.asyncio
+    async def test_property_deserialization(self, session):
+        async with session:
+            p1 = await session.g.addV('person').property(
+                'name', 'leif').one_or_none()
+            name = await session.g.V(p1.id).properties('name').one_or_none()
+            assert name['value'] == 'leif'
+            assert name['label'] == 'name'
+
+    @pytest.mark.asyncio
+    async def test_non_element_deserialization(self, session):
+        async with session:
+            p1 = await session.g.addV('person').property(
+                'name', 'leif').one_or_none()
+            one = await session.g.V(p1.id).count().one_or_none()
+            assert one == 1

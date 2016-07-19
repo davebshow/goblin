@@ -134,18 +134,22 @@ class Session(connection.AbstractConnection):
 
     async def _receive(self, async_iter, response_queue):
         async for result in async_iter:
-            current = self.current.get(result['id'], None)
-            if not current:
-                element_type = result['type']
-                label = result['label']
-                if element_type == 'vertex':
-                    current = self.app.vertices[label]()
-                else:
-                    current = self.app.edges[label]()
-                    current.source = GenericVertex()
-                    current.target = GenericVertex()
-            element = current.__mapping__.mapper_func(result, current)
-            response_queue.put_nowait(element)
+            if (isinstance(result, dict) and
+                    result.get('type', '') in ['vertex', 'edge']):
+                current = self.current.get(result['id'], None)
+                if not current:
+                    element_type = result['type']
+                    label = result['label']
+                    if element_type == 'vertex':
+                        current = self.app.vertices[label]()
+                    else:
+                        current = self.app.edges[label]()
+                        current.source = GenericVertex()
+                        current.target = GenericVertex()
+                element = current.__mapping__.mapper_func(result, current)
+                response_queue.put_nowait(element)
+            else:
+                response_queue.put_nowait(result)
         response_queue.put_nowait(None)
 
     # Creation API
