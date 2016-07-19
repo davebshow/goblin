@@ -89,8 +89,8 @@ class String(abc.DataType):
                 raise exception.ValidationError(
                     '{} is not a valid string'.format(val)) from e
 
-    def to_db(self, val):
-        return super().to_db(val)
+    def to_db(self, val=None):
+        return super().to_db(val=val)
 
     def to_ogm(self, val):
         return super().to_ogm(val)
@@ -107,8 +107,8 @@ class Integer(abc.DataType):
                 raise exception.ValidationError(
                     '{} is not a valid integer'.format(val)) from e
 
-    def to_db(self, val):
-        return super().to_db(val)
+    def to_db(self, val=None):
+        return super().to_db(val=val)
 
     def to_ogm(self, val):
         return super().to_ogm(val)

@@ -147,3 +147,13 @@ def lives_in_class():
 @pytest.fixture
 def place_name_class():
     return PlaceName
+
+
+@pytest.fixture
+def string_class():
+    return properties.String
+
+
+@pytest.fixture
+def integer_class():
+    return properties.Integer

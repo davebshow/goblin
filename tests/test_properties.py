@@ -63,6 +63,10 @@ class TestString:
     def test_to_ogm(self, string):
         assert string.to_ogm('hello') == 'hello'
 
+    def test_initval_to_db(self, string_class):
+        string = string_class('hello')
+        assert string.to_db() == 'hello'
+
 
 class TestInteger:
 
@@ -76,3 +80,7 @@ class TestInteger:
 
     def test_to_ogm(self, integer):
         assert integer.to_db(1) == 1
+
+    def test_initval_to_db(self, integer_class):
+        integer = integer_class(1)
+        assert integer.to_db() == 1

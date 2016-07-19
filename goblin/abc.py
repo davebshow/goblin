@@ -23,6 +23,8 @@ class DataType(abc.ABC):
     Abstract base class for Goblin Data Types. All custom data types should
     inherit from :py:class:`DataType`.
     """
+    def __init__(self, val=None):
+        self._val = val
 
     @abc.abstractmethod
     def validate(self):
@@ -30,8 +32,10 @@ class DataType(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def to_db(self, val):
+    def to_db(self, val=None):
         """Convert property value to db compatible format"""
+        if not val:
+            val = self._val
         return val
 
     @abc.abstractmethod
