@@ -80,7 +80,7 @@ class Property(abc.BaseProperty):
 
 # Data types
 class String(abc.DataType):
-    """Simple string datatype"""
+    """Simple string data type"""
 
     def validate(self, val):
         if val is not None:
@@ -98,7 +98,7 @@ class String(abc.DataType):
 
 
 class Integer(abc.DataType):
-    """Simple integer datatype"""
+    """Simple integer data type"""
 
     def validate(self, val):
         if val is not None:
@@ -116,6 +116,7 @@ class Integer(abc.DataType):
 
 
 class Float(abc.DataType):
+    """Simple float data type"""
     def validate(self, val):
         try:
             val = float(val)
@@ -132,6 +133,7 @@ class Float(abc.DataType):
 
 
 class Boolean(abc.DataType):
+    """Simple boolean data type"""
     def validate(self, val):
         try:
             val = bool(val)
