@@ -57,6 +57,7 @@ class Property(abc.BaseProperty):
     :py:class:`PropertyDescriptor` by :py:class:`goblin.element.ElementMeta`.
 
     :param goblin.abc.DataType data_type: Str or class of data type
+    :param str db_name: User defined custom name for property in db
     :param default: Default value for this property.
     """
 

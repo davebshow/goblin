@@ -33,7 +33,10 @@ class DataType(abc.ABC):
 
     @abc.abstractmethod
     def to_db(self, val=None):
-        """Convert property value to db compatible format"""
+        """
+        Convert property value to db compatible format. If no value passed, try
+        to use default bound value
+        """
         if not val:
             val = self._val
         return val
