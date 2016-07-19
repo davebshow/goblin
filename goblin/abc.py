@@ -27,7 +27,7 @@ class DataType(abc.ABC):
         self._val = val
 
     @abc.abstractmethod
-    def validate(self):
+    def validate(self, val):
         """Validate property value"""
         raise NotImplementedError
 

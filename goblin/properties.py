@@ -121,8 +121,30 @@ class Integer(abc.DataType):
 
 
 class Float(abc.DataType):
-    pass
+    def validate(self, val):
+        try:
+            val = float(val)
+        except ValueError:
+            raise exception.ValidationError("Not a valid float: {}".format(val))
+        return val
+
+    def to_db(self, val):
+        return val
+
+    def to_ogm(self, val):
+        return float(val)
 
 
 class Bool(abc.DataType):
-    pass
+    def validate(self, val):
+        try:
+            val = bool(val)
+        except ValueError:
+            raise exception.ValidationError("Not a valid bool: {}".format(val))
+        return val
+
+    def to_db(self, val):
+        return bool(val)
+
+    def to_ogm(self, val):
+        return bool(val)
