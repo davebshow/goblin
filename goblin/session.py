@@ -273,7 +273,7 @@ class Session(connection.AbstractConnection):
         """
         props = mapper.map_props_to_db(vertex, vertex.__mapping__)
         traversal = self.g.V(vertex.id)
-        return await self._update_properties(vertex, traversal, props)
+        return await self._update_vertex_properties(vertex, traversal, props)
 
     async def update_edge(self, edge):
         """
@@ -285,7 +285,7 @@ class Session(connection.AbstractConnection):
         """
         props = mapper.map_props_to_db(edge, edge.__mapping__)
         traversal = self.g.E(edge.id)
-        return await self._update_properties(edge, traversal, props)
+        return await self._update_edge_properties(edge, traversal, props)
 
     # Transaction support
     def tx(self):
@@ -341,19 +341,16 @@ class Session(connection.AbstractConnection):
         stream = await self.conn.submit(repr(traversal))
         return await stream.fetch_data()
 
-    async def _update_properties(self, element, traversal, props):
-        binding = 0
-        for k, v in props:
-            if v:
-                traversal = traversal.property(
-                    ('k' + str(binding), k),
-                    ('v' + str(binding), v))
-            else:
-                if element.__type__ == 'vertex':
-                    traversal_source = self.g.V(element.id)
-                else:
-                    traversal_source = self.g.E(element.id)
-                await traversal_source.properties(
-                    ('k' + str(binding), k)).drop().one_or_none()
-            binding += 1
+    async def _update_vertex_properties(self, element, traversal, props):
+        traversal, removals = self.traversal_factory.add_vertex_properties(
+            traversal, props)
+        for k in removals:
+            await self.g.V(element.id).properties(k).drop().one_or_none()
+        return traversal
+
+    async def _update_edge_properties(self, element, traversal, props):
+        traversal, removals = self.traversal_factory.add_edge_properties(
+            traversal, props)
+        for k in removals:
+            await self.g.E(element.id).properties(k).drop().one_or_none()
         return traversal

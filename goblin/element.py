@@ -20,6 +20,7 @@ import logging
 import inflection
 
 from goblin import abc
+from goblin import exception
 from goblin import mapper
 from goblin import properties
 
@@ -35,13 +36,17 @@ class ElementMeta(type):
     """
     def __new__(cls, name, bases, namespace, **kwds):
         if bases:
-            namespace['__type__'] = bases[0].__name__.lower()
+            element_type = bases[0].__name__.lower()
+            namespace['__type__'] = element_type
         if not namespace.get('__label__', None):
             namespace['__label__'] = inflection.underscore(name)
         props = {}
         new_namespace = {}
         for k, v in namespace.items():
             if isinstance(v, abc.BaseProperty):
+                if element_type == 'edge' and v.cardinality is not None:
+                    raise exception.MappingError(
+                        'Edge property with set/list cardinality')
                 props[k] = v
                 v = v.__descriptor__(k, v)
             new_namespace[k] = v
@@ -152,12 +157,15 @@ class VertexProperty(Element, abc.BaseProperty):
 
     __descriptor__ = VertexPropertyDescriptor
 
-    def __init__(self, data_type, *, value=None, default=None):
+    def __init__(self, data_type, *, value=None, default=None, db_name=None,
+                 cardinality=None):
         if isinstance(data_type, type):
             data_type = data_type()
         self._data_type = data_type
         self._value = value
         self._default = default
+        self._db_name = db_name
+        self._cardinality = cardinality
 
     @property
     def default(self):
@@ -170,6 +178,14 @@ class VertexProperty(Element, abc.BaseProperty):
     @property
     def value(self):
         return self._value
+
+    @property
+    def db_name(self):
+        return self._db_name
+
+    @property
+    def cardinality(self):
+        return self._cardinality
 
     def __repr__(self):
         return '<{}(type={}, value={})'.format(self.__class__.__name__,

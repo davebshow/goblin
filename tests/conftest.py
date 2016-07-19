@@ -20,15 +20,19 @@ from goblin import create_app, driver, element, properties
 from gremlin_python import process
 
 
+class PlaceName(element.VertexProperty):
+    pass
+
+
 class Person(element.Vertex):
     __label__ = 'person'
-    name = properties.Property(properties.String)
+    name = properties.Property(properties.String, cardinality=list)
     age = properties.Property(properties.Integer,
                               db_name='custom__person__age')
 
 
 class Place(element.Vertex):
-    name = properties.Property(properties.String)
+    name = PlaceName(properties.String, cardinality=set)
     zipcode = properties.Property(properties.Integer)
 
 

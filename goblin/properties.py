@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Classes to handle proerties and data type definitions"""
+"""Classes to handle properties and data type definitions"""
 
 import logging
 
@@ -35,6 +35,7 @@ class PropertyDescriptor:
         self._name = '_' + name
         self._data_type = prop.data_type
         self._default = prop.default
+        self._cardinality = prop.cardinality
 
     def __get__(self, obj, objtype):
         if obj is None:
@@ -42,7 +43,8 @@ class PropertyDescriptor:
         return getattr(obj, self._name, self._default)
 
     def __set__(self, obj, val):
-        setattr(obj, self._name, self._data_type.validate(val))
+        val = self._data_type.validate_cardinality(val, self._cardinality)
+        setattr(obj, self._name, val)
 
     def __delete__(self, obj):
         # hmmm what is the best approach here
@@ -63,9 +65,13 @@ class Property(abc.BaseProperty):
 
     __descriptor__ = PropertyDescriptor
 
-    def __init__(self, data_type, *, db_name=None, default=None):
+    def __init__(self, data_type, *, cardinality=None, db_name=None,
+                 default=None):
         if isinstance(data_type, type):
             data_type = data_type()
+        if cardinality is not None:
+            cardinality = cardinality()
+        self._cardinality = cardinality
         self._data_type = data_type
         self._db_name = db_name
         self._default = default
@@ -81,6 +87,10 @@ class Property(abc.BaseProperty):
     @property
     def default(self):
         return self._default
+
+    @property
+    def cardinality(self):
+        return self._cardinality
 
 
 # Data types

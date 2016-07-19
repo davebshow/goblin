@@ -105,7 +105,18 @@ class Mapping:
         self._element_type = element_type
         self._mapper_func = functools.partial(mapper_func, mapping=self)
         self._properties = {}
+        if self._element_type == 'vertex':
+            self._vertex_properties = {}
+        else:
+            self._vertex_properties = None
         self._map_properties(properties)
+
+    @property
+    def vertex_properties(self):
+        if self._vertex_properties is None:
+            raise exception.MappingError(
+                'Edge mappings do not have vertex_properties')
+        return self._vertex_properties
 
     @property
     def label(self):
@@ -133,6 +144,11 @@ class Mapping:
 
     def _map_properties(self, properties):
         for name, prop in properties.items():
+            if hasattr(prop, '__mapping__'):
+                if not self._element_type == 'vertex':
+                    raise exception.MappingError(
+                        'Only vertices can have vertex properties')
+                self._vertex_properties[name] = prop
             data_type = prop.data_type
             if prop.db_name:
                 db_name = prop.db_name

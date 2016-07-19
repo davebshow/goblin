@@ -21,8 +21,9 @@ import asyncio
 import functools
 import logging
 
-from goblin import mapper
+from goblin import element, mapper
 from goblin.driver import connection, graph
+from gremlin_python import process
 
 
 logger = logging.getLogger(__name__)
@@ -122,43 +123,79 @@ class TraversalFactory:
             traversal = traversal.hasLabel(label)
         return traversal
 
-    def remove_vertex(self, element):
+    def remove_vertex(self, elem):
         """Convenience function for generating crud traversals."""
-        return self.traversal().V(element.id).drop()
+        return self.traversal().V(elem.id).drop()
 
-    def remove_edge(self, element):
+    def remove_edge(self, elem):
         """Convenience function for generating crud traversals."""
-        return self.traversal().E(element.id).drop()
+        return self.traversal().E(elem.id).drop()
 
-    def get_vertex_by_id(self, element):
+    def get_vertex_by_id(self, elem):
         """Convenience function for generating crud traversals."""
-        return self.traversal().V(element.id)
+        return self.traversal().V(elem.id)
 
-    def get_edge_by_id(self, element):
+    def get_edge_by_id(self, elem):
         """Convenience function for generating crud traversals."""
-        return self.traversal().E(element.id)
+        return self.traversal().E(elem.id)
 
-    def add_vertex(self, element):
+    def add_vertex(self, elem):
         """Convenience function for generating crud traversals."""
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal().addV(element.__mapping__.label)
-        return self._add_properties(traversal, props)
+        props = mapper.map_props_to_db(elem, elem.__mapping__)
+        traversal = self.traversal().addV(elem.__mapping__.label)
+        traversal, _ = self.add_vertex_properties(traversal, props)
+        return traversal
 
-    def add_edge(self, element):
+    def add_edge(self, elem):
         """Convenience function for generating crud traversals."""
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal().V(element.source.id)
-        traversal = traversal.addE(element.__mapping__._label)
+        props = mapper.map_props_to_db(elem, elem.__mapping__)
+        traversal = self.traversal().V(elem.source.id)
+        traversal = traversal.addE(elem.__mapping__._label)
         traversal = traversal.to(
-            self.traversal().V(element.target.id))
-        return self._add_properties(traversal, props)
+            self.traversal().V(elem.target.id))
+        traversal, _ = self.add_edge_properties(traversal, props)
+        return traversal
 
-    def _add_properties(self, traversal, props):
+    def add_vertex_properties(self, traversal, props):
         binding = 0
+        potential_removals = []
+        for k, v in props:
+            if v:
+                if isinstance(v, element.VertexProperty):
+                    v = v.value
+                if isinstance(v, (list, set)):
+                    new_val = []
+                    for val in v:
+                        if isinstance(val, element.VertexProperty):
+                            val = val.value
+                        new_val.append(val)
+                    if isinstance(v, set):
+                        new_val = set(new_val)
+                        cardinality = Cardinality.set
+                    else:
+                        cardinality = Cardinality.list
+                    traversal = traversal.property(
+                        cardinality,
+                        ('k' + str(binding), k),
+                        ('*v' + str(binding), new_val))
+                else:
+                    traversal = traversal.property(
+                        ('k' + str(binding), k),
+                        ('v' + str(binding), v))
+                binding += 1
+            else:
+                potential_removals.append(k)
+        return traversal, potential_removals
+
+    def add_edge_properties(self, traversal, props):
+        binding = 0
+        potential_removals = []
         for k, v in props:
             if v:
                 traversal = traversal.property(
                     ('k' + str(binding), k),
                     ('v' + str(binding), v))
                 binding += 1
-        return traversal
+            else:
+                potential_removals.append(k)
+        return traversal, potential_removals

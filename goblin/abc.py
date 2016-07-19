@@ -46,9 +46,37 @@ class DataType(abc.ABC):
         """Convert property value to a Python compatible format"""
         return val
 
+    def validate_cardinality(self, val, cardinality):
+        if cardinality:
+            if issubclass(cardinality, list):
+                if isinstance(val, list):
+                    val = val
+                elif isinstance(val, set):
+                    val = list(set)
+                else:
+                    val = [val]
+                # Check here if vertex prop
+                val = [self.validate(v) for v in val]
+            elif issubclass(cardinality, set):
+                if isinstance(val, set):
+                    val = val
+                elif isinstance(val, list):
+                    val = set(val)
+                else:
+                    val = set([val])
+                # Check here if vertex prop
+                val = {self.validate(v) for v in val }
+        else:
+            val = self.validate(val)
+        return val
+
 
 class BaseProperty:
     """Abstract base class that implements the property interface"""
     @property
     def data_type(self):
+        raise NotImplementedError
+
+    @property
+    def cardinality(self):
         raise NotImplementedError
