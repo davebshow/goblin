@@ -117,9 +117,9 @@ class Integer(abc.DataType):
 class Float(abc.DataType):
     def validate(self, val):
         try:
-            0 + val
+            val = float(val)
         except ValueError:
-            raise exception.ValidationError("Must be a number")
+            raise exception.ValidationError("Not a valid float: {}".format(val))
         return val
 
     def to_db(self, val):
@@ -131,6 +131,10 @@ class Float(abc.DataType):
 
 class Bool(abc.DataType):
     def validate(self, val):
+        try:
+            val = bool(val)
+        except ValueError:
+            raise exception.ValidationError("Not a valid bool: {}".format(val))
         return val
 
     def to_db(self, val):
