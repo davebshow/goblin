@@ -89,6 +89,16 @@ def integer():
 
 
 @pytest.fixture
+def flt():
+    return properties.Float()
+
+
+@pytest.fixture
+def boolean():
+    return properties.Boolean()
+
+
+@pytest.fixture
 def person():
     return Person()
 
@@ -157,3 +167,13 @@ def string_class():
 @pytest.fixture
 def integer_class():
     return properties.Integer
+
+
+@pytest.fixture
+def flt_class():
+    return properties.Float
+
+
+@pytest.fixture
+def boolean_class():
+    return properties.Boolean

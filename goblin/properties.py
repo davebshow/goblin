@@ -21,6 +21,7 @@ import logging
 
 from goblin import abc, exception
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -130,7 +131,7 @@ class Float(abc.DataType):
         return super().to_ogm(val)
 
 
-class Bool(abc.DataType):
+class Boolean(abc.DataType):
     def validate(self, val):
         try:
             val = bool(val)

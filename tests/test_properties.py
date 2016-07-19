@@ -84,3 +84,50 @@ class TestInteger:
     def test_initval_to_db(self, integer_class):
         integer = integer_class(1)
         assert integer.to_db() == 1
+
+
+class TestFloat:
+
+    def test_validation(self, flt):
+        assert flt.validate(1.2) == 1.2
+        with pytest.raises(Exception):
+            flt.validate('hello')
+
+    def test_to_db(self, flt):
+        assert flt.to_db(1.2) == 1.2
+
+    def test_to_ogm(self, flt):
+        assert flt.to_db(1.2) == 1.2
+
+    def test_initval_to_db(self, flt_class):
+        flt = flt_class(1.2)
+        assert flt.to_db() == 1.2
+
+
+class TestBoolean:
+
+    def test_validation_true(self, boolean):
+        assert boolean.validate(True) == True
+
+    def test_validation_false(self, boolean):
+        assert boolean.validate(False) == False
+
+    def test_to_db_true(self, boolean):
+        assert boolean.to_db(True) == True
+
+    def test_to_db_false(self, boolean):
+        assert boolean.to_db(False) == False
+
+    def test_to_ogm_true(self, boolean):
+        assert boolean.to_ogm(True) == True
+
+    def test_to_ogm_false(self, boolean):
+        assert boolean.to_ogm(False) == False
+
+    def test_initval_to_db_true(self, boolean_class):
+        boolean = boolean_class(True)
+        assert boolean.to_db() == True
+
+    def test_initval_to_db_true(self, boolean_class):
+        boolean = boolean_class(False)
+        assert boolean.to_db() == False

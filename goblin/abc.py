@@ -34,7 +34,7 @@ class DataType(abc.ABC):
     @abc.abstractmethod
     def to_db(self, val=None):
         """Convert property value to db compatible format"""
-        if not val:
+        if val is None:
             val = self._val
         return val
 
