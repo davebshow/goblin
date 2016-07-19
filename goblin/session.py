@@ -214,7 +214,7 @@ class Session(connection.AbstractConnection):
 
         :param goblin.element.Vertex element: Vertex to be saved
 
-        :returns: :py:class`Vertex<goblin.element.Vertex>` object
+        :returns: :py:class:`Vertex<goblin.element.Vertex>` object
         """
         result = await self._save_element(
             vertex, self._check_vertex,

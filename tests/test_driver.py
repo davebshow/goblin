@@ -17,7 +17,7 @@
 
 import pytest
 
-from  goblin import exception
+from goblin import exception
 
 
 @pytest.mark.asyncio

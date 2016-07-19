@@ -96,8 +96,10 @@ def create_mapping(namespace, properties):
 
 
 class Mapping:
-    """This class stores the information necessary to map between an
-       OGM element and a DB element"""
+    """
+    This class stores the information necessary to map between an OGM element
+    and a DB element.
+    """
     def __init__(self, namespace, element_type, mapper_func, properties):
         self._label = namespace['__label__']
         self._element_type = element_type
@@ -107,14 +109,17 @@ class Mapping:
 
     @property
     def label(self):
+        """Element label"""
         return self._label
 
     @property
     def mapper_func(self):
+        """Function responsible for mapping db results to ogm"""
         return self._mapper_func
 
     @property
     def properties(self):
+        """A dictionary of property mappings"""
         return self._properties
 
     def __getattr__(self, value):
