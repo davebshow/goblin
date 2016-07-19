@@ -1,3 +1,20 @@
+# Copyright 2016 ZEROFAIL
+#
+# This file is part of Goblin.
+#
+# Goblin is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Goblin is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
+
 import pytest
 
 
@@ -46,6 +63,10 @@ class TestString:
     def test_to_ogm(self, string):
         assert string.to_ogm('hello') == 'hello'
 
+    def test_initval_to_db(self, string_class):
+        string = string_class('hello')
+        assert string.to_db() == 'hello'
+
 
 class TestInteger:
 
@@ -59,3 +80,7 @@ class TestInteger:
 
     def test_to_ogm(self, integer):
         assert integer.to_db(1) == 1
+
+    def test_initval_to_db(self, integer_class):
+        integer = integer_class(1)
+        assert integer.to_db() == 1

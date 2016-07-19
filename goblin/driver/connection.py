@@ -1,3 +1,20 @@
+# Copyright 2016 ZEROFAIL
+#
+# This file is part of Goblin.
+#
+# Goblin is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Goblin is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
+
 import abc
 import asyncio
 import collections
@@ -33,7 +50,7 @@ def error_handler(fn):
 
 
 class Response:
-
+    """Gremlin Server response implementated as an async iterator."""
     def __init__(self, response_queue, loop):
         self._response_queue = response_queue
         self._loop = loop
@@ -51,6 +68,7 @@ class Response:
 
     @error_handler
     async def fetch_data(self):
+        """Get a single message from the response stream"""
         if self._done:
             return None
         msg = await self._response_queue.get()
@@ -60,7 +78,7 @@ class Response:
 
 
 class AbstractConnection(abc.ABC):
-
+    """Defines the interface for a connection object."""
     @abc.abstractmethod
     async def submit(self):
         raise NotImplementedError
@@ -71,7 +89,11 @@ class AbstractConnection(abc.ABC):
 
 
 class Connection(AbstractConnection):
-
+    """
+    Main classd for interacting with the Gremlin Server. Encapsulates a
+    websocket connection. Not instantiated directly. Instead use
+    :py:meth:`GremlinServer.open<goblin.driver.api.GremlinServer.open>`.
+    """
     def __init__(self, url, ws, loop, conn_factory, *, username=None,
                  password=None):
         self._url = url
@@ -105,6 +127,22 @@ class Connection(AbstractConnection):
                     processor="",
                     session=None,
                     request_id=None):
+        """
+        Submit a script and bindings to the Gremlin Server
+
+        :param str gremlin: Gremlin script to submit to server.
+        :param dict bindings: A mapping of bindings for Gremlin script.
+        :param str lang: Language of scripts submitted to the server.
+            "gremlin-groovy" by default
+        :param dict aliases: Rebind ``Graph`` and ``TraversalSource``
+            objects to different variable names in the current request
+        :param str op: Gremlin Server op argument. "eval" by default.
+        :param str processor: Gremlin Server processor argument. "" by default.
+        :param str session: Session id (optional). Typically a uuid
+        :param str request_id: Request id (optional). Typically a uuid
+
+        :returns: :py:class:`Response` object
+        """
         if aliases is None:
             aliases = {}
         if request_id is None:
@@ -122,10 +160,11 @@ class Connection(AbstractConnection):
         if self._ws.closed:
             self._ws = await self.conn_factory.ws_connect(self.url)
         self._ws.send_bytes(message)
-        self._loop.create_task(self.receive())
+        self._loop.create_task(self._receive())
         return Response(response_queue, self._loop)
 
     async def close(self):
+        """Close underlying connection and mark as closed."""
         await self._ws.close()
         self._closed = True
         await self._conn_factory.close()
@@ -178,7 +217,7 @@ class Connection(AbstractConnection):
             raise ValueError("Unknown mime type.")
         return b"".join([mime_len, mime_type, message.encode("utf-8")])
 
-    async def receive(self):
+    async def _receive(self):
         data = await self._ws.receive()
         if data.tp == aiohttp.MsgType.close:
             await self._ws.close()
@@ -200,7 +239,7 @@ class Connection(AbstractConnection):
             if status_code == 407:
                 await self._authenticate(self._username, self._password,
                                          self._processor, self._session)
-                self._loop.create_task(self.receive())
+                self._loop.create_task(self._receive())
             else:
                 if data:
                     for result in data:
@@ -210,7 +249,7 @@ class Connection(AbstractConnection):
                     message = Message(status_code, data, msg)
                     response_queue.put_nowait(message)
                 if status_code == 206:
-                    self._loop.create_task(self.receive())
+                    self._loop.create_task(self._receive())
                 else:
                     response_queue.put_nowait(None)
                     del self._response_queues[request_id]

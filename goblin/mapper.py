@@ -1,4 +1,22 @@
+# Copyright 2016 ZEROFAIL
+#
+# This file is part of Goblin.
+#
+# Goblin is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Goblin is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
+
 """Helper functions and class to map between OGM Elements <-> DB Elements"""
+
 import logging
 import functools
 
@@ -78,8 +96,10 @@ def create_mapping(namespace, properties):
 
 
 class Mapping:
-    """This class stores the information necessary to map between an
-       OGM element and a DB element"""
+    """
+    This class stores the information necessary to map between an OGM element
+    and a DB element.
+    """
     def __init__(self, namespace, element_type, mapper_func, properties):
         self._label = namespace['__label__']
         self._element_type = element_type
@@ -89,14 +109,17 @@ class Mapping:
 
     @property
     def label(self):
+        """Element label"""
         return self._label
 
     @property
     def mapper_func(self):
+        """Function responsible for mapping db results to ogm"""
         return self._mapper_func
 
     @property
     def properties(self):
+        """A dictionary of property mappings"""
         return self._properties
 
     def __getattr__(self, value):
@@ -116,6 +139,6 @@ class Mapping:
             self._properties[name] = (db_name, data_type)
 
     def __repr__(self):
-        return '<{}(type={}, label={}, properties={})'.format(
+        return '<{}(type={}, label={}, properties={})>'.format(
             self.__class__.__name__, self._element_type, self._label,
             self._properties)

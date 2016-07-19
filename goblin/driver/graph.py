@@ -1,5 +1,26 @@
-from goblin.gremlin_python.process.graph_traversal import GraphTraversalSource, GraphTraversal
-from goblin.gremlin_python.process.traversal import TraversalStrategy, TraversalStrategies
+# Copyright 2016 ZEROFAIL
+#
+# This file is part of Goblin.
+#
+# Goblin is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Goblin is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
+
+"""A temporary solution to allow integration with gremlin_python package."""
+
+from gremlin_python.process.graph_traversal import (
+    GraphTraversalSource, GraphTraversal)
+from gremlin_python.process.traversal import (
+    TraversalStrategy, TraversalStrategies)
 
 
 class AsyncGraphTraversal(GraphTraversal):
@@ -36,6 +57,17 @@ class AsyncGraph:
 
 
 class AsyncRemoteGraph(AsyncGraph):
+    """
+    Generate asynchronous gremlin traversals using native Python.
+
+    :param gremlin_python.process.GroovyTranslator translator:
+        gremlin_python translator class, typically
+        :py:class:`GroovyTranslator<gremlin_python.process.GroovyTranslator>`
+    :param goblin.driver.connection connection: underlying remote
+        connection
+    :param gremlin_python.process.GraphTraversal graph_traversal:
+        Custom graph traversal class
+    """
     def __init__(self, translator, remote_connection, *, graph_traversal=None):
         self.traversal_strategy = AsyncRemoteStrategy()  # A single traversal strategy
         self.translator = translator
@@ -48,6 +80,7 @@ class AsyncRemoteGraph(AsyncGraph):
         return "remotegraph[" + self.remote_connection.url + "]"
 
     async def close(self):
+        """Close underlying remote connection"""
         await self.remote_connection.close()
         self.remote_connection = None
 

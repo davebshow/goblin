@@ -1,3 +1,20 @@
+# Copyright 2016 ZEROFAIL
+#
+# This file is part of Goblin.
+#
+# Goblin is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Goblin is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
+
 import logging
 
 import inflection
@@ -11,10 +28,11 @@ logger = logging.getLogger(__name__)
 
 
 class ElementMeta(type):
-    """Metaclass for graph elements. Responsible for creating the
-       the :py:class:`mapper.Mapping` object and replacing user defined
-       :py:class:`property.Property` with
-       :py:class:`property.PropertyDescriptor`"""
+    """
+    Metaclass for graph elements. Responsible for creating the
+    :py:class:`Mapping<mapper.Mapping>` object and replacing user defined
+    :py:class:`property.Property` with :py:class:`property.PropertyDescriptor`.
+    """
     def __new__(cls, name, bases, namespace, **kwds):
         if bases:
             namespace['__type__'] = bases[0].__name__.lower()
@@ -29,15 +47,12 @@ class ElementMeta(type):
             new_namespace[k] = v
         new_namespace['__mapping__'] = mapper.create_mapping(namespace,
                                                              props)
-        if name not in ('Element', 'Vertex', 'Edge', 'VertexProperty'
-                        'GenericVertex', 'GenericEdge'):
-            logger.warning("Creating new Element class {}: {}".format(
-                name, new_namespace['__mapping__']))
         result = type.__new__(cls, name, bases, new_namespace)
         return result
 
 
 class Element(metaclass=ElementMeta):
+    """Base class for classes that implement the Element property interface"""
     pass
 
 
@@ -47,12 +62,20 @@ class Vertex(Element):
 
 
 class GenericVertex(Vertex):
+    """
+    Class used to build vertices when user defined vertex class is not
+    available. Generally not instantiated by end user.
+    """
     pass
 
 
 class Edge(Element):
-    """Base class for user defined Edge classes"""
+    """
+    Base class for user defined Edge classes.
 
+    :param Vertex source: Source (outV) vertex
+    :param Vertex target: Target (inV) vertex
+    """
     def __init__(self, source=None, target=None):
         self._source = source
         self._target = target
@@ -60,9 +83,9 @@ class Edge(Element):
     def getsource(self):
         return self._source
 
-    def setsource(self, val):
-        assert isinstance(val, Vertex) or val is None
-        self._source = val
+    def setsource(self, vertex):
+        assert isinstance(vertex, Vertex) or vertex is None
+        self._source = vertex
 
     def delsource(self):
         del self._source
@@ -72,9 +95,9 @@ class Edge(Element):
     def gettarget(self):
         return self._target
 
-    def settarget(self, val):
-        assert isinstance(val, Vertex) or val is None
-        self._target = val
+    def settarget(self, vertex):
+        assert isinstance(vertex, Vertex) or vertex is None
+        self._target = vertex
 
     def deltarget(self):
         del self._target
@@ -83,12 +106,17 @@ class Edge(Element):
 
 
 class GenericEdge(Edge):
-    pass
+    """
+    Class used to build edges when user defined edges class is not available.
+    Generally not instantiated by end user.
+    """
 
 
 class VertexPropertyDescriptor:
-    """Descriptor that validates user property input and gets/sets properties
-       as instance attributes."""
+    """
+    Descriptor that validates user property input and gets/sets properties
+    as instance attributes.
+    """
 
     def __init__(self, name, vertex_property):
         self._name = '_' + name
@@ -120,6 +148,7 @@ class VertexPropertyDescriptor:
 
 
 class VertexProperty(Element, abc.BaseProperty):
+    """Base class for user defined vertex properties. Not yet supported."""
 
     __descriptor__ = VertexPropertyDescriptor
 

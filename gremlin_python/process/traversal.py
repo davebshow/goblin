@@ -18,7 +18,7 @@ under the License.
 '''
 from abc import abstractmethod
 from aenum import Enum
-from goblin.gremlin_python import statics
+from gremlin_python import statics
 
 class Traversal(object):
     def __init__(self, graph, traversal_strategies, bytecode):

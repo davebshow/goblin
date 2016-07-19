@@ -1,4 +1,22 @@
+# Copyright 2016 ZEROFAIL
+#
+# This file is part of Goblin.
+#
+# Goblin is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Goblin is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
+
 """Classes to handle proerties and data type definitions"""
+
 import logging
 
 from goblin import abc, exception
@@ -7,8 +25,10 @@ logger = logging.getLogger(__name__)
 
 
 class PropertyDescriptor:
-    """Descriptor that validates user property input and gets/sets properties
-       as instance attributes."""
+    """
+    Descriptor that validates user property input and gets/sets properties
+    as instance attributes. Not instantiated by user.
+    """
 
     def __init__(self, name, prop):
         self._prop_name = name
@@ -32,8 +52,13 @@ class PropertyDescriptor:
 
 
 class Property(abc.BaseProperty):
-    """API class used to define properties. Replaced with
-      :py:class:`PropertyDescriptor` by :py:class:`api.ElementMeta`."""
+    """
+    API class used to define properties. Replaced with
+    :py:class:`PropertyDescriptor` by :py:class:`goblin.element.ElementMeta`.
+
+    :param goblin.abc.DataType data_type: Str or class of data type
+    :param default: Default value for this property.
+    """
 
     __descriptor__ = PropertyDescriptor
 
@@ -64,18 +89,17 @@ class String(abc.DataType):
                 raise exception.ValidationError(
                     '{} is not a valid string'.format(val)) from e
 
-    def to_db(self, val):
-        return super().to_db(val)
+    def to_db(self, val=None):
+        return super().to_db(val=val)
 
     def to_ogm(self, val):
         return super().to_ogm(val)
 
 
 class Integer(abc.DataType):
-    """Simple string datatype"""
+    """Simple integer datatype"""
 
     def validate(self, val):
-        """Need to think about this."""
         if val is not None:
             try:
                 return int(val)
@@ -83,8 +107,8 @@ class Integer(abc.DataType):
                 raise exception.ValidationError(
                     '{} is not a valid integer'.format(val)) from e
 
-    def to_db(self, val):
-        return super().to_db(val)
+    def to_db(self, val=None):
+        return super().to_db(val=val)
 
     def to_ogm(self, val):
         return super().to_ogm(val)
