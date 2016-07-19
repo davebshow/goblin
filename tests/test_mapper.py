@@ -25,7 +25,7 @@ def test_property_mapping(person, lives_in):
     assert  db_name == 'person__name'
     assert isinstance(data_type, properties.String)
     db_name, data_type = person.__mapping__._properties['age']
-    assert  db_name == 'person__age'
+    assert  db_name == 'custom__person__age'
     assert isinstance(data_type, properties.Integer)
     db_name, data_type = lives_in.__mapping__._properties['notes']
     assert  db_name == 'lives_in__notes'
@@ -46,7 +46,7 @@ def test_getattr_getdbname(person, lives_in):
     db_name = person.__mapping__.name
     assert  db_name == 'person__name'
     db_name = person.__mapping__.age
-    assert  db_name == 'person__age'
+    assert  db_name == 'custom__person__age'
     db_name = lives_in.__mapping__.notes
     assert  db_name == 'lives_in__notes'
 

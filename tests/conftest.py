@@ -23,7 +23,8 @@ from gremlin_python import process
 class Person(element.Vertex):
     __label__ = 'person'
     name = properties.Property(properties.String)
-    age = properties.Property(properties.Integer)
+    age = properties.Property(properties.Integer,
+                              db_name='custom__person__age')
 
 
 class Place(element.Vertex):

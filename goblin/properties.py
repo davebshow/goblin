@@ -62,15 +62,20 @@ class Property(abc.BaseProperty):
 
     __descriptor__ = PropertyDescriptor
 
-    def __init__(self, data_type, *, default=None):
+    def __init__(self, data_type, *, db_name=None, default=None):
         if isinstance(data_type, type):
             data_type = data_type()
         self._data_type = data_type
+        self._db_name = db_name
         self._default = default
 
     @property
     def data_type(self):
         return self._data_type
+
+    @property
+    def db_name(self):
+        return self._db_name
 
     @property
     def default(self):

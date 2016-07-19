@@ -134,7 +134,10 @@ class Mapping:
     def _map_properties(self, properties):
         for name, prop in properties.items():
             data_type = prop.data_type
-            db_name = '{}__{}'.format(self._label, name)
+            if prop.db_name:
+                db_name = prop.db_name
+            else:
+                db_name = '{}__{}'.format(self._label, name)
             self._properties[db_name] = (name, data_type)
             self._properties[name] = (db_name, data_type)
 
