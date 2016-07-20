@@ -63,13 +63,13 @@ def map_edge_to_ogm(result, element, *, mapping=None):
     sid = result['outV']
     esid = getattr(element.source, 'id', None)
     if _check_id(sid, esid):
-        from goblin.element import Vertex
-        element.source = Vertex()
+        from goblin.element import GenericVertex
+        element.source = GenericVertex()
     tid = result['inV']
     etid = getattr(element.target, 'id', None)
     if _check_id(tid, etid):
-        from goblin.element import Vertex
-        element.target = Vertex()
+        from goblin.element import GenericVertex
+        element.target = GenericVertex()
     setattr(element.source, 'id', sid)
     setattr(element.target, 'id', tid)
     return element
