@@ -27,7 +27,7 @@ class DataType(abc.ABC):
         self._val = val
 
     @abc.abstractmethod
-    def validate(self):
+    def validate(self, val):
         """Validate property value"""
         raise NotImplementedError
 
@@ -37,13 +37,18 @@ class DataType(abc.ABC):
         Convert property value to db compatible format. If no value passed, try
         to use default bound value
         """
-        if not val:
+        if val is None:
             val = self._val
         return val
 
     @abc.abstractmethod
     def to_ogm(self, val):
         """Convert property value to a Python compatible format"""
+        try:
+            self.validate(val)
+        except exception.ValidationError:
+            logger.warning(
+                "DB val {} Fails OGM validation for {}".format(val, self))
         return val
 
     def validate_cardinality(self, val, cardinality):

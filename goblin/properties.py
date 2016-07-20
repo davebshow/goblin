@@ -21,6 +21,7 @@ import logging
 
 from goblin import abc, exception
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -103,7 +104,7 @@ class String(abc.DataType):
                 return str(val)
             except ValueError as e:
                 raise exception.ValidationError(
-                    '{} is not a valid string'.format(val)) from e
+                    'Not a valid string: {}'.format(val)) from e
 
     def to_db(self, val=None):
         return super().to_db(val=val)
@@ -121,7 +122,7 @@ class Integer(abc.DataType):
                 return int(val)
             except ValueError as e:
                 raise exception.ValidationError(
-                    '{} is not a valid integer'.format(val)) from e
+                    'Not a valid integer: {}'.format(val)) from e
 
     def to_db(self, val=None):
         return super().to_db(val=val)
@@ -131,8 +132,34 @@ class Integer(abc.DataType):
 
 
 class Float(abc.DataType):
-    pass
+    """Simple float datatype"""
+    def validate(self, val):
+        try:
+            val = float(val)
+        except ValueError:
+            raise exception.ValidationError(
+                "Not a valid float: {}".format(val)) from e
+        return val
+
+    def to_db(self, val=None):
+        return super().to_db(val=val)
+
+    def to_ogm(self, val):
+        return super().to_ogm(val)
 
 
-class Bool(abc.DataType):
-    pass
+class Boolean(abc.DataType):
+    """Simple boolean datatype"""
+    def validate(self, val):
+        try:
+            val = bool(val)
+        except ValueError:
+            raise exception.ValidationError(
+                "Not a valid boolean: {val}".format(val)) from e
+        return val
+
+    def to_db(self, val=None):
+        return super().to_db(val=val)
+
+    def to_ogm(self, val):
+        return super().to_ogm(val)

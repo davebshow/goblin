@@ -14,7 +14,7 @@ setup(
               "gremlin_python.structure", "tests"],
     install_requires=[
         "aenum==1.4.5",
-        "aiohttp==0.21.6",
+        "aiohttp==0.22.1",
         "inflection==0.3.1"
     ],
     test_suite="tests",
