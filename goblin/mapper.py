@@ -25,16 +25,6 @@ from goblin import exception
 logger = logging.getLogger(__name__)
 
 
-# def map_props_to_db(element, mapping):
-#     """Convert OGM property names/values to DB property names/values"""
-#     property_tuples = []
-#     props = mapping.ogm_properties
-#     for ogm_name, (db_name, data_type) in props.items():
-#         val = getattr(element, ogm_name, None)
-#         property_tuples.append((db_name, data_type.to_db(val)))
-#     return property_tuples
-
-
 #######IMPLEMENT
 def map_props_to_db(element, mapping):
     """Convert OGM property names/values to DB property names/values"""
@@ -42,8 +32,6 @@ def map_props_to_db(element, mapping):
     props = mapping.ogm_properties
     for ogm_name, (db_name, data_type) in props.items():
         val = getattr(element, ogm_name, None)
-        # if val is list etc... these have card pass to next function maybe can give
-        # default option for Card, and combin this function with map props, and then add_properties
         if val and isinstance(val, (list, set)):
             card = None
             for v in val:
@@ -62,7 +50,6 @@ def map_props_to_db(element, mapping):
 def map_vertex_to_ogm(result, element, *, mapping=None):
     """Map a vertex returned by DB to OGM vertex"""
     for db_name, value in result['properties'].items():
-        # This will be more complex for vertex properties...
         if len(value) > 1:
             # parse and assign vertex props + metas
             value = [v['value'] for v in value]
