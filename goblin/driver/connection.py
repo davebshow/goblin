@@ -26,6 +26,7 @@ import uuid
 import aiohttp
 
 from goblin import exception
+from goblin.driver import graph
 
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,11 @@ logger = logging.getLogger(__name__)
 Message = collections.namedtuple(
     "Message",
     ["status_code", "data", "message"])
+
+_TYPE_TO_ELEMENT_CLASS = {
+    'vertex': graph.RemoteVertex,
+    'edge': graph.RemoteEdge
+}
 
 
 def error_handler(fn):
@@ -230,7 +236,7 @@ class Connection(AbstractConnection):
                 data = data.data.decode()
             elif data.tp == aiohttp.MsgType.text:
                 data = data.strip()
-            message = json.loads(data)
+            message = json.loads(data, object_hook=_element_hook)
             request_id = message['requestId']
             status_code = message['status']['code']
             data = message["result"]["data"]
@@ -260,3 +266,16 @@ class Connection(AbstractConnection):
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
         self._conn = None
+
+
+def _element_hook(obj):
+    obj_type = obj.get('type', None)
+    if obj_type in _TYPE_TO_ELEMENT_CLASS:
+        klass = _TYPE_TO_ELEMENT_CLASS[obj_type]
+
+        id_ = obj.pop('id')
+        label = obj.pop('label')
+        properties = obj.pop('properties', dict())
+
+        return klass(id, label, properties, **obj)
+    return obj

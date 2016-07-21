@@ -17,6 +17,8 @@
 
 """A temporary solution to allow integration with gremlin_python package."""
 
+import abc
+
 from gremlin_python.process.graph_traversal import (
     GraphTraversalSource, GraphTraversal)
 from gremlin_python.process.traversal import (
@@ -89,3 +91,112 @@ class AsyncRemoteGraph(AsyncGraph):
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
+
+
+class RemoteElement(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def __init__(self, id, label, properties=None, **attrs):
+        self._id = id
+        self._label = label
+        self._properties = properties or dict()
+        for k, v in attrs.items():
+            setattr(self, k, v)
+
+    def __str__(self):
+        return "{type}[{id}]".format(type=self.__class__.__name__, id=self.id)
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def label(self):
+        return self._label
+
+    def keys(self):
+        return frozenset(self._properties.keys())
+
+    @abc.abstractmethod
+    def property(self, key):
+        pass
+
+    @abc.abstractmethod
+    def value(self, key):
+        pass
+
+    @abc.abstractmethod
+    def values(self, *keys):
+        pass
+
+    @abc.abstractmethod
+    def properties(self, *keys):
+        pass
+
+
+class RemoteVertex(RemoteElement):
+
+    _value_error_msg = ("Multiple properties exist on this vertex for key {0},"
+                        " use RemoteVertex.{method}({0})")
+
+    def __init__(self, id, label, properties=None, **attrs):
+        properties = properties or dict()
+        props = dict()
+        for key, value_list in properties.items():
+            props[key] = [item['value'] for item in value_list]
+        super().__init__(id, label, properties, **attrs)
+
+    def property(self, key):
+        props = self.properties(key)
+        if not props:
+            return None
+        if len(props) > 1:
+            raise ValueError(self._value_error_msg.format(key, method="properties"))
+        return props[0]
+
+    def value(self, key):
+        props = self.properties(key)
+        if not props:
+            raise AttributeError('No property on this object with key: {}'.format(key))
+        if len(props) > 1:
+            raise ValueError(self._value_error_msg.format(key, method="values"))
+        return props[0]
+
+    def values(self, *keys):
+        return [v for k, v in self.properties(keys)]
+
+    def properties(self, *keys):
+        if keys:
+            keys = (key for key in keys if key in self._properties)
+        else:
+            keys = self._properties.keys()
+
+        props = list()
+        for key in keys:
+            for val in self._properties[key]:
+                props.append((key, val))
+
+        return props
+
+
+class RemoteEdge(RemoteElement):
+    def __init__(self, id, label, properties=None, **attrs):
+        super().__init__(id, label, properties, **attrs)
+
+    def property(self, key):
+        prop = self.properties(key)
+        if not prop:
+            return None
+        return prop[0]
+
+    def value(self, key):
+        return self._properties.get(key)
+
+    def values(self, *keys):
+        return [v for k, v in self.properties(keys)]
+
+    def properties(self, *keys):
+        if len(keys) > 0:
+            props = ((key, self._properties[key]) for key in keys if key in self._properties)
+        else:
+            props = self._properties.items()
+        return list(props)
