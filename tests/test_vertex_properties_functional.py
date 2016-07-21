@@ -10,6 +10,9 @@ async def test_add_update_property(session, person):
         person.birthplace = 'unknown'
         result = await session.save(person)
         assert result.birthplace.value == 'unknown'
+        person.birthplace = None
+        result = await session.save(person)
+        assert not result.birthplace
 
 
 @pytest.mark.asyncio
@@ -34,7 +37,7 @@ async def test_add_update_list_card_property(session, person):
 
 
 @pytest.mark.asyncio
-async def test_add_update_list_card_property(session, place):
+async def test_add_update_set_card_property(session, place):
     async with session:
         place.important_numbers = set([1, 2])
         result = await session.save(place)
