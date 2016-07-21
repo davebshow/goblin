@@ -94,7 +94,6 @@ class AsyncRemoteGraph(AsyncGraph):
 
 
 class RemoteElement(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
     def __init__(self, id, label, properties=None, **attrs):
         self._id = id
         self._label = label
@@ -140,10 +139,15 @@ class RemoteVertex(RemoteElement):
 
     def __init__(self, id, label, properties=None, **attrs):
         properties = properties or dict()
-        props = dict()
-        for key, value_list in properties.items():
-            props[key] = [item['value'] for item in value_list]
-        super().__init__(id, label, props, **attrs)
+        for key in properties:
+            property_list = list()
+            for prop in properties[key]:
+                metaproperties = prop.pop('properties', None)
+                property_id = prop.pop('id')
+                property_list.append(
+                    RemoteVertexProperty(property_id, label, metaproperties, key=key, element=self, **prop))
+            properties[key] = property_list
+        super().__init__(id, label, properties, **attrs)
 
     def property(self, key):
         props = self.properties(key)
@@ -154,33 +158,31 @@ class RemoteVertex(RemoteElement):
         return props[0]
 
     def value(self, key):
-        props = self.properties(key)
-        if not props:
-            raise AttributeError('No property on this object with key: {}'.format(key))
-        if len(props) > 1:
-            raise ValueError(self._value_error_msg.format(key, method="values"))
-        key, val = props[0]
-        return val
+        prop = self.property(key)
+        if prop is None:
+            raise KeyError(key)
+
+        return prop.value()
 
     def values(self, *keys):
-        return [v for k, v in self.properties(keys)]
+        return [prop.value() for prop in self.properties(keys)]
 
     def properties(self, *keys):
-        if keys:
-            keys = (key for key in keys if key in self._properties)
+        if len(keys) > 0:
+            props = list()
+            for key in keys:
+                if key in self._properties:
+                    props.extend(self._properties[key])
+            return props
         else:
-            keys = self._properties.keys()
-
-        props = list()
-        for key in keys:
-            for val in self._properties[key]:
-                props.append((key, val))
-
-        return props
+            return list(self._properties.values())
 
 
 class RemoteEdge(RemoteElement):
     def __init__(self, id, label, properties=None, **attrs):
+        properties = properties or dict()
+        for key in properties:
+            properties[key] = RemoteProperty(key, properties[key], self)
         super().__init__(id, label, properties, **attrs)
 
     def property(self, key):
@@ -190,7 +192,63 @@ class RemoteEdge(RemoteElement):
         return prop[0]
 
     def value(self, key):
-        return self._properties.get(key)
+        prop = self.property(key)
+        if prop is None:
+            raise KeyError(key)
+
+        return prop.value()
+
+    def values(self, *keys):
+        return [p.value() for p in self.properties(keys)]
+
+    def properties(self, *keys):
+        if len(keys) > 0:
+            props = (self._properties[key] for key in keys if key in self._properties)
+        else:
+            props = self._properties.values()
+        return list(props)
+
+
+class RemoteProperty:
+    def __init__(self, key, value, element):
+        self._key = key
+        self._value = value
+        self._element = element
+
+    def element(self):
+        return self._element
+
+    def key(self):
+        return self._key
+
+    def value(self):
+        return self._value
+
+
+class RemoteVertexProperty(RemoteElement):
+    def __init__(self, id, label, properties=None, **attrs):
+        self._key = attrs.pop('key')
+        self._value = attrs.pop('value')
+        self._element = attrs.pop('element')
+        properties = properties or dict()
+        for key in properties:
+            properties[key] = RemoteProperty(key, properties[key], self)
+        super().__init__(id, label, properties, **attrs)
+
+    def property(self, key):
+        prop = self.properties(key)
+        if not prop:
+            return None
+        return prop[0]
+
+    def key(self):
+        return self._key
+
+    def value(self, key=None):
+        if key is not None:
+            return self._properties.get(key)
+        else:
+            return self._value
 
     def values(self, *keys):
         return [v for k, v in self.properties(keys)]
@@ -201,3 +259,6 @@ class RemoteEdge(RemoteElement):
         else:
             props = self._properties.items()
         return list(props)
+
+    def element(self):
+        return self._element
