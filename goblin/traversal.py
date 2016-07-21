@@ -158,37 +158,6 @@ class TraversalFactory:
         traversal, _ = self.add_properties(traversal, props)
         return traversal
 
-    # def add_vertex_properties(self, traversal, props):
-    #     # refactor
-    #     binding = 0
-    #     potential_removals = []
-    #     for k, v in props:
-    #         if v:
-    #             if isinstance(v, element.VertexProperty):
-    #                 v = v.value
-    #             if isinstance(v, (list, set)):
-    #                 new_val = []
-    #                 for val in v:
-    #                     if isinstance(val, element.VertexProperty):
-    #                         val = val.value
-    #                     new_val.append(val)
-    #                 if isinstance(v, set):
-    #                     cardinality = process.Cardinality.set
-    #                 else:
-    #                     cardinality = process.Cardinality.list
-    #                 traversal = traversal.property(
-    #                     cardinality,
-    #                     ('k' + str(binding), k),
-    #                     ('v' + str(binding), new_val))
-    #             else:
-    #                 traversal = traversal.property(
-    #                     ('k' + str(binding), k),
-    #                     ('v' + str(binding), v))
-    #             binding += 1
-    #         else:
-    #             potential_removals.append(k)
-    #     return traversal, potential_removals
-
     def add_properties(self, traversal, props):
         binding = 0
         potential_removals = []

@@ -123,13 +123,6 @@ class Mapping:
         self._ogm_properties = {}
         self._map_properties(properties)
 
-    # @property
-    # def vertex_properties(self):
-    #     if self._vertex_properties is None:
-    #         raise exception.MappingError(
-    #             'Edge mappings do not have vertex_properties')
-    #     return self._vertex_properties
-
     @property
     def label(self):
         """Element label"""
@@ -170,9 +163,6 @@ class Mapping:
                 if not self._element_type == 'vertex':
                     raise exception.MappingError(
                         'Only vertices can have vertex properties')
-                # self._vertex_properties[db_name] = (name, data_type)
-                # self._vertex_properties[name] = (db_name, data_type)
-            # else:
             self._db_properties[db_name] = (name, data_type)
             self._ogm_properties[name] = (db_name, data_type)
 
