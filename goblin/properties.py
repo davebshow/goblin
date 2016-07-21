@@ -19,7 +19,7 @@
 
 import logging
 
-from goblin import abc, exception
+from goblin import abc, cardinality, exception
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,6 @@ class PropertyDescriptor:
         self._name = '_' + name
         self._data_type = prop.data_type
         self._default = prop.default
-        self._cardinality = prop.cardinality
 
     def __get__(self, obj, objtype):
         if obj is None:
@@ -44,7 +43,7 @@ class PropertyDescriptor:
         return getattr(obj, self._name, self._default)
 
     def __set__(self, obj, val):
-        val = self._data_type.validate_cardinality(val, self._cardinality)
+        val = self._data_type.validate(val)
         setattr(obj, self._name, val)
 
     def __delete__(self, obj):
@@ -66,13 +65,9 @@ class Property(abc.BaseProperty):
 
     __descriptor__ = PropertyDescriptor
 
-    def __init__(self, data_type, *, cardinality=None, db_name=None,
-                 default=None):
+    def __init__(self, data_type, *, db_name=None, default=None):
         if isinstance(data_type, type):
             data_type = data_type()
-        if cardinality is not None:
-            cardinality = cardinality()
-        self._cardinality = cardinality
         self._data_type = data_type
         self._db_name = db_name
         self._default = default
@@ -88,10 +83,6 @@ class Property(abc.BaseProperty):
     @property
     def default(self):
         return self._default
-
-    @property
-    def cardinality(self):
-        return self._cardinality
 
 
 # Data types
@@ -120,7 +111,7 @@ class Integer(abc.DataType):
         if val is not None:
             try:
                 return int(val)
-            except ValueError as e:
+            except (ValueError, TypeError) as e:
                 raise exception.ValidationError(
                     'Not a valid integer: {}'.format(val)) from e
 

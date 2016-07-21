@@ -21,7 +21,7 @@ import asyncio
 import functools
 import logging
 
-from goblin import element, mapper
+from goblin import cardinality, element, mapper
 from goblin.driver import connection, graph
 from gremlin_python import process
 
@@ -42,7 +42,7 @@ def bindprop(element_class, ogm_name, val, *, binding=None):
     :returns: tuple object ('db_property_name', ('binding(if passed)', val))
     """
     db_name = getattr(element_class, ogm_name, ogm_name)
-    _, data_type = element_class.__mapping__.properties[ogm_name]
+    _, data_type = element_class.__mapping__.ogm_properties[ogm_name]
     val = data_type.to_db(val)
     if binding:
         val = (binding, val)
@@ -142,8 +142,10 @@ class TraversalFactory:
     def add_vertex(self, elem):
         """Convenience function for generating crud traversals."""
         props = mapper.map_props_to_db(elem, elem.__mapping__)
+        # vert_props = mapper.map_props_to_db
         traversal = self.traversal().addV(elem.__mapping__.label)
-        traversal, _ = self.add_vertex_properties(traversal, props)
+        traversal, _ = self.add_properties(traversal, props)
+        # traversal, _ = self.add_vertex_properties(...)
         return traversal
 
     def add_edge(self, elem):
@@ -153,49 +155,58 @@ class TraversalFactory:
         traversal = traversal.addE(elem.__mapping__._label)
         traversal = traversal.to(
             self.traversal().V(elem.target.id))
-        traversal, _ = self.add_edge_properties(traversal, props)
+        traversal, _ = self.add_properties(traversal, props)
         return traversal
 
-    def add_vertex_properties(self, traversal, props):
-        binding = 0
-        potential_removals = []
-        for k, v in props:
-            if v:
-                if isinstance(v, element.VertexProperty):
-                    v = v.value
-                if isinstance(v, (list, set)):
-                    new_val = []
-                    for val in v:
-                        if isinstance(val, element.VertexProperty):
-                            val = val.value
-                        new_val.append(val)
-                    if isinstance(v, set):
-                        new_val = set(new_val)
-                        cardinality = Cardinality.set
-                    else:
-                        cardinality = Cardinality.list
-                    traversal = traversal.property(
-                        cardinality,
-                        ('k' + str(binding), k),
-                        ('*v' + str(binding), new_val))
-                else:
-                    traversal = traversal.property(
-                        ('k' + str(binding), k),
-                        ('v' + str(binding), v))
-                binding += 1
-            else:
-                potential_removals.append(k)
-        return traversal, potential_removals
+    # def add_vertex_properties(self, traversal, props):
+    #     # refactor
+    #     binding = 0
+    #     potential_removals = []
+    #     for k, v in props:
+    #         if v:
+    #             if isinstance(v, element.VertexProperty):
+    #                 v = v.value
+    #             if isinstance(v, (list, set)):
+    #                 new_val = []
+    #                 for val in v:
+    #                     if isinstance(val, element.VertexProperty):
+    #                         val = val.value
+    #                     new_val.append(val)
+    #                 if isinstance(v, set):
+    #                     cardinality = process.Cardinality.set
+    #                 else:
+    #                     cardinality = process.Cardinality.list
+    #                 traversal = traversal.property(
+    #                     cardinality,
+    #                     ('k' + str(binding), k),
+    #                     ('v' + str(binding), new_val))
+    #             else:
+    #                 traversal = traversal.property(
+    #                     ('k' + str(binding), k),
+    #                     ('v' + str(binding), v))
+    #             binding += 1
+    #         else:
+    #             potential_removals.append(k)
+    #     return traversal, potential_removals
 
-    def add_edge_properties(self, traversal, props):
+    def add_properties(self, traversal, props):
         binding = 0
         potential_removals = []
-        for k, v in props:
-            if v:
-                traversal = traversal.property(
-                    ('k' + str(binding), k),
-                    ('v' + str(binding), v))
+        for card, db_name, val, metaprops in props:
+            if val:
+                key = ('k' + str(binding), db_name)
+                val = ('v' + str(binding), val)
+                if card:
+                    if card == cardinality.Cardinality.list:
+                        card = process.Cardinality.list
+                    elif card == cardinality.Cardinality.set:
+                        card = process.Cardinality.set
+                    else:
+                        card = process.Cardinality.single
+                    traversal = traversal.property(card, key, val)
+                else:
+                    traversal = traversal.property(key, val)
                 binding += 1
             else:
-                potential_removals.append(k)
+                potential_removals.append(db_name)
         return traversal, potential_removals

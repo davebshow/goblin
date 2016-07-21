@@ -276,6 +276,7 @@ class Session(connection.AbstractConnection):
         :returns: :py:class:`Vertex<goblin.element.Vertex>` object
         """
         props = mapper.map_props_to_db(vertex, vertex.__mapping__)
+        # vert_props = mapper.map_vert_props_to_db
         traversal = self.g.V(vertex.id)
         return await self._update_vertex_properties(vertex, traversal, props)
 
@@ -346,14 +347,15 @@ class Session(connection.AbstractConnection):
         return await stream.fetch_data()
 
     async def _update_vertex_properties(self, element, traversal, props):
-        traversal, removals = self.traversal_factory.add_vertex_properties(
+        traversal, removals = self.traversal_factory.add_properties(
             traversal, props)
+        # traversal, removals = self.traversal_factory.add_vertex_properties(...)
         for k in removals:
             await self.g.V(element.id).properties(k).drop().one_or_none()
         return traversal
 
     async def _update_edge_properties(self, element, traversal, props):
-        traversal, removals = self.traversal_factory.add_edge_properties(
+        traversal, removals = self.traversal_factory.add_properties(
             traversal, props)
         for k in removals:
             await self.g.E(element.id).properties(k).drop().one_or_none()

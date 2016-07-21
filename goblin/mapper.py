@@ -25,13 +25,37 @@ from goblin import exception
 logger = logging.getLogger(__name__)
 
 
+# def map_props_to_db(element, mapping):
+#     """Convert OGM property names/values to DB property names/values"""
+#     property_tuples = []
+#     props = mapping.ogm_properties
+#     for ogm_name, (db_name, data_type) in props.items():
+#         val = getattr(element, ogm_name, None)
+#         property_tuples.append((db_name, data_type.to_db(val)))
+#     return property_tuples
+
+
+#######IMPLEMENT
 def map_props_to_db(element, mapping):
     """Convert OGM property names/values to DB property names/values"""
     property_tuples = []
-    props = mapping.properties
+    props = mapping.ogm_properties
     for ogm_name, (db_name, data_type) in props.items():
         val = getattr(element, ogm_name, None)
-        property_tuples.append((db_name, data_type.to_db(val)))
+        # if val is list etc... these have card pass to next function maybe can give
+        # default option for Card, and combin this function with map props, and then add_properties
+        if val and isinstance(val, (list, set)):
+            card = None
+            for v in val:
+                # get metaprops as dic
+                metaprops = {}
+                property_tuples.append(
+                    (card, db_name, data_type.to_db(v.value), metaprops))
+                card = v.cardinality
+        else:
+            if hasattr(val, '__mapping__'):
+                val = val.value
+            property_tuples.append((None, db_name, data_type.to_db(val), None))
     return property_tuples
 
 
@@ -39,8 +63,12 @@ def map_vertex_to_ogm(result, element, *, mapping=None):
     """Map a vertex returned by DB to OGM vertex"""
     for db_name, value in result['properties'].items():
         # This will be more complex for vertex properties...
-        value = value[0]['value']
-        name, data_type = mapping.properties.get(db_name, (db_name, None))
+        if len(value) > 1:
+            # parse and assign vertex props + metas
+            value = [v['value'] for v in value]
+        else:
+            value = value[0]['value']
+        name, data_type = mapping.db_properties.get(db_name, (db_name, None))
         if data_type:
             value = data_type.to_ogm(value)
         setattr(element, name, value)
@@ -52,7 +80,7 @@ def map_vertex_to_ogm(result, element, *, mapping=None):
 def map_edge_to_ogm(result, element, *, mapping=None):
     """Map an edge returned by DB to OGM edge"""
     for db_name, value in result.get('properties', {}).items():
-        name, data_type = mapping.properties.get(db_name, (db_name, None))
+        name, data_type = mapping.db_properties.get(db_name, (db_name, None))
         if data_type:
             value = data_type.to_ogm(value)
         setattr(element, name, value)
@@ -104,19 +132,16 @@ class Mapping:
         self._label = namespace['__label__']
         self._element_type = element_type
         self._mapper_func = functools.partial(mapper_func, mapping=self)
-        self._properties = {}
-        if self._element_type == 'vertex':
-            self._vertex_properties = {}
-        else:
-            self._vertex_properties = None
+        self._db_properties = {}
+        self._ogm_properties = {}
         self._map_properties(properties)
 
-    @property
-    def vertex_properties(self):
-        if self._vertex_properties is None:
-            raise exception.MappingError(
-                'Edge mappings do not have vertex_properties')
-        return self._vertex_properties
+    # @property
+    # def vertex_properties(self):
+    #     if self._vertex_properties is None:
+    #         raise exception.MappingError(
+    #             'Edge mappings do not have vertex_properties')
+    #     return self._vertex_properties
 
     @property
     def label(self):
@@ -129,13 +154,18 @@ class Mapping:
         return self._mapper_func
 
     @property
-    def properties(self):
+    def db_properties(self):
         """A dictionary of property mappings"""
-        return self._properties
+        return self._db_properties
+
+    @property
+    def ogm_properties(self):
+        """A dictionary of property mappings"""
+        return self._ogm_properties
 
     def __getattr__(self, value):
         try:
-            mapping, _ = self._properties[value]
+            mapping, _ = self._ogm_properties[value]
             return mapping
         except:
             raise exception.MappingError(
@@ -144,20 +174,22 @@ class Mapping:
 
     def _map_properties(self, properties):
         for name, prop in properties.items():
-            if hasattr(prop, '__mapping__'):
-                if not self._element_type == 'vertex':
-                    raise exception.MappingError(
-                        'Only vertices can have vertex properties')
-                self._vertex_properties[name] = prop
             data_type = prop.data_type
             if prop.db_name:
                 db_name = prop.db_name
             else:
                 db_name = '{}__{}'.format(self._label, name)
-            self._properties[db_name] = (name, data_type)
-            self._properties[name] = (db_name, data_type)
+            if hasattr(prop, '__mapping__'):
+                if not self._element_type == 'vertex':
+                    raise exception.MappingError(
+                        'Only vertices can have vertex properties')
+                # self._vertex_properties[db_name] = (name, data_type)
+                # self._vertex_properties[name] = (db_name, data_type)
+            # else:
+            self._db_properties[db_name] = (name, data_type)
+            self._ogm_properties[name] = (db_name, data_type)
 
     def __repr__(self):
         return '<{}(type={}, label={}, properties={})>'.format(
             self.__class__.__name__, self._element_type, self._label,
-            self._properties)
+            self._ogm_properties)

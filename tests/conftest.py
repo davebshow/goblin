@@ -16,24 +16,29 @@
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from goblin import create_app, driver, element, properties
+from goblin import create_app, driver, element, properties, Cardinality
 from gremlin_python import process
 
 
-class PlaceName(element.VertexProperty):
-    pass
+# class PlaceName(element.VertexProperty):
+#     pass
 
 
 class Person(element.Vertex):
     __label__ = 'person'
-    name = properties.Property(properties.String, cardinality=list)
+    name = properties.Property(properties.String)
     age = properties.Property(properties.Integer,
                               db_name='custom__person__age')
+    birthplace = element.VertexProperty(properties.String)
+    nicknames = element.VertexProperty(
+        properties.String, card=Cardinality.list)
 
 
 class Place(element.Vertex):
-    name = PlaceName(properties.String, cardinality=set)
+    name = properties.Property(properties.String)
     zipcode = properties.Property(properties.Integer)
+    important_numbers = element.VertexProperty(
+        properties.Integer, card=Cardinality.set)
 
 
 class Knows(element.Edge):

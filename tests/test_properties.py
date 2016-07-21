@@ -17,6 +17,8 @@
 
 import pytest
 
+from goblin import element, exception, manager, properties
+
 
 def test_set_change_property(person, lives_in):
     # vertex
@@ -50,6 +52,86 @@ def test_setattr_validation(person):
     assert person.age == 10
     with pytest.raises(Exception):
         setattr(person, 'age', 'hello')
+
+
+# Vertex properties
+def test_set_change_vertex_property(person):
+    assert not person.birthplace
+    person.birthplace = 'Iowa City'
+    assert isinstance(person.birthplace, element.VertexProperty)
+    assert person.birthplace.value == 'Iowa City'
+    person.birthplace = 'U of I Hospital'
+    assert person.birthplace.value == 'U of I Hospital'
+
+
+def test_validate_vertex_prop(person):
+    assert not person.birthplace
+    person.birthplace = 1
+    assert person.birthplace.value == '1'
+
+
+def test_set_change_list_card_vertex_property(person):
+    assert not person.nicknames
+    person.nicknames = 'sly'
+    assert isinstance(person.nicknames, list)
+    assert isinstance(person.nicknames, manager.ListVertexPropertyManager)
+    assert isinstance(person.nicknames[0], element.VertexProperty)
+    assert person.nicknames[0].value == 'sly'
+    assert person.nicknames('sly') == person.nicknames[0]
+    person.nicknames = set(['sly', 'guy'])
+    assert isinstance(person.nicknames, list)
+    assert person.nicknames('sly').value == 'sly'
+    assert person.nicknames('guy').value == 'guy'
+    person.nicknames = ('sly', 'big', 'guy')
+    assert isinstance(person.nicknames, list)
+    assert [v.value for v in person.nicknames] == ['sly', 'big', 'guy']
+    person.nicknames = ['sly', 'big', 'guy', 'guy']
+    assert isinstance(person.nicknames, list)
+    assert len(person.nicknames('guy')) == 2
+    assert [v.value for v in person.nicknames] == ['sly', 'big', 'guy', 'guy']
+    person.nicknames.append(1)
+    assert person.nicknames('1').value == '1'
+
+
+def test_list_card_vertex_property_validation(person):
+    person.nicknames = [1, 1.5, 2]
+    assert [v.value for v in person.nicknames] == ['1', '1.5', '2']
+
+
+def test_set_change_set_card_vertex_property(place):
+    assert not place.important_numbers
+    place.important_numbers = 1
+    assert isinstance(place.important_numbers, set)
+    assert isinstance(
+        place.important_numbers, manager.SetVertexPropertyManager)
+    number_one, = place.important_numbers
+    assert isinstance(number_one, element.VertexProperty)
+    assert number_one.value == 1
+    assert place.important_numbers(1) == number_one
+    place.important_numbers = [1, 2]
+    assert isinstance(place.important_numbers, set)
+    assert {v.value for v in place.important_numbers} == set([1, 2])
+    place.important_numbers.add(3)
+    assert {v.value for v in place.important_numbers} == set([1, 2, 3])
+    place.important_numbers = (1, 2, 3, 4)
+    assert isinstance(place.important_numbers, set)
+    assert {v.value for v in place.important_numbers} == set([1, 2, 3, 4])
+    place.important_numbers = set([1, 2, 3])
+    assert isinstance(place.important_numbers, set)
+    assert {v.value for v in place.important_numbers} == set([1, 2, 3])
+    with pytest.raises(exception.ValidationError):
+        place.important_numbers.add('dude')
+
+
+def test_set_card_validation_vertex_property(place):
+    with pytest.raises(exception.ValidationError):
+        place.important_numbers = set(['hello', 2, 3])
+
+
+def test_cant_set_vertex_prop_on_edge():
+    with pytest.raises(exception.MappingError):
+        class MyEdge(element.Edge):
+            vert_prop = element.VertexProperty(properties.String)
 
 
 class TestString:

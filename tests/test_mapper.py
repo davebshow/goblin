@@ -21,14 +21,24 @@ from goblin import exception, properties
 
 
 def test_property_mapping(person, lives_in):
-    db_name, data_type = person.__mapping__._properties['name']
+    db_name, data_type = person.__mapping__._ogm_properties['name']
     assert  db_name == 'person__name'
     assert isinstance(data_type, properties.String)
-    db_name, data_type = person.__mapping__._properties['age']
+    db_name, data_type = person.__mapping__._ogm_properties['age']
     assert  db_name == 'custom__person__age'
     assert isinstance(data_type, properties.Integer)
-    db_name, data_type = lives_in.__mapping__._properties['notes']
+    db_name, data_type = lives_in.__mapping__._ogm_properties['notes']
     assert  db_name == 'lives_in__notes'
+    assert isinstance(data_type, properties.String)
+
+    ogm_name, data_type = person.__mapping__._db_properties['person__name']
+    assert  ogm_name == 'name'
+    assert isinstance(data_type, properties.String)
+    ogm_name, data_type = person.__mapping__._db_properties['custom__person__age']
+    assert  ogm_name == 'age'
+    assert isinstance(data_type, properties.Integer)
+    ogm_name, data_type = lives_in.__mapping__._db_properties['lives_in__notes']
+    assert  ogm_name == 'notes'
     assert isinstance(data_type, properties.String)
 
 
