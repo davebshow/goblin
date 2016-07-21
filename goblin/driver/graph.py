@@ -143,7 +143,7 @@ class RemoteVertex(RemoteElement):
         props = dict()
         for key, value_list in properties.items():
             props[key] = [item['value'] for item in value_list]
-        super().__init__(id, label, properties, **attrs)
+        super().__init__(id, label, props, **attrs)
 
     def property(self, key):
         props = self.properties(key)
@@ -159,7 +159,8 @@ class RemoteVertex(RemoteElement):
             raise AttributeError('No property on this object with key: {}'.format(key))
         if len(props) > 1:
             raise ValueError(self._value_error_msg.format(key, method="values"))
-        return props[0]
+        key, val = props[0]
+        return val
 
     def values(self, *keys):
         return [v for k, v in self.properties(keys)]
