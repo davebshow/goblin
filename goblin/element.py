@@ -150,7 +150,7 @@ class VertexPropertyDescriptor:
 
 
 class VertexProperty(Vertex, abc.BaseProperty):
-    """Base class for user defined vertex properties. Not yet supported."""
+    """Base class for user defined vertex properties."""
 
     __descriptor__ = VertexPropertyDescriptor
 
