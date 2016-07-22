@@ -125,6 +125,7 @@ class VertexPropertyDescriptor:
     """
 
     def __init__(self, name, vertex_property):
+        self._prop_name = name
         self._name = '_' + name
         self._vertex_property = vertex_property.__class__
         self._data_type = vertex_property.data_type
