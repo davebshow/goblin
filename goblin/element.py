@@ -133,7 +133,7 @@ class VertexPropertyDescriptor:
 
     def __get__(self, obj, objtype):
         if obj is None:
-            return self._vertex_property  # do this like property
+            return getattr(objtype.__mapping__, self._prop_name)
         default = self._default
         if default:
             default = self._data_type.validate_vertex_prop(
