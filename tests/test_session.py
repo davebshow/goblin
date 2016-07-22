@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Functional sessions tests"""
+
 import pytest
 
 from goblin import element
@@ -44,7 +46,7 @@ class TestCreationApi:
             jon.name = 'jonathan'
             jon.age = 38
             leif = person_class()
-            leif.name = 'leif'
+            leif.name = 'leifur'
             leif.age = 28
             session.add(jon, leif)
             assert not hasattr(jon, 'id')
@@ -53,9 +55,11 @@ class TestCreationApi:
             assert hasattr(jon, 'id')
             assert session.current[jon.id] is jon
             assert jon.name == 'jonathan'
+            assert jon.age == 38
             assert hasattr(leif, 'id')
             assert session.current[leif.id] is leif
-            assert leif.name == 'leif'
+            assert leif.name == 'leifur'
+            assert leif.age == 28
 
     @pytest.mark.asyncio
     async def test_create_edge(self, session, person_class, place_class,
@@ -182,6 +186,7 @@ class TestCreationApi:
             person.name = 'dave'
             person.age = 35
             result = await session.save(person)
+            assert result.name == 'dave'
             assert result.age == 35
             person.name = 'david'
             person.age = None
@@ -267,10 +272,10 @@ class TestTraversalApi:
     async def test_vertex_deserialization(self, session, person_class):
         async with session:
             resp = await session.g.addV('person').property(
-                person_class.name, 'leif').property('birthplace', 'detroit').one_or_none()
+                person_class.name, 'leif').property('place_of_birth', 'detroit').one_or_none()
             assert isinstance(resp, person_class)
             assert resp.name == 'leif'
-            assert resp.birthplace == 'detroit'
+            assert resp.place_of_birth == 'detroit'
 
     @pytest.mark.asyncio
     async def test_edge_desialization(self, session, knows_class):

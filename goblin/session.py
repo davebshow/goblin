@@ -195,7 +195,7 @@ class Session(connection.AbstractConnection):
         del edge
         return result
 
-    async def save(self, element):
+    async def save(self, elem):
         """
         Save an element to the db.
 
@@ -203,13 +203,13 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Element<goblin.element.Element>` object
         """
-        if element.__type__ == 'vertex':
-            result = await self.save_vertex(element)
-        elif element.__type__ == 'edge':
-            result = await self.save_edge(element)
+        if elem.__type__ == 'vertex':
+            result = await self.save_vertex(elem)
+        elif elem.__type__ == 'edge':
+            result = await self.save_edge(elem)
         else:
             raise exception.ElementError(
-                "Unknown element type: {}".format(element.__type__))
+                "Unknown element type: {}".format(elem.__type__))
         return result
 
     async def save_vertex(self, vertex):
@@ -222,7 +222,7 @@ class Session(connection.AbstractConnection):
         """
         result = await self._save_element(
             vertex, self._check_vertex,
-            self.traversal_factory.add_vertex,
+            self._add_vertex,
             self.update_vertex)
         self.current[result.id] = result
         return result
@@ -240,7 +240,7 @@ class Session(connection.AbstractConnection):
                 "Edges require both source/target vertices")
         result = await self._save_element(
             edge, self._check_edge,
-            self.traversal_factory.add_edge,
+            self._add_edge,
             self.update_edge)
         self.current[result.id] = result
         return result
@@ -276,8 +276,9 @@ class Session(connection.AbstractConnection):
         :returns: :py:class:`Vertex<goblin.element.Vertex>` object
         """
         props = mapper.map_props_to_db(vertex, vertex.__mapping__)
+        # vert_props = mapper.map_vert_props_to_db
         traversal = self.g.V(vertex.id)
-        return await self._update_properties(vertex, traversal, props)
+        return await self._update_vertex_properties(vertex, traversal, props)
 
     async def update_edge(self, edge):
         """
@@ -289,7 +290,7 @@ class Session(connection.AbstractConnection):
         """
         props = mapper.map_props_to_db(edge, edge.__mapping__)
         traversal = self.g.E(edge.id)
-        return await self._update_properties(edge, traversal, props)
+        return await self._update_edge_properties(edge, traversal, props)
 
     # Transaction support
     def tx(self):
@@ -319,45 +320,89 @@ class Session(connection.AbstractConnection):
             return msg
 
     async def _save_element(self,
-                            element,
+                            elem,
                             check_func,
                             create_func,
                             update_func):
-        if hasattr(element, 'id'):
-            result = await check_func(element)
-            if not result:
-                traversal = create_func(element)
+        if hasattr(elem, 'id'):
+            exists = await check_func(elem)
+            if not exists:
+                result = await create_func(elem)
             else:
-                traversal = await update_func(element)
+                result = await update_func(elem)
         else:
-            traversal = create_func(element)
-        return await self._simple_traversal(traversal, element)
+            result = await create_func(elem)
+        return result
 
-    async def _check_vertex(self, element):
-        """Used to check for existence, does not update session element"""
-        traversal = self.g.V(element.id)
+    async def _add_vertex(self, elem):
+        """Convenience function for generating crud traversals."""
+        props = mapper.map_props_to_db(elem, elem.__mapping__)
+        traversal = self.g.addV(elem.__mapping__.label)
+        traversal, _, metaprops = self.traversal_factory.add_properties(
+            traversal, props)
+        result = await self._simple_traversal(traversal, elem)
+        if metaprops:
+            await self._add_metaprops(result, metaprops)
+            traversal = self.traversal_factory.get_vertex_by_id(elem)
+            result = await self._simple_traversal(traversal, elem)
+        return result
+
+    async def _add_edge(self, elem):
+        """Convenience function for generating crud traversals."""
+        props = mapper.map_props_to_db(elem, elem.__mapping__)
+        traversal = self.g.V(elem.source.id)
+        traversal = traversal.addE(elem.__mapping__._label)
+        traversal = traversal.to(
+            self.g.V(elem.target.id))
+        traversal, _, _ = self.traversal_factory.add_properties(
+            traversal, props)
+        return await self._simple_traversal(traversal, elem)
+
+    async def _check_vertex(self, vertex):
+        """Used to check for existence, does not update session vertex"""
+        traversal = self.g.V(vertex.id)
         stream = await self.conn.submit(repr(traversal))
         return await stream.fetch_data()
 
-    async def _check_edge(self, element):
-        """Used to check for existence, does not update session element"""
-        traversal = self.g.E(element.id)
+    async def _check_edge(self, edge):
+        """Used to check for existence, does not update session edge"""
+        traversal = self.g.E(edge.id)
         stream = await self.conn.submit(repr(traversal))
         return await stream.fetch_data()
 
-    async def _update_properties(self, element, traversal, props):
-        binding = 0
-        for k, v in props:
-            if v:
-                traversal = traversal.property(
-                    ('k' + str(binding), k),
-                    ('v' + str(binding), v))
-            else:
-                if element.__type__ == 'vertex':
-                    traversal_source = self.g.V(element.id)
+    async def _update_vertex_properties(self, vertex, traversal, props):
+        traversal, removals, metaprops = self.traversal_factory.add_properties(
+            traversal, props)
+        for k in removals:
+            await self.g.V(vertex.id).properties(k).drop().one_or_none()
+        result = await self._simple_traversal(traversal, vertex)
+        if metaprops:
+            removals = await self._add_metaprops(result, metaprops)
+            for db_name, key, value in removals:
+                await self.g.V(vertex.id).properties(
+                    db_name).has(key, value).drop().one_or_none()
+            traversal = self.traversal_factory.get_vertex_by_id(vertex)
+            result = await self._simple_traversal(traversal, vertex)
+        return result
+
+    async def _update_edge_properties(self, edge, traversal, props):
+        traversal, removals, _ = self.traversal_factory.add_properties(
+            traversal, props)
+        for k in removals:
+            await self.g.E(edge.id).properties(k).drop().one_or_none()
+        return await self._simple_traversal(traversal, edge)
+
+    async def _add_metaprops(self, result, metaprops):
+        potential_removals = []
+        for metaprop in metaprops:
+            db_name, (binding, value), metaprops = metaprop
+            for key, val in metaprops.items():
+                if val:
+                    traversal = self.g.V(result.id).properties(
+                        db_name).hasValue(value).property(key, val)
+                    stream = await self.conn.submit(
+                        repr(traversal), bindings=traversal.bindings)
+                    await stream.fetch_data()
                 else:
-                    traversal_source = self.g.E(element.id)
-                await traversal_source.properties(
-                    ('k' + str(binding), k)).drop().one_or_none()
-            binding += 1
-        return traversal
+                    potential_removals.append((db_name, key, value))
+        return potential_removals

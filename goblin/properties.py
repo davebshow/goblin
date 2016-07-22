@@ -15,11 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Classes to handle proerties and data type definitions"""
+"""Classes to handle properties and data type definitions"""
 
 import logging
 
-from goblin import abc, exception
+from goblin import abc, cardinality, exception
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,8 @@ class PropertyDescriptor:
         return getattr(obj, self._name, self._default)
 
     def __set__(self, obj, val):
-        setattr(obj, self._name, self._data_type.validate(val))
+        val = self._data_type.validate(val)
+        setattr(obj, self._name, val)
 
     def __delete__(self, obj):
         # hmmm what is the best approach here
@@ -110,7 +111,7 @@ class Integer(abc.DataType):
         if val is not None:
             try:
                 return int(val)
-            except ValueError as e:
+            except (ValueError, TypeError) as e:
                 raise exception.ValidationError(
                     'Not a valid integer: {}'.format(val)) from e
 

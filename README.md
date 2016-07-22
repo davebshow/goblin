@@ -1,8 +1,9 @@
 ## Why davebshow/goblin???
 
-Let's face it, ZEROFAIL/goblin has problems. It's not really anyone's fault, it is just a fact of life. The mogwai codebase is monumental and it makes heavy use of metaprogramming, instrumentation, class inheritance, global variables and configuration, and third-party libraries. This results in opaque code that is hard to read and maintain, resulting in less community interest and more work for developers looking to make improvements. My port to TinkerPop3 just made things worse, as it introduced a level of callback hell only know to the most hardcore JavaScript developers. At this point, while ZEROFAIL/goblin basically works, implementing new functionality is a daunting task, and simple debugging and reasoning have become serious work. I was trying to think how to remedy these problems and rescue goblin from an ugly, bloated fate as we move forward adding new functionality. Then, it dawned on me: all I need to do is drag that whole folder to the virtual trash bin on my desktop and start from scratch.
+Developers note:
+The original Goblin was a TinkerPop 3 ready port of Cody Lee's mogwai, an excellent library that had been developed for use with pre-TinkerPop 3 versions of Titan. We designed Goblin to provide asynchronous programming abstractions that would work using any version of Python 2.7 + with a variety of asynchronous I/O libraries (Tornado, Asyncio, Trollius). While in theory this was great, we found that in our effort to promote compatibility we lost out on many of the features the newer Python versions provide to help developers deal with asynchronous programming. Our code base became large and made heavy use of callbacks, and nearly all methods and functions returned some sort of `Future`. This created both a clunky user API, and a code base that was difficult to reason about and maintain.
 
-But, wait, a whole new OGM from scratch...? Well, yes and no. Borrowing a few concepts from SQLAlchemy and using what I've learned from working on previous Python software targeting the Gremlin Server, I was able to piece together a fully functioning system in just a few hours of work and less than 1/10 the code. So, here is my *community prototype* OGM contribution to the Python TinkerPop3 ecosystem.
+So, we decided to rewrite Goblin from scratch...
 
 ## Features
 
@@ -15,90 +16,3 @@ But, wait, a whole new OGM from scratch...? Well, yes and no. Borrowing a few co
 7. Fully extensible data type system
 8. Descriptor based property assignment
 9. And more...!
-
-### Install
-```
-$ pip install git+https://github.com/davebshow/goblin.git
-```
-### Create/update elements
-
-```python
-
-import asyncio
-
-from goblin.api import create_engine, Vertex, Edge
-from goblin.properties import Property, String
-
-
-class TestVertex(Vertex):
-    __label__ = 'test_vertex'
-    name = Property(String)
-    notes = Property(String, initval='N/A')
-
-
-class TestEdge(Edge):
-    __label__ = 'test_edge'
-    notes = Property(String, initval='N/A')
-
-
-loop = asyncio.get_event_loop()
-engine = loop.run_until_complete(
-    create_engine("http://localhost:8182/", loop))
-
-
-async def create():
-    session = engine.session()
-    leif = TestVertex()
-    leif.name = 'leifur'
-    jon = TestVertex()
-    jon.name = 'jonathan'
-    works_for = TestEdge()
-    works_for.source = jon
-    works_for.target = leif
-    assert works_for.notes == 'N/A'
-    works_for.notes = 'zerofail'
-    session.add(leif, jon, works_for)
-    await session.flush()
-    print(leif.name, leif.id, jon.name, jon.id,
-          works_for.notes, works_for.id)
-    leif.name = 'leif'
-    session.add(leif)
-    await session.flush()
-    print(leif.name, leif.id)
-
-
-loop.run_until_complete(create())
-# leifur 0 jonathan 3 zerofail 6
-# leif 0
-```
-
-### Query the db:
-
-```python
-async def query():
-    session = engine.session()
-    stream = await session.query(TestVertex).all()
-    async for msg in stream:
-        print(msg)
-
-
-loop.run_until_complete(query())
-# [<__main__.TestVertex object at 0x7f46d833e588>, <__main__.TestVertex object at 0x7f46d833e780>]
-
-```
-
-### See how objects map to the db:
-
-```python
-TestVertex.__mapping__
-# <Mapping(type=vertex, label=test_vertex, properties=[
-  # {'db_name': 'test_vertex__name', 'ogm_name': 'name', 'data_type': <class 'goblin.properties.String'>},
-  # {'db_name': 'test_vertex__notes', 'ogm_name': 'notes', 'data_type': <class 'goblin.properties.String'>}])
-
-```
-
-### Close the engine
-
-```python
-loop.run_until_complete(engine.close())
-```

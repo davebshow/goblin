@@ -16,6 +16,12 @@
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
 import abc
+import logging
+
+from goblin import cardinality, manager, exception
+
+
+logger = logging.getLogger(__name__)
 
 
 class DataType(abc.ABC):
@@ -44,11 +50,37 @@ class DataType(abc.ABC):
     @abc.abstractmethod
     def to_ogm(self, val):
         """Convert property value to a Python compatible format"""
-        try:
-            self.validate(val)
-        except exception.ValidationError:
-            logger.warning(
-                "DB val {} Fails OGM validation for {}".format(val, self))
+        return val
+
+    def validate_vertex_prop(self, val, card, vertex_prop, data_type):
+        if card == cardinality.Cardinality.list:
+            if isinstance(val, list):
+                val = val
+            elif isinstance(val, (set, tuple)):
+                val = list(val)
+            else:
+                val = [val]
+            val = manager.ListVertexPropertyManager(
+                data_type,
+                vertex_prop,
+                card,
+                [vertex_prop(data_type, val=self.validate(v), card=card)
+                 for v in val])
+        elif card == cardinality.Cardinality.set:
+            if isinstance(val, set):
+                val = val
+            elif isinstance(val, (list, tuple)):
+                val = set(val)
+            else:
+                val = set([val])
+            val = manager.SetVertexPropertyManager(
+                data_type,
+                vertex_prop,
+                card,
+                {vertex_prop(data_type, val=self.validate(v), card=card)
+                 for v in val})
+        else:
+            val = vertex_prop(data_type, val=self.validate(val))
         return val
 
 

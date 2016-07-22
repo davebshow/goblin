@@ -21,8 +21,9 @@ import asyncio
 import functools
 import logging
 
-from goblin import mapper
+from goblin import cardinality, element, mapper
 from goblin.driver import connection, graph
+from gremlin_python import process
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ def bindprop(element_class, ogm_name, val, *, binding=None):
     :returns: tuple object ('db_property_name', ('binding(if passed)', val))
     """
     db_name = getattr(element_class, ogm_name, ogm_name)
-    _, data_type = element_class.__mapping__.properties[ogm_name]
+    _, data_type = element_class.__mapping__.ogm_properties[ogm_name]
     val = data_type.to_db(val)
     if binding:
         val = (binding, val)
@@ -122,43 +123,44 @@ class TraversalFactory:
             traversal = traversal.hasLabel(label)
         return traversal
 
-    def remove_vertex(self, element):
+    def remove_vertex(self, elem):
         """Convenience function for generating crud traversals."""
-        return self.traversal().V(element.id).drop()
+        return self.traversal().V(elem.id).drop()
 
-    def remove_edge(self, element):
+    def remove_edge(self, elem):
         """Convenience function for generating crud traversals."""
-        return self.traversal().E(element.id).drop()
+        return self.traversal().E(elem.id).drop()
 
-    def get_vertex_by_id(self, element):
+    def get_vertex_by_id(self, elem):
         """Convenience function for generating crud traversals."""
-        return self.traversal().V(element.id)
+        return self.traversal().V(elem.id)
 
-    def get_edge_by_id(self, element):
+    def get_edge_by_id(self, elem):
         """Convenience function for generating crud traversals."""
-        return self.traversal().E(element.id)
+        return self.traversal().E(elem.id)
 
-    def add_vertex(self, element):
-        """Convenience function for generating crud traversals."""
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal().addV(element.__mapping__.label)
-        return self._add_properties(traversal, props)
-
-    def add_edge(self, element):
-        """Convenience function for generating crud traversals."""
-        props = mapper.map_props_to_db(element, element.__mapping__)
-        traversal = self.traversal().V(element.source.id)
-        traversal = traversal.addE(element.__mapping__._label)
-        traversal = traversal.to(
-            self.traversal().V(element.target.id))
-        return self._add_properties(traversal, props)
-
-    def _add_properties(self, traversal, props):
+    def add_properties(self, traversal, props):
         binding = 0
-        for k, v in props:
-            if v:
-                traversal = traversal.property(
-                    ('k' + str(binding), k),
-                    ('v' + str(binding), v))
+        potential_removals = []
+        potential_metaprops = []
+        for card, db_name, val, metaprops in props:
+            if val:
+                key = ('k' + str(binding), db_name)
+                val = ('v' + str(binding), val)
+                if card:
+                    # Maybe use a dict here as a translator
+                    if card == cardinality.Cardinality.list:
+                        card = process.Cardinality.list
+                    elif card == cardinality.Cardinality.set:
+                        card = process.Cardinality.set
+                    else:
+                        card = process.Cardinality.single
+                    traversal = traversal.property(card, key, val)
+                else:
+                    traversal = traversal.property(key, val)
                 binding += 1
-        return traversal
+                if metaprops:
+                    potential_metaprops.append((db_name, val, metaprops))
+            else:
+                potential_removals.append(db_name)
+        return traversal, potential_removals, potential_metaprops

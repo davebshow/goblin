@@ -19,9 +19,7 @@ import logging
 
 import inflection
 
-from goblin import abc
-from goblin import mapper
-from goblin import properties
+from goblin import abc, cardinality, exception, mapper, properties
 
 
 logger = logging.getLogger(__name__)
@@ -34,14 +32,22 @@ class ElementMeta(type):
     :py:class:`property.Property` with :py:class:`property.PropertyDescriptor`.
     """
     def __new__(cls, name, bases, namespace, **kwds):
-        if bases:
-            namespace['__type__'] = bases[0].__name__.lower()
+        if name == 'VertexProperty':
+            element_type = name.lower()
+        elif bases:
+            element_type = bases[0].__name__.lower()
+        else:
+            element_type = name.lower()
+        namespace['__type__'] = element_type
         if not namespace.get('__label__', None):
             namespace['__label__'] = inflection.underscore(name)
         props = {}
         new_namespace = {}
         for k, v in namespace.items():
             if isinstance(v, abc.BaseProperty):
+                if element_type == 'edge' and hasattr(v, 'cardinality'):
+                    raise exception.MappingError(
+                        'Edge property cannot have set/list cardinality')
                 props[k] = v
                 v = v.__descriptor__(k, v)
             new_namespace[k] = v
@@ -110,7 +116,7 @@ class GenericEdge(Edge):
     Class used to build edges when user defined edges class is not available.
     Generally not instantiated by end user.
     """
-
+    pass
 
 class VertexPropertyDescriptor:
     """
@@ -119,45 +125,46 @@ class VertexPropertyDescriptor:
     """
 
     def __init__(self, name, vertex_property):
+        self._prop_name = name
         self._name = '_' + name
         self._vertex_property = vertex_property.__class__
         self._data_type = vertex_property.data_type
         self._default = vertex_property.default
+        self._cardinality = vertex_property._cardinality
 
     def __get__(self, obj, objtype):
         if obj is None:
-            return self._vertex_property
+            return getattr(objtype.__mapping__, self._prop_name)
         default = self._default
         if default:
-            default = self._data_type.validate(default)
-            default = self._vertex_property(self._default)
+            default = self._data_type.validate_vertex_prop(
+                default, self._cardinality, self._vertex_property,
+                self._data_type)
         return getattr(obj, self._name, default)
 
     def __set__(self, obj, val):
-        if isinstance(val, (list, tuple , set)):
-            vertex_property = []
-            for v in val:
-                v = self._data_type.validate(v)
-                vertex_property.append(
-                    self._vertex_property(self._data_type, value=v))
-
-        else:
-            val = self._data_type.validate(val)
-            vertex_property = self._vertex_property(self._data_type, value=val)
-        setattr(obj, self._name, vertex_property)
+        if val:
+            val = self._data_type.validate_vertex_prop(
+                val, self._cardinality, self._vertex_property, self._data_type)
+        setattr(obj, self._name, val)
 
 
-class VertexProperty(Element, abc.BaseProperty):
-    """Base class for user defined vertex properties. Not yet supported."""
+class VertexProperty(Vertex, abc.BaseProperty):
+    """Base class for user defined vertex properties."""
 
     __descriptor__ = VertexPropertyDescriptor
 
-    def __init__(self, data_type, *, value=None, default=None):
+    def __init__(self, data_type, *, val=None, default=None, db_name=None,
+                 card=None):
         if isinstance(data_type, type):
             data_type = data_type()
         self._data_type = data_type
-        self._value = value
+        self._val = val
         self._default = default
+        self._db_name = db_name
+        if card is None:
+            card = cardinality.Cardinality.single
+        self._cardinality = card
 
     @property
     def default(self):
@@ -169,7 +176,15 @@ class VertexProperty(Element, abc.BaseProperty):
 
     @property
     def value(self):
-        return self._value
+        return self._val
+
+    @property
+    def db_name(self):
+        return self._db_name
+
+    @property
+    def cardinality(self):
+        return self._cardinality
 
     def __repr__(self):
         return '<{}(type={}, value={})'.format(self.__class__.__name__,
