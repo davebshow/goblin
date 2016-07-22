@@ -57,3 +57,63 @@ async def test_add_update_set_card_property(session, place):
         place.important_numbers = None
         result = await session.save(place)
         assert not result.important_numbers
+
+
+@pytest.mark.asyncio
+async def test_add_update_metas(session, place):
+    async with session:
+        place.historical_name = ['Detroit']
+        place.historical_name('Detroit').notes = 'rock city'
+        place.historical_name('Detroit').year = 1900
+        result = await session.save(place)
+        assert result.historical_name('Detroit').notes == 'rock city'
+        assert result.historical_name('Detroit').year == 1900
+
+        place.historical_name('Detroit').notes = 'comeback city'
+        place.historical_name('Detroit').year = 2016
+        result = await session.save(place)
+        assert result.historical_name('Detroit').notes == 'comeback city'
+        assert result.historical_name('Detroit').year == 2016
+
+        place.historical_name('Detroit').notes = None
+        place.historical_name('Detroit').year = None
+        result = await session.save(place)
+        assert not result.historical_name('Detroit').notes
+        assert not result.historical_name('Detroit').year
+
+
+
+
+@pytest.mark.asyncio
+async def test_add_update_metas_list_card(session, place):
+    async with session:
+        place.historical_name = ['Hispania', 'Al-Andalus']
+        place.historical_name('Hispania').notes = 'romans'
+        place.historical_name('Hispania').year = 200
+        place.historical_name('Al-Andalus').notes = 'muslims'
+        place.historical_name('Al-Andalus').year = 700
+        result = await session.save(place)
+        assert result.historical_name('Hispania').notes == 'romans'
+        assert result.historical_name('Hispania').year == 200
+        assert result.historical_name('Al-Andalus').notes == 'muslims'
+        assert result.historical_name('Al-Andalus').year == 700
+
+        place.historical_name('Hispania').notes = 'really old'
+        place.historical_name('Hispania').year = 200
+        place.historical_name('Al-Andalus').notes = 'less old'
+        place.historical_name('Al-Andalus').year = 700
+        result = await session.save(place)
+        assert result.historical_name('Hispania').notes == 'really old'
+        assert result.historical_name('Hispania').year == 200
+        assert result.historical_name('Al-Andalus').notes == 'less old'
+        assert result.historical_name('Al-Andalus').year == 700
+
+        place.historical_name('Hispania').notes = None
+        place.historical_name('Hispania').year = None
+        place.historical_name('Al-Andalus').notes = None
+        place.historical_name('Al-Andalus').year = None
+        result = await session.save(place)
+        assert not result.historical_name('Hispania').notes
+        assert not result.historical_name('Hispania').year
+        assert not result.historical_name('Al-Andalus').notes
+        assert not result.historical_name('Al-Andalus').year

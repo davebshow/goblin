@@ -3,6 +3,10 @@
 
 class VertexPropertyManager:
 
+    @property
+    def mapper_func(self):
+        return self._mapper_func
+
     def __call__(self, val):
         results = []
         for v in self:
@@ -21,6 +25,7 @@ class ListVertexPropertyManager(list, VertexPropertyManager):
         self._data_type = data_type
         self._vertex_prop = vertex_prop
         self._card = card
+        self._mapper_func = vertex_prop.__mapping__.mapper_func
         list.__init__(self, obj)
 
     def append(self, val):
@@ -35,6 +40,7 @@ class SetVertexPropertyManager(set, VertexPropertyManager):
         self._data_type = data_type
         self._vertex_prop = vertex_prop
         self._card = card
+        self._mapper_func = vertex_prop.__mapping__.mapper_func
         set.__init__(self, obj)
 
     def add(self, val):

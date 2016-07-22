@@ -32,9 +32,13 @@ class ElementMeta(type):
     :py:class:`property.Property` with :py:class:`property.PropertyDescriptor`.
     """
     def __new__(cls, name, bases, namespace, **kwds):
-        if bases:
+        if name == 'VertexProperty':
+            element_type = name.lower()
+        elif bases:
             element_type = bases[0].__name__.lower()
-            namespace['__type__'] = element_type
+        else:
+            element_type = name.lower()
+        namespace['__type__'] = element_type
         if not namespace.get('__label__', None):
             namespace['__label__'] = inflection.underscore(name)
         props = {}

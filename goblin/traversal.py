@@ -139,33 +139,16 @@ class TraversalFactory:
         """Convenience function for generating crud traversals."""
         return self.traversal().E(elem.id)
 
-    def add_vertex(self, elem):
-        """Convenience function for generating crud traversals."""
-        props = mapper.map_props_to_db(elem, elem.__mapping__)
-        # vert_props = mapper.map_props_to_db
-        traversal = self.traversal().addV(elem.__mapping__.label)
-        traversal, _ = self.add_properties(traversal, props)
-        # traversal, _ = self.add_vertex_properties(...)
-        return traversal
-
-    def add_edge(self, elem):
-        """Convenience function for generating crud traversals."""
-        props = mapper.map_props_to_db(elem, elem.__mapping__)
-        traversal = self.traversal().V(elem.source.id)
-        traversal = traversal.addE(elem.__mapping__._label)
-        traversal = traversal.to(
-            self.traversal().V(elem.target.id))
-        traversal, _ = self.add_properties(traversal, props)
-        return traversal
-
     def add_properties(self, traversal, props):
         binding = 0
         potential_removals = []
+        potential_metaprops = []
         for card, db_name, val, metaprops in props:
             if val:
                 key = ('k' + str(binding), db_name)
                 val = ('v' + str(binding), val)
                 if card:
+                    # Maybe use a dict here as a translator
                     if card == cardinality.Cardinality.list:
                         card = process.Cardinality.list
                     elif card == cardinality.Cardinality.set:
@@ -176,6 +159,8 @@ class TraversalFactory:
                 else:
                     traversal = traversal.property(key, val)
                 binding += 1
+                if metaprops:
+                    potential_metaprops.append((db_name, val, metaprops))
             else:
                 potential_removals.append(db_name)
-        return traversal, potential_removals
+        return traversal, potential_removals, potential_metaprops

@@ -25,7 +25,6 @@ from goblin import exception
 logger = logging.getLogger(__name__)
 
 
-#######IMPLEMENT
 def map_props_to_db(element, mapping):
     """Convert OGM property names/values to DB property names/values"""
     property_tuples = []
@@ -35,33 +34,72 @@ def map_props_to_db(element, mapping):
         if val and isinstance(val, (list, set)):
             card = None
             for v in val:
-                # get metaprops as dic
-                metaprops = {}
+                metaprops = get_metaprops(v, v.__mapping__)
                 property_tuples.append(
                     (card, db_name, data_type.to_db(v.value), metaprops))
                 card = v.cardinality
         else:
             if hasattr(val, '__mapping__'):
+                metaprops = get_metaprops(val, val.__mapping__)
                 val = val.value
-            property_tuples.append((None, db_name, data_type.to_db(val), None))
+            else:
+                metaprops = None
+            property_tuples.append(
+                (None, db_name, data_type.to_db(val), metaprops))
     return property_tuples
+
+
+def get_metaprops(vertex_property, mapping):
+    props = mapping.ogm_properties
+    metaprops = {}
+    for ogm_name, (db_name, data_type) in props.items():
+        val = getattr(vertex_property, ogm_name, None)
+        metaprops[db_name] = data_type.to_db(val)
+    return metaprops
 
 
 def map_vertex_to_ogm(result, element, *, mapping=None):
     """Map a vertex returned by DB to OGM vertex"""
     for db_name, value in result['properties'].items():
+        metaprop_dict = {}
         if len(value) > 1:
-            # parse and assign vertex props + metas
-            value = [v['value'] for v in value]
+            values = []
+            for v in value:
+                values.append(v['value'])
+                metaprops = v.get('properties', None)
+                if metaprops:
+                    metaprop_dict[v['value']] = metaprops
+            value = values
         else:
+            metaprops = value[0].get('properties', None)
             value = value[0]['value']
+            if metaprops:
+                metaprop_dict[value] = metaprops
         name, data_type = mapping.db_properties.get(db_name, (db_name, None))
         if data_type:
             value = data_type.to_ogm(value)
         setattr(element, name, value)
+        if metaprop_dict:
+            vert_prop = getattr(element, name)
+            vert_prop.mapper_func(metaprop_dict, vert_prop)
     setattr(element, '__label__', result['label'])
     setattr(element, 'id', result['id'])
     return element
+
+
+def map_vertex_property_to_ogm(result, element, *, mapping=None):
+    """Map a vertex returned by DB to OGM vertex"""
+    for val, metaprops in result.items():
+        if isinstance(element, (list, set)):
+            current = element(val)
+        else:
+            current = element
+        for db_name, value in metaprops.items():
+            name, data_type = mapping.db_properties.get(
+                db_name, (db_name, None))
+            if data_type:
+                value = data_type.to_ogm(value)
+            setattr(current, name, value)
 
 
 def map_edge_to_ogm(result, element, *, mapping=None):
@@ -100,14 +138,22 @@ def _check_id(rid, eid):
 # DB <-> OGM Mapping
 def create_mapping(namespace, properties):
     """Constructor for :py:class:`Mapping`"""
-    element_type = namespace.get('__type__', None)
-    if element_type:
-        if element_type == 'vertex':
-            mapping_func = map_vertex_to_ogm
-            return Mapping(namespace, element_type, mapping_func, properties)
-        elif element_type == 'edge':
-            mapping_func = map_edge_to_ogm
-            return Mapping(namespace, element_type, mapping_func, properties)
+    element_type = namespace['__type__']
+    if element_type == 'vertex':
+        mapping_func = map_vertex_to_ogm
+        mapping = Mapping(
+            namespace, element_type, mapping_func, properties)
+    elif element_type == 'edge':
+        mapping_func = map_edge_to_ogm
+        mapping = Mapping(
+            namespace, element_type, mapping_func, properties)
+    elif element_type == 'vertexproperty':
+        mapping_func = map_vertex_property_to_ogm
+        mapping = Mapping(
+            namespace, element_type, mapping_func, properties)
+    else:
+        mapping = None
+    return mapping
 
 
 class Mapping:

@@ -134,6 +134,26 @@ def test_cant_set_vertex_prop_on_edge():
             vert_prop = element.VertexProperty(properties.String)
 
 
+def test_meta_property_set_update(place):
+    assert not place.historical_name
+    place.historical_name = ['hispania', 'al-andalus']
+    place.historical_name('hispania').notes = 'roman rule'
+    assert place.historical_name('hispania').notes == 'roman rule'
+    place.historical_name('hispania').year = 300
+    assert place.historical_name('hispania').year == 300
+    place.historical_name('al-andalus').notes = 'muslim rule'
+    assert place.historical_name('al-andalus').notes == 'muslim rule'
+    place.historical_name('al-andalus').year = 700
+    assert place.historical_name('al-andalus').year == 700
+
+
+def test_meta_property_validation(place):
+    assert not place.historical_name
+    place.historical_name = ['spain']
+    with pytest.raises(exception.ValidationError):
+        place.historical_name('spain').year = 'hello'
+
+
 class TestString:
 
     def test_validation(self, string):
