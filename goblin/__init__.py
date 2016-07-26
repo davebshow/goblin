@@ -18,4 +18,4 @@
 from goblin.app import create_app, Goblin
 from goblin.cardinality import Cardinality
 from goblin.element import Vertex, Edge, VertexProperty
-from goblin.properties import Property, String
+from goblin.properties import Property, String, Integer, Float, Boolean

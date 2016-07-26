@@ -7,12 +7,14 @@ So, we decided to rewrite Goblin from scratch...
 
 ## Features
 
-1. *Transparent* Python 3.5 codebase using PEP 492 await/async syntax that leverages asynchronous iterators and asynchronous context managers
-2. SQLAlchemy style element creation and queries
-3. Full integration with the official GLV gremlin-python
-4. Transparent mapping between OGM and database values
-5. Support for session/transaction management
-6. Graph database vendor agnostic/configurable
-7. Fully extensible data type system
-8. Descriptor based property assignment
-9. And more...!
+- Integration with the *official gremlin-python Gremlin Language Variant* (GLV)
+
+- Native Python support for asynchronous programing including *coroutines*,
+  *iterators*, and *context managers* as specified in `PEP 492`_
+
+- *Asynchronous Python driver* for the `Gremlin Server`_
+
+- :py:class:`AsyncRemoteGraph<goblin.driver.graph.AsyncRemoteGraph>`
+  implementation that produces *native Python GLV traversals*
+
+- High level asynchronous *Object Graph Mapper* (OGM)

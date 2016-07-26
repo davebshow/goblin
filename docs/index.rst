@@ -135,8 +135,7 @@ Instead, all elements created using a session are 'live' in the sense that if th
 results of a traversal executed against the session result in different property values
 for an element, that element will be updated to reflect these changes.
 
-Support for **vertex properties**, **sessions**, and **transactions** will be available
-in the next release...more docs coming soon.
+For more information on using the OGM, see the :doc:`OGM docs</ogm>`
 
 
 Contents:
@@ -144,6 +143,7 @@ Contents:
 .. toctree::
    :maxdepth: 4
 
+   ogm
    modules
 
 

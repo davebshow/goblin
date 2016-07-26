@@ -61,9 +61,7 @@ class DataType(abc.ABC):
             else:
                 val = [val]
             val = manager.ListVertexPropertyManager(
-                data_type,
-                vertex_prop,
-                card,
+                data_type, vertex_prop, card,
                 [vertex_prop(data_type, val=self.validate(v), card=card)
                  for v in val])
         elif card == cardinality.Cardinality.set:
@@ -74,9 +72,7 @@ class DataType(abc.ABC):
             else:
                 val = set([val])
             val = manager.SetVertexPropertyManager(
-                data_type,
-                vertex_prop,
-                card,
+                data_type, vertex_prop, card,
                 {vertex_prop(data_type, val=self.validate(v), card=card)
                  for v in val})
         else:
