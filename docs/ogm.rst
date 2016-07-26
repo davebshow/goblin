@@ -36,10 +36,10 @@ modeling data, simply create *model* element classes that inherit from the
 
 
 And that is it, these are valid element classes that can be saved to the graph
-database. Using the three classes we can model a series of people that are connected
+database. Using these three classes we can model a series of people that are connected
 to the cities in which they were born. However, these elements
 aren't very useful, as they don't contain any information about the person or place. To remedy
-this, we will add some properties to the classes.
+this, add some properties to the classes.
 
 Using :py:mod:`goblin.properties`
 ---------------------------------
@@ -101,20 +101,20 @@ interface for defining and updating properties using Python's descriptor protoco
     >>> leif.name = 'Leifur'
 
 In the case that an invalid property value is set, the validator will raise
-a :py:class:'ValidationError<goblin.exception.ValidationError>' immediately::
+a :py:class:`ValidationError<goblin.exception.ValidationError>` immediately::
 
 
   >>> detroit.population = 'a lot of people'
-  # ValidationError: Not a valid integer: a lot of people
+  ValidationError: Not a valid integer: a lot of people
 
 
 Creating Edges
 --------------
 Creating edges is very similar to creating vertices, except that edges require
-that that a source (outV) and target (inV) vertex be specified. Both source and
+that a source (outV) and target (inV) vertex be specified. Both source and
 target nodes must be :py:mod:`Goblin vertices<goblin.element.Vertex>`. Furthermore,
 they must be created in the database before the edge. This is further discussed
-below in the :ref:`session` section. Source and target vertices may be
+below in the :ref:`Session<session>` section. Source and target vertices may be
 passed to the edge on instantiation, or added using the property interface::
 
     >>> leif_born_in_detroit = BornIn(leif, detroit)
@@ -123,7 +123,7 @@ passed to the edge on instantiation, or added using the property interface::
     >>> leif_born_in_detroit.source = leif
     >>> leif_born_in_detroit.target = detroit
     >>> leif_born_in_detroit.date  # default value
-    # 'unknown'
+    'unknown'
 
 
 Vertex Properties
@@ -157,38 +157,39 @@ interface than the simple, key/value style
 accomodate more advanced functionality. For accessing multi-cardinality
 vertex properties, :py:mod:`Goblin` provides several helper classes called
 :py:mod:`managers<goblin.manager>`. The
-:py:class:`managers<goblin.manager.ListVertexPropertyManager>` inherits from list,
-and provides a simple API for accessing and appending vertex properties. To continue
+:py:class:`managers<goblin.manager.ListVertexPropertyManager>` inherits from
+:py:class:`list` or :py:class:`set` (depending on the specified cardinality),
+and provide a simple API for accessing and appending vertex properties. To continue
 with the previous example, we see the `dave` element's nicknames::
 
     >>> david.nicknames
-    # [<VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=Dave),
-    #  <VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=davebshow)]
+    [<VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=Dave),
+     <VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=davebshow)]
 
 To add a nickname without replacing the earlier values, we simple :py:meth:`append` as
 if the manager were a Python :py:class:`list`::
 
     >>> david.nicknames.append('db')
     >>> david.nicknames
-    # [<VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=Dave),
-    #  <VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=davebshow),
-    #  <VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=db)]
+    [<VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=Dave),
+     <VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=davebshow),
+     <VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=db)]
 
 If this were a :py:class:`VertexProperty<goblin.element.VertexProperty>` with
-a set cardinality, we would simple use :py:meth:`add` to achieve similar functionality.
+a set cardinality, we would simply use :py:meth:`add` to achieve similar functionality.
 
-Both :py:class:`managers<goblin.manager.ListVertexPropertyManager>` and
-:py:class:`managers<goblin.manager.SetVertexPropertyManager>` provide a simple
+Both :py:class:`ListVertexPropertyManager<goblin.manager.ListVertexPropertyManager>` and
+:py:class:`SetVertexPropertyManager<goblin.manager.SetVertexPropertyManager>` provide a simple
 way to access a specific :py:class:`VertexProperty<goblin.element.VertexProperty>`.
 You simply call the manager, passing the value of the vertex property to be accessed:
 
     >>> db = dave.nicknames('davebshow')
-    # <VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=davebshow)
+    <VertexProperty(type=<goblin.properties.String object at 0x7f87a67a3048>, value=davebshow)
 
-The value of the vertex property can then be accessed using the `value` property::
+The value of the vertex property can be accessed using the `value` property::
 
     >>> db.value
-    # 'davebshow'
+    'davebshow'
 
 
 Meta-properties
@@ -197,18 +198,19 @@ Meta-properties
 :py:class:`VertexProperty<goblin.element.VertexProperty>` can also be used as
 a base classes for user defined vertex properties that contain meta-properties.
 To create meta-properties, define a custom vertex property class just like you
-would any other element, adding as many simple (non vertex) properties as needed::
+would any other element, adding as many simple (non-vertex) properties as needed::
 
     class HistoricalName(goblin.VertexProperty):
         notes = goblin.Property(goblin.String)
 
-Now, the custom `VertexProperty<goblin.element.VertexProperty>` can be added to a
+Now, the custom :py:class:`VertexProperty<goblin.element.VertexProperty>` can be added to a
 vertex class, using any cardinality::
 
     class City(goblin.Vertex):
         name = goblin.Property(goblin.String)
         population = goblin.Property(goblin.Integer)
-        historical_name = HistoricalName(goblin.String, card=goblin.Cardinality.list)
+        historical_name = HistoricalName(
+            goblin.String, card=goblin.Cardinality.list)
 
 Now, meta-properties can be set on the :py:class:`VertexProperty<goblin.element.VertexProperty>`
 using the descriptor protocol::
@@ -227,7 +229,7 @@ Saving Elements to the Database Using :py:class:`Session<goblin.session.Session>
 All interaction with the database is achieved using the
 :py:class:`Session<goblin.session.Session>` object. A :py:mod:`Goblin` session
 should not be confused with a Gremlin Server session, although in future releases
-they will provide support for server sessions and transactions. Instead,
+it will provide support for server sessions and transactions. Instead,
 the :py:class:`Session<goblin.session.Session>` object is used to save elements
 and spawn Gremlin traversals. Furthemore, any element created using a session is
 *live* in the sense that a :py:class:`Session<goblin.session.Session>` object
@@ -278,9 +280,9 @@ positional argument. This is merely for convenience, and generates this equivale
 Gremlin::
 
     >>> session.traversal(Person)
-    # g.V().hasLabel('person')
+    g.V().hasLabel('person')
 
-Or, simply use the property :py:method:`g<goblin.session.Session.g>`::
+Or, simply use the property :py:attr:`g<goblin.session.Session.g>`::
 
     >>> session.g.V().hasLabel('person')...
 
@@ -291,7 +293,7 @@ names are not mapped directly from the OGM. Instead, they typically take the for
 are available as class attributes::
 
     >>> Person.name
-    # 'person__name'
+    'person__name'
 
 So, to write a traversal::
 
@@ -302,7 +304,8 @@ Also, it is important to note that certain data types could be transformed
 before they are written to the database. Therefore, the data type method `to_db`
 may be required::
 
-    >>> session.traversal(Person).has(Person.name, goblin.String.to_db('Leifur'))
+    >>> session.traversal(Person).has(
+    ...     Person.name, goblin.String.to_db('Leifur'))
 
 While this is not the case with any of the simple data types shipped with :py:mod:`Goblin`,
 custom data types or future additions may require this kind of operation. Because of
