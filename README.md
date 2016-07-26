@@ -12,9 +12,8 @@ So, we decided to rewrite Goblin from scratch...
 - Native Python support for asynchronous programing including *coroutines*,
   *iterators*, and *context managers* as specified in `PEP 492`_
 
-- *Asynchronous Python driver* for the `Gremlin Server`_
+- *Asynchronous Python driver* for the Gremlin Server
 
-- :py:class:`AsyncRemoteGraph<goblin.driver.graph.AsyncRemoteGraph>`
-  implementation that produces *native Python GLV traversals*
+- `AsyncRemoteGraph` implementation that produces *native Python GLV traversals*
 
 - High level asynchronous *Object Graph Mapper* (OGM)
