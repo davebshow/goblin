@@ -154,12 +154,11 @@ class VertexProperty(Vertex, abc.BaseProperty):
 
     __descriptor__ = VertexPropertyDescriptor
 
-    def __init__(self, data_type, *, val=None, default=None, db_name=None,
+    def __init__(self, data_type, *, default=None, db_name=None,
                  card=None):
         if isinstance(data_type, type):
             data_type = data_type()
         self._data_type = data_type
-        self._val = val
         self._default = default
         self._db_name = db_name
         if card is None:
@@ -174,9 +173,13 @@ class VertexProperty(Vertex, abc.BaseProperty):
     def data_type(self):
         return self._data_type
 
-    @property
-    def value(self):
+    def getvalue(self):
         return self._val
+
+    def setvalue(self, val):
+        self._val = val
+
+    value = property(getvalue, setvalue)
 
     @property
     def db_name(self):

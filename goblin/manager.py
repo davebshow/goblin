@@ -49,9 +49,9 @@ class ListVertexPropertyManager(list, VertexPropertyManager):
         list.__init__(self, obj)
 
     def append(self, val):
-        val = self._data_type.validate(val)
-        val = self._vertex_prop(self._data_type, val=val, card=self._card)
-        super().append(val)
+        vp = self._vertex_prop(self._data_type, card=self._card)
+        vp.value = self._data_type.validate(val)
+        super().append(vp)
 
 
 class SetVertexPropertyManager(set, VertexPropertyManager):
@@ -61,6 +61,6 @@ class SetVertexPropertyManager(set, VertexPropertyManager):
         set.__init__(self, obj)
 
     def add(self, val):
-        val = self._data_type.validate(val)
-        val = self._vertex_prop(self._data_type, val=val, card=self._card)
-        super().add(val)
+        vp = self._vertex_prop(self._data_type, card=self._card)
+        vp.value = self._data_type.validate(val)
+        super().add(vp)
