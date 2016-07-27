@@ -28,6 +28,10 @@ syntax introduced in Python 3.5, and does not support earlier Python versions.
 The Basics
 ----------
 
+Install using pip::
+
+    $ pip install goblin
+
 **Driver**
 
 Submit scripts and bindings to the `Gremlin Server`_::
