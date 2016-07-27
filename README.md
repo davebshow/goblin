@@ -1,8 +1,5 @@
-[![Build Status](https://travis-ci.org/ZEROFAIL/goblin.svg?branch=master)](https://travis-ci.org/ZEROFAIL/goblin)
-
-[![Coverage Status](https://coveralls.io/repos/github/ZEROFAIL/goblin/badge.svg?branch=master)](https://coveralls.io/github/ZEROFAIL/goblin?branch=master)
-
-# Goblin
+# Goblin OGM for the TinkerPop 3 Gremlin Server
+[![Build Status](https://travis-ci.org/ZEROFAIL/goblin.svg?branch=master)](https://travis-ci.org/ZEROFAIL/goblin) [![Coverage Status](https://coveralls.io/repos/github/ZEROFAIL/goblin/badge.svg?branch=master)](https://coveralls.io/github/ZEROFAIL/goblin?branch=master)
 
 [Official Documentation](http://goblin.readthedocs.io/en/latest/)
 
