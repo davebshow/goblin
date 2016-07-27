@@ -20,4 +20,7 @@ before_script:
   - sleep 30
 
 script:
-  - python setup.py test
+  - coverage run --source=goblin setup.py test
+
+after_success:
+  - coveralls
