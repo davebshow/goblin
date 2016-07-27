@@ -11,6 +11,6 @@ dependencies:
 - xz=5.0.5=1
 - zlib=1.2.8=0
 - pip:
-  -aenum>=1.4.5
-  -aiohttp>=0.22.1
-  -inflection>=0.3.1
+  - aenum>=1.4.5
+  - aiohttp>=0.22.1
+  - inflection>=0.3.1
