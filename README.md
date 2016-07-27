@@ -1,5 +1,6 @@
-# Goblin OGM for the TinkerPop 3 Gremlin Server
-[![Build Status](https://travis-ci.org/ZEROFAIL/goblin.svg?branch=master)](https://travis-ci.org/ZEROFAIL/goblin) [![Coverage Status](https://coveralls.io/repos/github/ZEROFAIL/goblin/badge.svg?branch=master)](https://coveralls.io/github/ZEROFAIL/goblin?branch=master)
+# Goblin OGM for the [TinkerPop 3](http://tinkerpop.apache.org/) [Gremlin Server](http://tinkerpop.apache.org/docs/current/reference/#gremlin-server)
+[![Build Status](https://travis-ci.org/ZEROFAIL/goblin.svg?branch=master)](https://travis-ci.org/ZEROFAIL/goblin) [![Coverage Status](https://coveralls.io/repos/github/ZEROFAIL/goblin/badge.svg?branch=master)](https://coveralls.io/github/ZEROFAIL/goblin?branch=master) [![Gitter chat](https://badges.gitter.im/ZEROFAIL/goblin.svg)](https://gitter.im/ZEROFAIL/goblin?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Documentation Status](https://readthedocs.org/projects/goblin/badge/?version=latest)](http://goblin.readthedocs.io/en/latest/?badge=latest)
+
 
 [Official Documentation](http://goblin.readthedocs.io/en/latest/)
 
@@ -14,7 +15,7 @@ So, we decided to rewrite Goblin from scratch...
 - Integration with the *official gremlin-python Gremlin Language Variant* (GLV)
 
 - Native Python support for asynchronous programing including *coroutines*,
-  *iterators*, and *context managers* as specified in PEP 492
+  *iterators*, and *context managers* as specified in [PEP 492](https://www.python.org/dev/peps/pep-0492/)
 
 - *Asynchronous Python driver* for the Gremlin Server
 
