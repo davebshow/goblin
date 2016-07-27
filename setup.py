@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="goblin",
-    version="0.1.0",
+    version="1.0.0a1",
     url="",
     license="AGPL",
     author="davebshow",
@@ -23,8 +23,8 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: GNU Affero General Public License v3',
         'Operating System :: OS Independent',
-        'Programming Language :: Python'
+        "Programming Language :: Python :: 3.5",
     ]
 )
