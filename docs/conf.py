@@ -144,7 +144,7 @@ html_theme_options = {
     'github_repo': 'goblin',
     'github_button': True,
     'github_banner': True,
-    'travis_button': False
+    'travis_button': True
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
