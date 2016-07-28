@@ -145,7 +145,9 @@ class Goblin:
 
         :returns: :py:class:`Session<goblin.session.Session>` object
         """
+        aliases = self._config.get('aliases', None)
         conn = await driver.GremlinServer.open(self.url, self._loop)
         return session.Session(self,
                                conn,
-                               use_session=use_session)
+                               use_session=use_session,
+                               aliases=aliases)

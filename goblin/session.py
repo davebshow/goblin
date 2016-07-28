@@ -41,11 +41,12 @@ class Session(connection.AbstractConnection):
     :param bool use_session: Support for Gremlin Server session. Not implemented
     """
 
-    def __init__(self, app, conn, *, use_session=False):
+    def __init__(self, app, conn, *, use_session=False, aliases=None):
         self._app = app
         self._conn = conn
         self._loop = self._app._loop
         self._use_session = False
+        self._aliases = aliases or dict()
         self._pending = collections.deque()
         self._current = weakref.WeakValueDictionary()
         remote_graph = graph.AsyncRemoteGraph(
@@ -126,7 +127,7 @@ class Session(connection.AbstractConnection):
         """
         await self.flush()
         async_iter = await self.conn.submit(
-            gremlin, bindings=bindings, lang=lang)
+            gremlin, bindings=bindings, lang=lang, aliases=self._aliases)
         response_queue = asyncio.Queue(loop=self._loop)
         self._loop.create_task(
             self._receive(async_iter, response_queue))
@@ -313,7 +314,8 @@ class Session(connection.AbstractConnection):
     # *metodos especiales privados for creation API
     async def _simple_traversal(self, traversal, element):
         stream = await self.conn.submit(
-            repr(traversal), bindings=traversal.bindings)
+            repr(traversal), bindings=traversal.bindings,
+            aliases=self._aliases)
         msg = await stream.fetch_data()
         if msg:
             msg = element.__mapping__.mapper_func(msg, element)
@@ -361,13 +363,13 @@ class Session(connection.AbstractConnection):
     async def _check_vertex(self, vertex):
         """Used to check for existence, does not update session vertex"""
         traversal = self.g.V(vertex.id)
-        stream = await self.conn.submit(repr(traversal))
+        stream = await self.conn.submit(repr(traversal), aliases=self._aliases)
         return await stream.fetch_data()
 
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
         traversal = self.g.E(edge.id)
-        stream = await self.conn.submit(repr(traversal))
+        stream = await self.conn.submit(repr(traversal), aliases=self._aliases)
         return await stream.fetch_data()
 
     async def _update_vertex_properties(self, vertex, traversal, props):
@@ -401,7 +403,8 @@ class Session(connection.AbstractConnection):
                     traversal = self.g.V(result.id).properties(
                         db_name).hasValue(value).property(key, val)
                     stream = await self.conn.submit(
-                        repr(traversal), bindings=traversal.bindings)
+                        repr(traversal), bindings=traversal.bindings,
+                        aliases=self._aliases)
                     await stream.fetch_data()
                 else:
                     potential_removals.append((db_name, key, value))
