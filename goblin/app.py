@@ -42,24 +42,25 @@ async def create_app(url, loop, **config):
     features = {}
     async with await driver.GremlinServer.open(url, loop) as conn:
         # Propbably just use a parser to parse the whole feature list
+        aliases = config.get('aliases', {})
         stream = await conn.submit(
-            'graph.features().graph().supportsComputer()')
+            'graph.features().graph().supportsComputer()', aliases=aliases)
         msg = await stream.fetch_data()
         features['computer'] = msg
         stream = await conn.submit(
-            'graph.features().graph().supportsTransactions()')
+            'graph.features().graph().supportsTransactions()', aliases=aliases)
         msg = await stream.fetch_data()
         features['transactions'] = msg
         stream = await conn.submit(
-            'graph.features().graph().supportsPersistence()')
+            'graph.features().graph().supportsPersistence()', aliases=aliases)
         msg = await stream.fetch_data()
         features['persistence'] = msg
         stream = await conn.submit(
-            'graph.features().graph().supportsConcurrentAccess()')
+            'graph.features().graph().supportsConcurrentAccess()', aliases=aliases)
         msg = await stream.fetch_data()
         features['concurrent_access'] = msg
         stream = await conn.submit(
-            'graph.features().graph().supportsThreadedTransactions()')
+            'graph.features().graph().supportsThreadedTransactions()', aliases=aliases)
         msg = await stream.fetch_data()
         features['threaded_transactions'] = msg
     return Goblin(url, loop, features=features, **config)
