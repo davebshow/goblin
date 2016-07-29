@@ -42,7 +42,7 @@ async def create_app(url, loop, **config):
     features = {}
     async with await driver.GremlinServer.open(url, loop) as conn:
         # Propbably just use a parser to parse the whole feature list
-        aliases = config.get('aliases', None)
+        aliases = config.get('aliases', {})
         stream = await conn.submit(
             'graph.features().graph().supportsComputer()', aliases=aliases)
         msg = await stream.fetch_data()
