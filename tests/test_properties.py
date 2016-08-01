@@ -57,7 +57,7 @@ def test_setattr_validation(person):
 def test_set_id_throws(person):
     with pytest.raises(exception.ElementError):
         person.id = 1
-
+        
 
 def test_id_class_attr_throws(person_class):
     with pytest.raises(exception.ElementError):
