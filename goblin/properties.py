@@ -85,7 +85,49 @@ class Property(abc.BaseProperty):
         return self._default
 
 
+class IdPropertyDescriptor:
+
+    def __init__(self, name, prop):
+        assert name == 'id', 'ID properties must be named "id"'
+        self._data_type = prop.data_type
+
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            raise exception.ElementError(
+                "Only instantiated elements have ID property")
+        return obj._id
+
+    def __set__(self, obj, val):
+        raise exception.ElementError('ID should not be set manually')
+
+
+class IdProperty(abc.BaseProperty):
+
+    __descriptor__ = IdPropertyDescriptor
+
+    def __init__(self, data_type):
+        if isinstance(data_type, type):
+            data_type = data_type()
+        self._data_type = data_type
+
+    @property
+    def data_type(self):
+        return self._data_type
+
+
 # Data types
+class Generic(abc.DataType):
+
+    def validate(self, val):
+        return super().validate(val)
+
+    def to_db(self, val=None):
+        return super().to_db(val=val)
+
+    def to_ogm(self, val):
+        return super().to_ogm(val)
+
+
 class String(abc.DataType):
     """Simple string datatype"""
 

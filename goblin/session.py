@@ -41,7 +41,8 @@ class Session(connection.AbstractConnection):
     :param bool use_session: Support for Gremlin Server session. Not implemented
     """
 
-    def __init__(self, app, conn, *, use_session=False, aliases=None):
+    def __init__(self, app, conn, get_hashable_id, *, use_session=False,
+                 aliases=None):
         self._app = app
         self._conn = conn
         self._loop = self._app._loop
@@ -49,6 +50,7 @@ class Session(connection.AbstractConnection):
         self._aliases = aliases or dict()
         self._pending = collections.deque()
         self._current = weakref.WeakValueDictionary()
+        self._get_hashable_id = get_hashable_id
         remote_graph = graph.AsyncRemoteGraph(
             self._app.translator, self,
             graph_traversal=traversal.GoblinTraversal)
@@ -137,7 +139,8 @@ class Session(connection.AbstractConnection):
         async for result in async_iter:
             if (isinstance(result, dict) and
                     result.get('type', '') in ['vertex', 'edge']):
-                current = self.current.get(result['id'], None)
+                hashable_id = self._get_hashable_id(result['id'])
+                current = self.current.get(hashable_id, None)
                 if not current:
                     element_type = result['type']
                     label = result['label']
@@ -180,7 +183,8 @@ class Session(connection.AbstractConnection):
         """
         traversal = self.traversal_factory.remove_vertex(vertex)
         result = await self._simple_traversal(traversal, vertex)
-        vertex = self.current.pop(vertex.id)
+        hashable_id = self._get_hashable_id(vertex.id)
+        vertex = self.current.pop(hashable_id)
         del vertex
         return result
 
@@ -192,7 +196,8 @@ class Session(connection.AbstractConnection):
         """
         traversal = self.traversal_factory.remove_edge(edge)
         result = await self._simple_traversal(traversal, edge)
-        edge = self.current.pop(edge.id)
+        hashable_id = self._get_hashable_id(edge.id)
+        edge = self.current.pop(hashable_id)
         del edge
         return result
 
@@ -225,7 +230,8 @@ class Session(connection.AbstractConnection):
             vertex, self._check_vertex,
             self._add_vertex,
             self.update_vertex)
-        self.current[result.id] = result
+        hashable_id = self._get_hashable_id(result.id)
+        self.current[hashable_id] = result
         return result
 
     async def save_edge(self, edge):
@@ -243,7 +249,8 @@ class Session(connection.AbstractConnection):
             edge, self._check_edge,
             self._add_edge,
             self.update_edge)
-        self.current[result.id] = result
+        hashable_id = self._get_hashable_id(result.id)
+        self.current[hashable_id] = result
         return result
 
     async def get_vertex(self, vertex):
