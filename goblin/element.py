@@ -59,7 +59,7 @@ class ElementMeta(type):
 
 class Element(metaclass=ElementMeta):
     """Base class for classes that implement the Element property interface"""
-    pass
+    id = properties.IdProperty(properties.Generic)
 
 
 class Vertex(Element):

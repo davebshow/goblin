@@ -27,7 +27,7 @@ from goblin import driver, element, session
 logger = logging.getLogger(__name__)
 
 
-async def create_app(url, loop, **config):
+async def create_app(url, loop, get_hashable_id=None, **config):
     """
     Constructor function for :py:class:`Goblin`. Connect to database and
     build a dictionary of relevant vendor implmentation features.
@@ -63,7 +63,8 @@ async def create_app(url, loop, **config):
             'graph.features().graph().supportsThreadedTransactions()', aliases=aliases)
         msg = await stream.fetch_data()
         features['threaded_transactions'] = msg
-    return Goblin(url, loop, features=features, **config)
+    return Goblin(url, loop, get_hashable_id=get_hashable_id,
+                  features=features, **config)
 
 
 # Main API classes
@@ -83,7 +84,8 @@ class Goblin:
         'translator': process.GroovyTranslator('g')
     }
 
-    def __init__(self, url, loop, *, features=None, **config):
+    def __init__(self, url, loop, *, get_hashable_id=None, features=None,
+                 **config):
         self._url = url
         self._loop = loop
         self._features = features
@@ -92,6 +94,9 @@ class Goblin:
         self._vertices = collections.defaultdict(
             lambda: element.GenericVertex)
         self._edges = collections.defaultdict(lambda: element.GenericEdge)
+        if not get_hashable_id:
+            get_hashable_id = lambda x: x
+        self._get_hashable_id = get_hashable_id
 
     @property
     def vertices(self):
@@ -150,5 +155,6 @@ class Goblin:
         conn = await driver.GremlinServer.open(self.url, self._loop)
         return session.Session(self,
                                conn,
+                               self._get_hashable_id,
                                use_session=use_session,
                                aliases=aliases)

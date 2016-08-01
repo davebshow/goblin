@@ -132,7 +132,7 @@ class TestCreationApi:
     @pytest.mark.asyncio
     async def test_get_vertex_doesnt_exist(self, session, person):
         async with session:
-            person.id = 1000000000000000000000000000000000000000000000
+            person._id = 1000000000000000000000000000000000000000000000
             result = await session.get_vertex(person)
             assert not result
 
@@ -144,7 +144,7 @@ class TestCreationApi:
             works_with = knows
             works_with.source = jon
             works_with.target = leif
-            works_with.id = 1000000000000000000000000000000000000000000000
+            works_with._id = 1000000000000000000000000000000000000000000000
             result = await session.get_edge(works_with)
             assert not result
 
