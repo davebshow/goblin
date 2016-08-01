@@ -54,6 +54,16 @@ def test_setattr_validation(person):
         setattr(person, 'age', 'hello')
 
 
+def test_set_id_throws(person):
+    with pytest.raises(exception.ElementError):
+        person.id = 1
+
+
+def test_id_class_attr_throws(person_class):
+    with pytest.raises(exception.ElementError):
+        person_class.id
+
+
 # Vertex properties
 def test_set_change_vertex_property(person):
     assert not person.birthplace
