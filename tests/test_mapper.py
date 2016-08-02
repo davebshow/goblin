@@ -22,22 +22,22 @@ from goblin import exception, properties
 
 def test_property_mapping(person, lives_in):
     db_name, data_type = person.__mapping__._ogm_properties['name']
-    assert db_name == 'person__name'
+    assert db_name == 'name'
     assert isinstance(data_type, properties.String)
     db_name, data_type = person.__mapping__._ogm_properties['age']
     assert db_name == 'custom__person__age'
     assert isinstance(data_type, properties.Integer)
     db_name, data_type = lives_in.__mapping__._ogm_properties['notes']
-    assert db_name == 'lives_in__notes'
+    assert db_name == 'notes'
     assert isinstance(data_type, properties.String)
 
-    ogm_name, data_type = person.__mapping__._db_properties['person__name']
+    ogm_name, data_type = person.__mapping__._db_properties['name']
     assert ogm_name == 'name'
     assert isinstance(data_type, properties.String)
     ogm_name, data_type = person.__mapping__._db_properties['custom__person__age']
     assert ogm_name == 'age'
     assert isinstance(data_type, properties.Integer)
-    ogm_name, data_type = lives_in.__mapping__._db_properties['lives_in__notes']
+    ogm_name, data_type = lives_in.__mapping__._db_properties['notes']
     assert  ogm_name == 'notes'
     assert isinstance(data_type, properties.String)
 
@@ -46,11 +46,11 @@ def test_metaprop_mapping(place):
     place.historical_name = ['Iowa City']
     db_name, data_type = place.historical_name(
         'Iowa City').__mapping__._ogm_properties['notes']
-    assert db_name == 'historical_name__notes'
+    assert db_name == 'notes'
     assert isinstance(data_type, properties.String)
     db_name, data_type = place.historical_name(
         'Iowa City').__mapping__._ogm_properties['year']
-    assert db_name == 'historical_name__year'
+    assert db_name == 'year'
     assert isinstance(data_type, properties.Integer)
 
 
@@ -66,11 +66,11 @@ def test_mapper_func(place, knows):
 
 def test_getattr_getdbname(person, lives_in):
     db_name = person.__mapping__.name
-    assert  db_name == 'person__name'
+    assert  db_name == 'name'
     db_name = person.__mapping__.age
     assert  db_name == 'custom__person__age'
     db_name = lives_in.__mapping__.notes
-    assert  db_name == 'lives_in__notes'
+    assert  db_name == 'notes'
 
 
 def test_getattr_doesnt_exist(person):

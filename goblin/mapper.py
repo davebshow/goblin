@@ -204,7 +204,7 @@ class Mapping:
             if prop.db_name:
                 db_name = prop.db_name
             else:
-                db_name = '{}__{}'.format(self._label, name)
+                db_name = name
             if hasattr(prop, '__mapping__'):
                 if not self._element_type == 'vertex':
                     raise exception.MappingError(
