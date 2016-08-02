@@ -287,13 +287,14 @@ Or, simply use the property :py:attr:`g<goblin.session.Session.g>`::
     >>> session.g.V().hasLabel('person')...
 
 
-However, when writing the traversals, it is important to note that property
-names are not mapped directly from the OGM. Instead, they typically take the format:
-`element_class_name__property_name`. To avoid mistakes, the mapped property names
-are available as class attributes::
+In general property names are not mapped directly from the OGM to the database.
+However, by passing the `db_name` kwarg to a property definition, the user has
+the ability to override this behavior. To avoid mistakes in the case of custom
+database property names, it is encouraged to access the mapped property names
+as class attributes::
 
     >>> Person.name
-    'person__name'
+    'name'
 
 So, to write a traversal::
 

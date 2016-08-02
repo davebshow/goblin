@@ -20,6 +20,6 @@ from goblin.traversal import bindprop
 
 def test_bindprop(person_class):
     db_val, (binding, val) = bindprop(person_class, 'name', 'dave', binding='n1')
-    assert db_val == 'person__name'
+    assert db_val == 'name'
     assert binding == 'n1'
     assert val == 'dave'
