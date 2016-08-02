@@ -287,7 +287,7 @@ Or, simply use the property :py:attr:`g<goblin.session.Session.g>`::
     >>> session.g.V().hasLabel('person')...
 
 
-In general property names are not mapped directly from the OGM to the database.
+In general property names are mapped directly from the OGM to the database.
 However, by passing the `db_name` kwarg to a property definition, the user has
 the ability to override this behavior. To avoid mistakes in the case of custom
 database property names, it is encouraged to access the mapped property names
