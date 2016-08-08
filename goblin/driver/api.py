@@ -30,6 +30,9 @@ class GremlinServer:
                    loop,
                    *,
                    client_session=None,
+                   aliases=None,
+                   lang='gremlin-groovy',
+                   session=None,
                    username=None,
                    password=None):
         """
@@ -48,4 +51,6 @@ class GremlinServer:
             client_session = aiohttp.ClientSession(loop=loop)
         ws = await client_session.ws_connect(url)
         return connection.Connection(url, ws, loop, client_session,
-                                     username=username, password=password)
+                                     aliases=aliases, lang=lang,
+                                     session=session, username=username,
+                                     password=password)

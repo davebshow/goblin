@@ -94,12 +94,18 @@ class Connection(AbstractConnection):
     websocket connection. Not instantiated directly. Instead use
     :py:meth:`GremlinServer.open<goblin.driver.api.GremlinServer.open>`.
     """
-    def __init__(self, url, ws, loop, conn_factory, *, username=None,
+    def __init__(self, url, ws, loop, conn_factory, *, aliases=None,
+                 lang='gremlin-groovy', session=None, username=None,
                  password=None):
         self._url = url
         self._ws = ws
         self._loop = loop
         self._conn_factory = conn_factory
+        if aliases is None:
+            aliases = {}
+        self._aliases = aliases
+        self._lang = lang
+        self._session = session
         self._username = username
         self._password = password
         self._closed = False
@@ -118,15 +124,12 @@ class Connection(AbstractConnection):
         return self._url
 
     async def submit(self,
-                    gremlin,
-                    *,
-                    bindings=None,
-                    lang='gremlin-groovy',
-                    aliases=None,
-                    op="eval",
-                    processor="",
-                    session=None,
-                    request_id=None):
+                     gremlin,
+                     *,
+                     bindings=None,
+                     lang=None,
+                     aliases=None,
+                     session=None):
         """
         Submit a script and bindings to the Gremlin Server
 
@@ -144,15 +147,14 @@ class Connection(AbstractConnection):
         :returns: :py:class:`Response` object
         """
         if aliases is None:
-            aliases = {}
-        if request_id is None:
-            request_id = str(uuid.uuid4())
+            aliases = self._aliases
+        lang = lang or self._lang
+        session = session or self._session
+        request_id = str(uuid.uuid4())
         message = self._prepare_message(gremlin,
                                         bindings,
                                         lang,
                                         aliases,
-                                        op,
-                                        processor,
                                         session,
                                         request_id)
         response_queue = asyncio.Queue(loop=self._loop)
@@ -169,53 +171,51 @@ class Connection(AbstractConnection):
         self._closed = True
         await self._conn_factory.close()
 
-    def _prepare_message(self, gremlin, bindings, lang, aliases, op,
-                         processor, session, request_id):
+    def _prepare_message(self, gremlin, bindings, lang, aliases, session,
+                         request_id):
         message = {
-            "requestId": request_id,
-            "op": op,
-            "processor": processor,
-            "args": {
-                "gremlin": gremlin,
-                "bindings": bindings,
-                "language":  lang,
-                "aliases": aliases
+            'requestId': request_id,
+            'op': 'eval',
+            'processor': '',
+            'args': {
+                'gremlin': gremlin,
+                'bindings': bindings,
+                'language':  lang,
+                'aliases': aliases
             }
         }
-        message = self._finalize_message(message, processor, session)
+        message = self._finalize_message(message, session)
         return message
 
-    def _authenticate(self, username, password, processor, session):
-        auth = b"".join([b"\x00", username.encode("utf-8"),
-                         b"\x00", password.encode("utf-8")])
+    def _authenticate(self, username, password, session):
+        auth = b''.join([b'\x00', username.encode('utf-8'),
+                         b'\x00', password.encode('utf-8')])
         message = {
-            "requestId": str(uuid.uuid4()),
-            "op": "authentication",
-            "processor": "",
-            "args": {
-                "sasl": base64.b64encode(auth).decode()
+            'requestId': str(uuid.uuid4()),
+            'op': 'authentication',
+            'processor': '',
+            'args': {
+                'sasl': base64.b64encode(auth).decode()
             }
         }
-        message = self._finalize_message(message, processor, session)
+        message = self._finalize_message(message, session)
         self._ws.submit(message, binary=True)
 
-    def _finalize_message(self, message, processor, session):
-        if processor == "session":
-            if session is None:
-                raise RuntimeError("session processor requires a session id")
-            else:
-                message["args"].update({"session": session})
+    def _finalize_message(self, message, session):
+        if session:
+            message['processor'] = 'session'
+            message['args']['session'] = session
         message = json.dumps(message)
-        return self._set_message_header(message, "application/json")
+        return self._set_message_header(message, 'application/json')
 
     @staticmethod
     def _set_message_header(message, mime_type):
-        if mime_type == "application/json":
-            mime_len = b"\x10"
-            mime_type = b"application/json"
+        if mime_type == 'application/json':
+            mime_len = b'\x10'
+            mime_type = b'application/json'
         else:
-            raise ValueError("Unknown mime type.")
-        return b"".join([mime_len, mime_type, message.encode("utf-8")])
+            raise ValueError('Unknown mime type.')
+        return b''.join([mime_len, mime_type, message.encode('utf-8')])
 
     async def _receive(self):
         data = await self._ws.receive()
@@ -233,8 +233,8 @@ class Connection(AbstractConnection):
             message = json.loads(data)
             request_id = message['requestId']
             status_code = message['status']['code']
-            data = message["result"]["data"]
-            msg = message["status"]["message"]
+            data = message['result']['data']
+            msg = message['status']['message']
             response_queue = self._response_queues[request_id]
             if status_code == 407:
                 await self._authenticate(self._username, self._password,
