@@ -40,31 +40,10 @@ async def create_app(url, loop, get_hashable_id=None, **config):
     """
 
     features = {}
+    app = Goblin(url, loop, get_hashable_id=get_hashable_id, **config)
     async with await driver.GremlinServer.open(url, loop) as conn:
-        # Propbably just use a parser to parse the whole feature list
-        aliases = config.get('aliases', {})
-        stream = await conn.submit(
-            'graph.features().graph().supportsComputer()', aliases=aliases)
-        msg = await stream.fetch_data()
-        features['computer'] = msg
-        stream = await conn.submit(
-            'graph.features().graph().supportsTransactions()', aliases=aliases)
-        msg = await stream.fetch_data()
-        features['transactions'] = msg
-        stream = await conn.submit(
-            'graph.features().graph().supportsPersistence()', aliases=aliases)
-        msg = await stream.fetch_data()
-        features['persistence'] = msg
-        stream = await conn.submit(
-            'graph.features().graph().supportsConcurrentAccess()', aliases=aliases)
-        msg = await stream.fetch_data()
-        features['concurrent_access'] = msg
-        stream = await conn.submit(
-            'graph.features().graph().supportsThreadedTransactions()', aliases=aliases)
-        msg = await stream.fetch_data()
-        features['threaded_transactions'] = msg
-    return Goblin(url, loop, get_hashable_id=get_hashable_id,
-                  features=features, **config)
+        await app.supports_transactions(conn)
+    return app
 
 
 # Main API classes
@@ -84,11 +63,10 @@ class Goblin:
         'translator': process.GroovyTranslator('g')
     }
 
-    def __init__(self, url, loop, *, get_hashable_id=None, features=None,
-                 **config):
+    def __init__(self, url, loop, *, get_hashable_id=None, **config):
         self._url = url
         self._loop = loop
-        self._features = features
+        self._transactions = None
         self._config = self.DEFAULT_CONFIG
         self._config.update(config)
         self._vertices = collections.defaultdict(
@@ -107,11 +85,6 @@ class Goblin:
     def edges(self):
         """Registered edge classes"""
         return self._edges
-
-    @property
-    def features(self):
-        """Vendor specific database implementation features"""
-        return self._features
 
     def from_file(filepath):
         """Load config from filepath. Not implemented"""
@@ -153,8 +126,20 @@ class Goblin:
         """
         aliases = self._config.get('aliases', None)
         conn = await driver.GremlinServer.open(self.url, self._loop)
+        transactions = await self.supports_transactions(conn)
         return session.Session(self,
                                conn,
                                self._get_hashable_id,
+                               transactions,
                                use_session=use_session,
                                aliases=aliases)
+
+    async def supports_transactions(self, conn):
+        aliases = self._config.get('aliases', None)
+        if self._transactions is None:
+            stream = await conn.submit(
+                'graph.features().graph().supportsTransactions()',
+                aliases=aliases)
+            msg = await stream.fetch_data()
+            self._transactions = msg
+        return self._transactions

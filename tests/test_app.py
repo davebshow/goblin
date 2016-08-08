@@ -35,8 +35,8 @@ def test_registry_defaults(app):
     assert isinstance(edge(), element.Edge)
 
 
-def test_features(app):
-    assert app._features
+def test_transaction_discovery(app):
+    assert app._transactions is not None
 
 
 def test_translator(app):

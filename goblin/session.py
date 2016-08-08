@@ -41,8 +41,8 @@ class Session(connection.AbstractConnection):
     :param bool use_session: Support for Gremlin Server session. Not implemented
     """
 
-    def __init__(self, app, conn, get_hashable_id, *, use_session=False,
-                 aliases=None):
+    def __init__(self, app, conn, get_hashable_id, transactions, *,
+                 use_session=False, aliases=None):
         self._app = app
         self._conn = conn
         self._loop = self._app._loop
@@ -305,13 +305,10 @@ class Session(connection.AbstractConnection):
         """Not implemented"""
         raise NotImplementedError
 
-    def _wrap_in_tx(self):
-        raise NotImplementedError
-
     async def commit(self):
         """Not implemented"""
         await self.flush()
-        if self.engine._features['transactions'] and self._use_session():
+        if self.transactions and self._use_session():
             await self.tx()
         raise NotImplementedError
 
