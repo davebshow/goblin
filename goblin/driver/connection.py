@@ -110,6 +110,7 @@ class Connection(AbstractConnection):
         self._password = password
         self._closed = False
         self._response_queues = {}
+        self._receive_task = self._loop.create_task(self._receive())
 
     @property
     def response_queues(self):
@@ -162,11 +163,11 @@ class Connection(AbstractConnection):
         if self._ws.closed:
             self._ws = await self.conn_factory.ws_connect(self.url)
         self._ws.send_bytes(message)
-        self._loop.create_task(self._receive())
         return Response(response_queue, self._loop)
 
     async def close(self):
         """Close underlying connection and mark as closed."""
+        self._receive_task.cancel()
         await self._ws.close()
         self._closed = True
         await self._conn_factory.close()
@@ -218,41 +219,39 @@ class Connection(AbstractConnection):
         return b''.join([mime_len, mime_type, message.encode('utf-8')])
 
     async def _receive(self):
-        data = await self._ws.receive()
-        if data.tp == aiohttp.MsgType.close:
-            await self._ws.close()
-        elif data.tp == aiohttp.MsgType.error:
-            raise data.data
-        elif data.tp == aiohttp.MsgType.closed:
-            pass
-        else:
-            if data.tp == aiohttp.MsgType.binary:
-                data = data.data.decode()
-            elif data.tp == aiohttp.MsgType.text:
-                data = data.strip()
-            message = json.loads(data)
-            request_id = message['requestId']
-            status_code = message['status']['code']
-            data = message['result']['data']
-            msg = message['status']['message']
-            response_queue = self._response_queues[request_id]
-            if status_code == 407:
-                await self._authenticate(self._username, self._password,
-                                         self._processor, self._session)
-                self._loop.create_task(self._receive())
+        while True:
+            data = await self._ws.receive()
+            if data.tp == aiohttp.MsgType.close:
+                await self._ws.close()
+            elif data.tp == aiohttp.MsgType.error:
+                raise data.data
+            elif data.tp == aiohttp.MsgType.closed:
+                pass
             else:
-                if data:
-                    for result in data:
-                        message = Message(status_code, result, msg)
+                if data.tp == aiohttp.MsgType.binary:
+                    data = data.data.decode()
+                elif data.tp == aiohttp.MsgType.text:
+                    data = data.strip()
+                message = json.loads(data)
+                request_id = message['requestId']
+                status_code = message['status']['code']
+                data = message['result']['data']
+                msg = message['status']['message']
+                response_queue = self._response_queues[request_id]
+                if status_code == 407:
+                    await self._authenticate(self._username, self._password,
+                                             self._processor, self._session)
+                else:
+                    if data:
+                        for result in data:
+                            message = Message(status_code, result, msg)
+                            response_queue.put_nowait(message)
+                    else:
+                        message = Message(status_code, data, msg)
                         response_queue.put_nowait(message)
-                else:
-                    message = Message(status_code, data, msg)
-                    response_queue.put_nowait(message)
-                if status_code == 206:
-                    self._loop.create_task(self._receive())
-                else:
-                    response_queue.put_nowait(None)
-                    del self._response_queues[request_id]
+                    if status_code != 206:
+                        response_queue.put_nowait(None)
+                        del self._response_queues[request_id]
 
     async def __aenter__(self):
         return self
