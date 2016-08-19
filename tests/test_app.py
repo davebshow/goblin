@@ -15,29 +15,37 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
+import pytest
+
 from goblin import element
 from gremlin_python import process
 
 
-def test_registry(app, person, place, knows, lives_in):
+@pytest.mark.asyncio
+async def test_registry(app, person, place, knows, lives_in):
     assert len(app.vertices) ==  2
     assert len(app.edges) == 2
     assert person.__class__ == app.vertices['person']
     assert place.__class__ == app.vertices['place']
     assert knows.__class__ == app.edges['knows']
     assert lives_in.__class__ == app.edges['lives_in']
+    await app.close()
 
 
-def test_registry_defaults(app):
+@pytest.mark.asyncio
+async def test_registry_defaults(app):
     vertex = app.vertices['unregistered']
     assert isinstance(vertex(), element.Vertex)
     edge = app.edges['unregistered']
     assert isinstance(edge(), element.Edge)
+    await app.close()
 
-
-def test_transaction_discovery(app):
+@pytest.mark.asyncio
+async def test_transaction_discovery(app):
     assert app._transactions is not None
+    await app.close()
 
-
-def test_translator(app):
+@pytest.mark.asyncio
+async def test_translator(app):
     assert isinstance(app.translator, process.GroovyTranslator)
+    await app.close()

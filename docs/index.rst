@@ -46,7 +46,7 @@ Submit scripts and bindings to the `Gremlin Server`_::
     >>> async def go(loop):
     ...     script = "g.addV('developer').property(k1, v1)"
     ...     bindings = {'k1': 'name', 'v1': 'Leif'}
-    ...     conn = await driver.GremlinServer.open('ws://localhost:8182/', loop)
+    ...     conn = await.driver.connect('ws://localhost:8182/', loop)
     ...     async with conn:
     ...         resp = await conn.submit(script, bindings=bindings)
     ...         async for msg in resp:
@@ -64,8 +64,8 @@ Generate and submit Gremlin traversals in native Python::
     >>> from gremlin_python import process
 
 
-    >>> connection = loop.run_until_complete(
-    ...     driver.GremlinServer.open("http://localhost:8182/", loop))
+    >>> host = loop.run_until_complete(
+    ...     driver.connect("http://localhost:8182/", loop))
     >>> translator = process.GroovyTranslator('g')
     >>> graph = driver.AsyncRemoteGraph(translator, connection)
 
@@ -100,11 +100,11 @@ Define custom vertex/edge classes using the provided base :py:mod:`classes<gobli
 
 Create a :py:class:`Goblin App<goblin.app.Goblin>` and register the element classes::
 
-    >>> from goblin import create_app
+    >>> from goblin import Goblin
 
 
     >>> app = loop.run_until_complete(
-    ...     create_app('ws://localhost:8182/', loop))
+    ...     Goblin.open(loop))
     >>> app.register(Person, Knows)
 
 

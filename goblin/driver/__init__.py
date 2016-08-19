@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
-from goblin.driver.api import GremlinServer
+from goblin.driver.cluster import Cluster
+from goblin.driver.client import Client
 from goblin.driver.connection import AbstractConnection
 from goblin.driver.graph import AsyncRemoteGraph
+from goblin.driver.server import connect, GremlinServer

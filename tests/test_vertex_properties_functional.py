@@ -2,7 +2,8 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_add_update_property(session, person):
+async def test_add_update_property(app, person):
+    session = await app.session()
     async with session:
         person.birthplace = 'Iowa City'
         result = await session.save(person)
@@ -13,10 +14,12 @@ async def test_add_update_property(session, person):
         person.birthplace = None
         result = await session.save(person)
         assert not result.birthplace
+    await app.close()
 
 
 @pytest.mark.asyncio
-async def test_add_update_list_card_property(session, person):
+async def test_add_update_list_card_property(app, person):
+    session = await app.session()
     async with session:
         person.nicknames = ['db', 'dirtydb']
         result = await session.save(person)
@@ -34,10 +37,12 @@ async def test_add_update_list_card_property(session, person):
         person.nicknames = None
         result = await session.save(person)
         assert not result.nicknames
+    await app.close()
 
 
 @pytest.mark.asyncio
-async def test_add_update_set_card_property(session, place):
+async def test_add_update_set_card_property(app, place):
+    session = await app.session()
     async with session:
         place.important_numbers = set([1, 2])
         result = await session.save(place)
@@ -57,10 +62,12 @@ async def test_add_update_set_card_property(session, place):
         place.important_numbers = None
         result = await session.save(place)
         assert not result.important_numbers
+    await app.close()
 
 
 @pytest.mark.asyncio
-async def test_add_update_metas(session, place):
+async def test_add_update_metas(app, place):
+    session = await app.session()
     async with session:
         place.historical_name = ['Detroit']
         place.historical_name('Detroit').notes = 'rock city'
@@ -80,12 +87,12 @@ async def test_add_update_metas(session, place):
         result = await session.save(place)
         assert not result.historical_name('Detroit').notes
         assert not result.historical_name('Detroit').year
-
-
+    await app.close()
 
 
 @pytest.mark.asyncio
-async def test_add_update_metas_list_card(session, place):
+async def test_add_update_metas_list_card(app, place):
+    session = await app.session()
     async with session:
         place.historical_name = ['Hispania', 'Al-Andalus']
         place.historical_name('Hispania').notes = 'romans'
@@ -117,3 +124,4 @@ async def test_add_update_metas_list_card(session, place):
         assert not result.historical_name('Hispania').year
         assert not result.historical_name('Al-Andalus').notes
         assert not result.historical_name('Al-Andalus').year
+    await app.close()

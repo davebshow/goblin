@@ -76,14 +76,15 @@ class Session(connection.AbstractConnection):
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
-        await self.close()
+        self.close()
 
-    async def close(self):
+    def close(self):
         """
         Close the underlying db connection and disconnect session from Goblin
         application.
         """
-        await self.conn.close()
+        # await self.conn.close()
+        self._conn = None
         self._app = None
 
     # Traversal API

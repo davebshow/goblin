@@ -240,10 +240,10 @@ must be wrapped in coroutines and ran using the :py:class:`asyncio.BaseEventLoop
 but, for convenience, they are shown as if they were run in a Python interpreter.
 To use a :py:class:`Session<goblin.session.Session>`, first create a
 :py:class:`Goblin App <goblin.app.Goblin>` using
-:py:func:`create_app<goblin.app.create_app>`, then register the defined element
+:py:meth:`Goblin.open<goblin.app.Goblin.open>`, then register the defined element
 classes::
 
-    >>> app = await goblin.create_app('ws://localhost:8182/', loop)
+    >>> app = await goblin.Goblin.open(loop)
     >>> app.register(Person, City, BornIn)
     >>> session = await app.session()
 

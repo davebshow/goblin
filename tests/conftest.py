@@ -14,9 +14,9 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
-
+import asyncio
 import pytest
-from goblin import create_app, driver, element, properties, Cardinality
+from goblin import Goblin, driver, element, properties, Cardinality
 from gremlin_python import process
 
 
@@ -43,7 +43,6 @@ class Place(element.Vertex):
         properties.Integer, card=Cardinality.set)
 
 
-
 class Knows(element.Edge):
     __label__ = 'knows'
     notes = properties.Property(properties.String, default='N/A')
@@ -66,7 +65,7 @@ def unused_server_url(unused_tcp_port):
 @pytest.fixture
 def connection(gremlin_server, event_loop):
     conn = event_loop.run_until_complete(
-        gremlin_server.open("http://localhost:8182/", event_loop))
+        driver.connect("http://localhost:8182/", event_loop))
     return conn
 
 
@@ -77,18 +76,11 @@ def remote_graph(connection):
 
 
 @pytest.fixture
-def app(event_loop):
+def app(request, event_loop):
     app = event_loop.run_until_complete(
-        create_app("http://localhost:8182/", event_loop))
+        Goblin.open(event_loop))
     app.register(Person, Place, Knows, LivesIn)
     return app
-
-
-@pytest.fixture
-def session(event_loop, app):
-    session = event_loop.run_until_complete(app.session())
-    return session
-
 
 # Instance fixtures
 @pytest.fixture

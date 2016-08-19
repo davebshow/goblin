@@ -92,7 +92,7 @@ class Connection(AbstractConnection):
     """
     Main classd for interacting with the Gremlin Server. Encapsulates a
     websocket connection. Not instantiated directly. Instead use
-    :py:meth:`GremlinServer.open<goblin.driver.api.GremlinServer.open>`.
+    :py:meth:`connect<goblin.driver.server.connect>`.
     """
     def __init__(self, url, ws, loop, conn_factory, *, aliases=None,
                  lang='gremlin-groovy', session=None, username=None,
@@ -118,7 +118,7 @@ class Connection(AbstractConnection):
 
     @property
     def closed(self):
-        return self._closed
+        return self._closed or self._ws.closed
 
     @property
     def url(self):

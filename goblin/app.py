@@ -27,25 +27,6 @@ from goblin import driver, element, session
 logger = logging.getLogger(__name__)
 
 
-async def create_app(url, loop, get_hashable_id=None, **config):
-    """
-    Constructor function for :py:class:`Goblin`. Connect to database and
-    build a dictionary of relevant vendor implmentation features.
-
-    :param str url: Database url
-    :param asyncio.BaseEventLoop loop: Event loop implementation
-    :param dict config: Config parameters for application
-
-    :returns: :py:class:`Goblin` object
-    """
-
-    features = {}
-    app = Goblin(url, loop, get_hashable_id=get_hashable_id, **config)
-    async with await driver.GremlinServer.open(url, loop) as conn:
-        await app.supports_transactions(conn)
-    return app
-
-
 # Main API classes
 class Goblin:
     """
@@ -59,22 +40,33 @@ class Goblin:
     :param dict config: Config parameters for application
     """
 
-    DEFAULT_CONFIG = {
-        'translator': process.GroovyTranslator('g')
-    }
-
-    def __init__(self, url, loop, *, get_hashable_id=None, **config):
-        self._url = url
-        self._loop = loop
+    def __init__(self, cluster, *, translator=None, aliases=None,
+                 get_hashable_id=None):
+        self._cluster = cluster
+        self._loop = self._cluster._loop
+        self._aliases = aliases
         self._transactions = None
-        self._config = self.DEFAULT_CONFIG
-        self._config.update(config)
+        self._cluster = cluster
         self._vertices = collections.defaultdict(
             lambda: element.GenericVertex)
         self._edges = collections.defaultdict(lambda: element.GenericEdge)
+        if not translator:
+            translator = process.GroovyTranslator('g')
+        self._translator = translator
         if not get_hashable_id:
             get_hashable_id = lambda x: x
         self._get_hashable_id = get_hashable_id
+
+    @classmethod
+    async def open(cls, loop, *, get_hashable_id=None, **config):
+        cluster = await driver.Cluster.open(loop, **config)
+        app = Goblin(cluster, get_hashable_id=get_hashable_id)
+        await app.supports_transactions()
+        return app
+
+    @property
+    def config(self):
+        return self._cluster.config
 
     @property
     def vertices(self):
@@ -86,18 +78,19 @@ class Goblin:
         """Registered edge classes"""
         return self._edges
 
-    def from_file(filepath):
-        """Load config from filepath. Not implemented"""
-        raise NotImplementedError
+    def config_from_ini(self, inifile):
+        self._cluster.config_from_ini(inifile)
 
-    def from_obj(obj):
-        """Load config from object. Not implemented"""
-        raise NotImplementedError
+    def config_from_json(self, jsonfile):
+        self._cluster.config_from_json(jsonfile)
+
+    def config_from_module(self, modulename):
+        self._cluster.config_from_module(modulename)
 
     @property
     def translator(self):
         """gremlin-python translator class"""
-        return self._config['translator']
+        return self._translator
 
     @property
     def url(self):
@@ -116,6 +109,9 @@ class Goblin:
             if element.__type__ == 'edge':
                 self._edges[element.__label__] = element
 
+    def register_from_module(self, modulename):
+        pass
+
     async def session(self, *, use_session=False):
         """
         Create a session object.
@@ -124,22 +120,27 @@ class Goblin:
 
         :returns: :py:class:`Session<goblin.session.Session>` object
         """
-        aliases = self._config.get('aliases', None)
-        conn = await driver.GremlinServer.open(self.url, self._loop)
-        transactions = await self.supports_transactions(conn)
+        if not use_session:
+            conn = await self._cluster.connect()
+        else:
+            conn = await self._cluster.get_connection()
+        transactions = await self.supports_transactions()
         return session.Session(self,
                                conn,
                                self._get_hashable_id,
                                transactions,
                                use_session=use_session,
-                               aliases=aliases)
+                               aliases=self._aliases)
 
-    async def supports_transactions(self, conn):
-        aliases = self._config.get('aliases', None)
+    async def supports_transactions(self):
         if self._transactions is None:
+            conn = await self._cluster.get_connection()
             stream = await conn.submit(
                 'graph.features().graph().supportsTransactions()',
-                aliases=aliases)
+                aliases=self._aliases)
             msg = await stream.fetch_data()
             self._transactions = msg
         return self._transactions
+
+    async def close(self):
+        await self._cluster.close()
