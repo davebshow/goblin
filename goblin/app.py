@@ -78,15 +78,6 @@ class Goblin:
         """Registered edge classes"""
         return self._edges
 
-    def config_from_ini(self, inifile):
-        self._cluster.config_from_ini(inifile)
-
-    def config_from_json(self, jsonfile):
-        self._cluster.config_from_json(jsonfile)
-
-    def config_from_module(self, modulename):
-        self._cluster.config_from_module(modulename)
-
     @property
     def translator(self):
         """gremlin-python translator class"""
