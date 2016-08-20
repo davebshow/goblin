@@ -63,10 +63,15 @@ def unused_server_url(unused_tcp_port):
 
 
 @pytest.fixture
-def connection(gremlin_server, event_loop):
+def connection(event_loop):
     conn = event_loop.run_until_complete(
         driver.connect("http://localhost:8182/", event_loop))
     return conn
+
+
+@pytest.fixture
+def cluster(event_loop):
+    return driver.Cluster(event_loop)
 
 
 @pytest.fixture
@@ -134,6 +139,11 @@ def place_name():
 
 
 # Class fixtures
+@pytest.fixture
+def cluster_class(event_loop):
+    return driver.Cluster
+
+
 @pytest.fixture
 def string_class():
     return properties.String

@@ -27,5 +27,9 @@ class ElementError(Exception):
     pass
 
 
+class ConfigurationError(Exception):
+    pass
+
+
 class GremlinServerError(Exception):
     pass

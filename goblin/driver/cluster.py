@@ -1,8 +1,10 @@
 import asyncio
 import collections
+import configparser
+import json
 import ssl
 
-from goblin import driver
+from goblin import driver, exception
 
 
 class Cluster:
@@ -20,21 +22,16 @@ class Cluster:
 
     def __init__(self, loop, **config):
         self._loop = loop
-        self._config = self.DEFAULT_CONFIG
+        self._config = dict(self.DEFAULT_CONFIG)
         self._config.update(config)
         self._hosts = collections.deque()
         self._closed = False
 
     @classmethod
-    async def open(cls, loop, *, inifile=None, jsonfile=None,
-                   modulename=None, **config):
+    async def open(cls, loop, *, config_filename=None, **config):
         cluster = cls(loop, **config)
-        if inifile:
-            cluster.config_from_ini(inifile)
-        if jsonfile:
-            cluster.config_from_json(jsonfile)
-        if modulename:
-            cluster.config_from_module(modulename)
+        if config_filename:
+            cluster.config_from_file(config_filename)
         await cluster.establish_hosts()
         return cluster
 
@@ -44,6 +41,8 @@ class Cluster:
 
     async def get_connection(self):
         """Get connection from next available host in a round robin fashion"""
+        if not self._hosts:
+            await self.establish_hosts()
         host = self._hosts.popleft()
         conn = await host.connect()
         self._hosts.append(host)
@@ -71,14 +70,35 @@ class Cluster:
                 password=password)
             self._hosts.append(host)
 
-    def config_from_ini(self, inifile):
-        pass
+    def config_from_file(self, filename):
+        if filename.endswith('ini'):
+            self.config_from_ini(filename)
+        elif filename.endswith('.json'):
+            self.config_from_json(filename)
+        else:
+            try:
+                self.config_from_module(filename)
+            except:
+                raise exception.ConfigurationError(
+                    'Unknown config file format')
 
-    def config_from_json(self, jsonfile):
-        pass
+    def config_from_ini(self, filename):
+        # HMMM
+        with open(filename, 'r') as f:
+            config = configparser.ConfigParser()
+            config.read_file(f, source='filename')
+            config = dict(config['CLUSTER'])
+            config['hosts'] = [
+                host.strip() for host in config['hosts'].split(',')]
+            self.config.update(config)
 
-    def config_from_module(self, modulename):
-        pass
+    def config_from_json(self, filename):
+        with open(filename, 'r') as f:
+            config = json.load(f)
+            self.config.update(config)
+
+    def config_from_module(self, filename):
+        raise NotImplementedError
 
     async def connect(self):
         if not self._hosts:
