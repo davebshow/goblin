@@ -20,15 +20,14 @@ class Cluster:
 
     def __init__(self, loop, **config):
         self._loop = loop
-        self._aliases = None
         self._config = self.DEFAULT_CONFIG
         self._config.update(config)
         self._hosts = collections.deque()
         self._closed = False
 
     @classmethod
-    async def open(cls, loop, inifile=None, jsonfile=None, modulename=None,
-                   **config):
+    async def open(cls, loop, *, inifile=None, jsonfile=None,
+                   modulename=None, **config):
         cluster = cls(loop, **config)
         if inifile:
             cluster.config_from_ini(inifile)

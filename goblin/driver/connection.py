@@ -95,8 +95,7 @@ class Connection(AbstractConnection):
     :py:meth:`connect<goblin.driver.server.connect>`.
     """
     def __init__(self, url, ws, loop, conn_factory, *, aliases=None,
-                 lang='gremlin-groovy', session=None, username=None,
-                 password=None):
+                 lang='gremlin-groovy', username=None, password=None):
         self._url = url
         self._ws = ws
         self._loop = loop
@@ -105,7 +104,6 @@ class Connection(AbstractConnection):
             aliases = {}
         self._aliases = aliases
         self._lang = lang
-        self._session = session
         self._username = username
         self._password = password
         self._closed = False
@@ -150,7 +148,6 @@ class Connection(AbstractConnection):
         if aliases is None:
             aliases = self._aliases
         lang = lang or self._lang
-        session = session or self._session
         request_id = str(uuid.uuid4())
         message = self._prepare_message(gremlin,
                                         bindings,
@@ -240,7 +237,7 @@ class Connection(AbstractConnection):
                 response_queue = self._response_queues[request_id]
                 if status_code == 407:
                     await self._authenticate(self._username, self._password,
-                                             self._processor, self._session)
+                                             self._processor)
                 else:
                     if data:
                         for result in data:

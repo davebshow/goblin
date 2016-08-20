@@ -22,12 +22,12 @@ from goblin.driver import connection
 
 
 async def connect(url, loop, *, ssl_context=None, username='', password='',
-                  lang='gremlin-groovy', aliases=None, session=None):
+                  lang='gremlin-groovy', aliases=None):
     connector = aiohttp.TCPConnector(ssl_context=ssl_context, loop=loop)
     client_session = aiohttp.ClientSession(loop=loop, connector=connector)
     ws = await client_session.ws_connect(url)
     return connection.Connection(url, ws, loop, client_session,
-                                 aliases=aliases, lang=lang, session=session,
+                                 aliases=aliases, lang=lang,
                                  username=username, password=password)
 
 
@@ -39,7 +39,7 @@ class GremlinServer:
 
     def __init__(self, conn, *, ssl_context=None,
                  username='', password='', lang='gremlin-groovy',
-                 aliases=None, session=None):
+                 aliases=None):
         self._conn = conn
         self._url = self._conn.url
         self._loop = self._conn._loop
@@ -48,7 +48,6 @@ class GremlinServer:
         self._password = password
         self._lang = lang
         self._aliases = aliases
-        self._session = session
 
     async def close(self):
         await self._conn.close()
@@ -59,25 +58,24 @@ class GremlinServer:
             self._conn = self.get_connection(username=self._username,
                                              password=self._password,
                                              lang=self._lang,
-                                             aliases=self._aliases,
-                                             session=self._session)
+                                             aliases=self._aliases)
+
         return self._conn
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None,
                    username='', password='', lang='gremlin-groovy',
-                   aliases=None, session=None, **kwargs):
+                   aliases=None, **kwargs):
 
         conn = await connect(url, loop, ssl_context=ssl_context,
                              username=username, password=password, lang=lang,
-                             aliases=aliases, session=session)
+                             aliases=aliases)
         return cls(conn, ssl_context=ssl_context, username=username,
-                   password=password, lang=lang, aliases=aliases,
-                   session=session)
+                   password=password, lang=lang, aliases=aliases)
 
 
     async def get_connection(self, username=None, password=None, lang=None,
-                             aliases=None, session=None):
+                             aliases=None):
         """
         Open a connection to the Gremlin Server.
 
@@ -91,9 +89,8 @@ class GremlinServer:
         username = username or self._username
         password = password or self._password
         aliasess = aliases or self._aliases
-        session = session or self._session
         lang = lang or self._lang
         return await connect(self._url, self._loop,
                              ssl_context=self._ssl_context,
                              username=username, password=password, lang=lang,
-                             aliases=aliases, session=session)
+                             aliases=aliases)
