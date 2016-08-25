@@ -130,7 +130,7 @@ class Goblin:
                 'graph.features().graph().supportsTransactions()',
                 aliases=self._aliases)
             msg = await stream.fetch_data()
-            stream.done.set()
+            stream.close()
             self._transactions = msg
         return self._transactions
 
