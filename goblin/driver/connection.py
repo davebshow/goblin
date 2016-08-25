@@ -41,7 +41,8 @@ def error_handler(fn):
     async def wrapper(self):
         msg = await fn(self)
         if msg:
-            if msg.status_code not in [200, 206, 204]:
+            if msg.status_code not in [200, 206]:
+                self.close()
                 raise exception.GremlinServerError(
                     "{0}: {1}".format(msg.status_code, msg.message))
             msg = msg.data
@@ -51,10 +52,15 @@ def error_handler(fn):
 
 class Response:
     """Gremlin Server response implementated as an async iterator."""
-    def __init__(self, response_queue, loop):
+    def __init__(self, response_queue, timeout, loop):
         self._response_queue = response_queue
         self._loop = loop
-        self._done = False
+        self._timeout = timeout
+        self._done = asyncio.Event(loop=self._loop)
+
+    @property
+    def done(self):
+        return self._done
 
     async def __aiter__(self):
         return self
@@ -66,14 +72,23 @@ class Response:
         else:
             raise StopAsyncIteration
 
+    def close(self):
+        self.done.set()
+
     @error_handler
     async def fetch_data(self):
         """Get a single message from the response stream"""
-        if self._done:
+        if self.done.is_set():
             return None
-        msg = await self._response_queue.get()
+        try:
+            msg = await asyncio.wait_for(self._response_queue.get(),
+                                         timeout=self._timeout,
+                                         loop=self._loop)
+        except asyncio.TimeoutError:
+            self.close()
+            raise exception.ResponseTimeoutError('Response timed out')
         if msg is None:
-            self._done = True
+            self.close()
         return msg
 
 
@@ -95,7 +110,8 @@ class Connection(AbstractConnection):
     :py:meth:`connect<goblin.driver.server.connect>`.
     """
     def __init__(self, url, ws, loop, conn_factory, *, aliases=None,
-                 lang='gremlin-groovy', username=None, password=None):
+                 response_timeout=None, lang='gremlin-groovy', username=None,
+                 password=None):
         self._url = url
         self._ws = ws
         self._loop = loop
@@ -103,6 +119,7 @@ class Connection(AbstractConnection):
         if aliases is None:
             aliases = {}
         self._aliases = aliases
+        self._response_timeout = response_timeout
         self._lang = lang
         self._username = username
         self._password = password
@@ -160,7 +177,9 @@ class Connection(AbstractConnection):
         if self._ws.closed:
             self._ws = await self.conn_factory.ws_connect(self.url)
         self._ws.send_bytes(message)
-        return Response(response_queue, self._loop)
+        resp = Response(response_queue, self._response_timeout, self._loop)
+        self._loop.create_task(self._terminate_response(resp, request_id))
+        return resp
 
     async def close(self):
         """Close underlying connection and mark as closed."""
@@ -215,6 +234,10 @@ class Connection(AbstractConnection):
             raise ValueError('Unknown mime type.')
         return b''.join([mime_len, mime_type, message.encode('utf-8')])
 
+    async def _terminate_response(self, resp, request_id):
+        await resp.done.wait()
+        del self._response_queues[request_id]
+
     async def _receive(self):
         while True:
             data = await self._ws.receive()
@@ -238,6 +261,8 @@ class Connection(AbstractConnection):
                 if status_code == 407:
                     await self._authenticate(self._username, self._password,
                                              self._processor)
+                elif status_code == 204:
+                    response_queue.put_nowait(None)
                 else:
                     if data:
                         for result in data:
@@ -248,7 +273,6 @@ class Connection(AbstractConnection):
                         response_queue.put_nowait(message)
                     if status_code != 206:
                         response_queue.put_nowait(None)
-                        del self._response_queues[request_id]
 
     async def __aenter__(self):
         return self

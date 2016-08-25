@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
-
+import asyncio
 import pytest
 
 from goblin import exception
@@ -56,8 +56,8 @@ async def test_204_empty_stream(connection):
         async for msg in stream:
             resp = True
     assert not resp
-
-
+#
+#
 @pytest.mark.asyncio
 async def test_server_error(connection):
     async with connection:
@@ -79,6 +79,7 @@ async def test_resp_queue_removed_from_conn(connection):
         stream = await connection.submit("1 + 1")
         async for msg in stream:
             pass
+        await asyncio.sleep(0.1)
         assert stream._response_queue not in list(
             connection._response_queues.values())
 
@@ -89,4 +90,4 @@ async def test_stream_done(connection):
         stream = await connection.submit("1 + 1")
         async for msg in stream:
             pass
-        assert stream._done
+        assert stream.done

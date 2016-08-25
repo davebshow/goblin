@@ -33,3 +33,7 @@ class ConfigurationError(Exception):
 
 class GremlinServerError(Exception):
     pass
+
+
+class ResponseTimoutError(Exception):
+    pass

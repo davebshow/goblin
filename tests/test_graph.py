@@ -49,8 +49,10 @@ async def test_submit_traversal(remote_graph):
         g = remote_graph.traversal()
         resp = await g.addV('person').property('name', 'leifur').next()
         leif = await resp.fetch_data()
+        resp.close()
         assert leif['properties']['name'][0]['value'] == 'leifur'
         assert leif['label'] == 'person'
         resp = await g.V(leif['id']).drop().next()
         none = await resp.fetch_data()
+        resp.close()
         assert none is None

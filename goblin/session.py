@@ -322,6 +322,7 @@ class Session(connection.AbstractConnection):
             repr(traversal), bindings=traversal.bindings,
             aliases=self._aliases)
         msg = await stream.fetch_data()
+        stream.close()
         if msg:
             msg = element.__mapping__.mapper_func(msg, element)
             return msg
@@ -369,13 +370,17 @@ class Session(connection.AbstractConnection):
         """Used to check for existence, does not update session vertex"""
         traversal = self.g.V(vertex.id)
         stream = await self.conn.submit(repr(traversal), aliases=self._aliases)
-        return await stream.fetch_data()
+        msg = await stream.fetch_data()
+        stream.close()
+        return msg
 
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
         traversal = self.g.E(edge.id)
         stream = await self.conn.submit(repr(traversal), aliases=self._aliases)
-        return await stream.fetch_data()
+        msg = await stream.fetch_data()
+        stream.close()
+        return msg
 
     async def _update_vertex_properties(self, vertex, traversal, props):
         traversal, removals, metaprops = self.traversal_factory.add_properties(
@@ -411,6 +416,7 @@ class Session(connection.AbstractConnection):
                         repr(traversal), bindings=traversal.bindings,
                         aliases=self._aliases)
                     await stream.fetch_data()
+                    stream.close()
                 else:
                     potential_removals.append((db_name, key, value))
         return potential_removals
