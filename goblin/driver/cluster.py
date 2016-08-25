@@ -17,7 +17,8 @@ class Cluster:
         'ssl_keyfile': '',
         'ssl_password': '',
         'username': '',
-        'password': ''
+        'password': '',
+        'response_timeout': None
     }
 
     def __init__(self, loop, **config):
@@ -52,6 +53,7 @@ class Cluster:
         scheme = self._config['scheme']
         hosts = self._config['hosts']
         port = self._config['port']
+        response_timeout = self._config['response_timeout']
         username = self._config['username']
         password = self._config['password']
         if scheme in ['https', 'wss']:
@@ -66,7 +68,8 @@ class Cluster:
         for host in hosts:
             url = '{}://{}:{}/'.format(scheme, host, port)
             host = await driver.GremlinServer.open(
-                url, self._loop, ssl_context=ssl_context, username=username,
+                url, self._loop, ssl_context=ssl_context,
+                response_timeout=response_timeout, username=username,
                 password=password)
             self._hosts.append(host)
 
@@ -81,16 +84,6 @@ class Cluster:
             except:
                 raise exception.ConfigurationError(
                     'Unknown config file format')
-
-    def config_from_ini(self, filename):
-        # HMMM
-        with open(filename, 'r') as f:
-            config = configparser.ConfigParser()
-            config.read_file(f, source='filename')
-            config = dict(config['CLUSTER'])
-            config['hosts'] = [
-                host.strip() for host in config['hosts'].split(',')]
-            self.config.update(config)
 
     def config_from_json(self, filename):
         with open(filename, 'r') as f:

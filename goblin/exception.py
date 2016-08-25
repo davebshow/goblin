@@ -35,5 +35,5 @@ class GremlinServerError(Exception):
     pass
 
 
-class ResponseTimoutError(Exception):
+class ResponseTimeoutError(Exception):
     pass
