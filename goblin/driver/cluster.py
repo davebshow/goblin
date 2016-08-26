@@ -96,7 +96,7 @@ class Cluster:
     async def connect(self):
         if not self._hosts:
             await self.establish_hosts()
-        return driver.Client(self)
+        return driver.Client(self, self._loop)
 
     async def close(self):
         waiters = []

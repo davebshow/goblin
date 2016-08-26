@@ -1,7 +1,8 @@
 class Client:
 
-    def __init__(self, cluster):
+    def __init__(self, cluster, loop):
         self._cluster = cluster
+        self._loop = loop
 
     @property
     def cluster(self):
@@ -20,6 +21,7 @@ class Client:
                                  lang=lang,
                                  aliases=aliases,
                                  session=session)
+        self._loop.create_task(conn.release_task(resp))
         return resp
 
     async def close(self):

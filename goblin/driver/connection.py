@@ -111,7 +111,7 @@ class Connection(AbstractConnection):
     """
     def __init__(self, url, ws, loop, conn_factory, *, aliases=None,
                  response_timeout=None, lang='gremlin-groovy', username=None,
-                 password=None):
+                 password=None, max_inflight=64):
         self._url = url
         self._ws = ws
         self._loop = loop
@@ -126,6 +126,12 @@ class Connection(AbstractConnection):
         self._closed = False
         self._response_queues = {}
         self._receive_task = self._loop.create_task(self._receive())
+        self._semaphore = asyncio.Semaphore(value=max_inflight,
+                                            loop=self._loop)
+
+    @property
+    def semaphore(self):
+        return self._semaphore
 
     @property
     def response_queues(self):
@@ -162,6 +168,7 @@ class Connection(AbstractConnection):
 
         :returns: :py:class:`Response` object
         """
+        await self.semaphore.acquire()
         if aliases is None:
             aliases = self._aliases
         lang = lang or self._lang
@@ -237,6 +244,7 @@ class Connection(AbstractConnection):
     async def _terminate_response(self, resp, request_id):
         await resp.done.wait()
         del self._response_queues[request_id]
+        self.semaphore.release()
 
     async def _receive(self):
         while True:
