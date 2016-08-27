@@ -18,7 +18,11 @@ class Cluster:
         'ssl_password': '',
         'username': '',
         'password': '',
-        'response_timeout': None
+        'response_timeout': None,
+        'max_conns': 4,
+        'min_conns': 1,
+        'max_times_acquired': 16,
+        'max_inflight': 64
     }
 
     def __init__(self, loop, **config):
@@ -56,6 +60,10 @@ class Cluster:
         response_timeout = self._config['response_timeout']
         username = self._config['username']
         password = self._config['password']
+        max_times_acquired = self._config['max_times_acquired']
+        max_conns = self._config['max_conns']
+        min_conns = self._config['min_conns']
+        max_inflight = self._config['max_inflight']
         if scheme in ['https', 'wss']:
             certfile = self._config['ssl_certfile']
             keyfile = self._config['ssl_keyfile']
@@ -70,7 +78,9 @@ class Cluster:
             host = await driver.GremlinServer.open(
                 url, self._loop, ssl_context=ssl_context,
                 response_timeout=response_timeout, username=username,
-                password=password)
+                password=password, max_times_acquired=max_times_acquired,
+                max_conns=max_conns, min_conns=min_conns,
+                max_inflight=max_inflight)
             self._hosts.append(host)
 
     def config_from_file(self, filename):

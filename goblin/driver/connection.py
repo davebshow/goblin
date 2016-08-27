@@ -109,16 +109,16 @@ class Connection(AbstractConnection):
     websocket connection. Not instantiated directly. Instead use
     :py:meth:`connect<goblin.driver.server.connect>`.
     """
-    def __init__(self, url, ws, loop, conn_factory, *, aliases=None,
+    def __init__(self, url, ws, loop, conn_factory, *, traversal_source=None,
                  response_timeout=None, lang='gremlin-groovy', username=None,
                  password=None, max_inflight=64):
         self._url = url
         self._ws = ws
         self._loop = loop
         self._conn_factory = conn_factory
-        if aliases is None:
-            aliases = {}
-        self._aliases = aliases
+        if traversal_source is None:
+            traversal_source = {}
+        self._traversal_source = traversal_source
         self._response_timeout = response_timeout
         self._lang = lang
         self._username = username
@@ -150,7 +150,7 @@ class Connection(AbstractConnection):
                      *,
                      bindings=None,
                      lang=None,
-                     aliases=None,
+                     traversal_source=None,
                      session=None):
         """
         Submit a script and bindings to the Gremlin Server
@@ -159,7 +159,7 @@ class Connection(AbstractConnection):
         :param dict bindings: A mapping of bindings for Gremlin script.
         :param str lang: Language of scripts submitted to the server.
             "gremlin-groovy" by default
-        :param dict aliases: Rebind ``Graph`` and ``TraversalSource``
+        :param dict traversal_source: Rebind ``Graph`` and ``TraversalSource``
             objects to different variable names in the current request
         :param str op: Gremlin Server op argument. "eval" by default.
         :param str processor: Gremlin Server processor argument. "" by default.
@@ -169,14 +169,14 @@ class Connection(AbstractConnection):
         :returns: :py:class:`Response` object
         """
         await self.semaphore.acquire()
-        if aliases is None:
-            aliases = self._aliases
+        if traversal_source is None:
+            traversal_source = self._traversal_source
         lang = lang or self._lang
         request_id = str(uuid.uuid4())
         message = self._prepare_message(gremlin,
                                         bindings,
                                         lang,
-                                        aliases,
+                                        traversal_source,
                                         session,
                                         request_id)
         response_queue = asyncio.Queue(loop=self._loop)
@@ -195,7 +195,7 @@ class Connection(AbstractConnection):
         self._closed = True
         await self._conn_factory.close()
 
-    def _prepare_message(self, gremlin, bindings, lang, aliases, session,
+    def _prepare_message(self, gremlin, bindings, lang, traversal_source, session,
                          request_id):
         message = {
             'requestId': request_id,
@@ -205,7 +205,7 @@ class Connection(AbstractConnection):
                 'gremlin': gremlin,
                 'bindings': bindings,
                 'language':  lang,
-                'aliases': aliases
+                'aliases': traversal_source
             }
         }
         message = self._finalize_message(message, session)

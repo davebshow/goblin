@@ -79,7 +79,7 @@ async def test_resp_queue_removed_from_conn(connection):
         stream = await connection.submit("1 + 1")
         async for msg in stream:
             pass
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0)
         assert stream._response_queue not in list(
             connection._response_queues.values())
 

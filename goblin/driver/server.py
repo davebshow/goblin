@@ -26,7 +26,7 @@ class GremlinServer:
 
     def __init__(self, pool, *, ssl_context=None,
                  username='', password='', lang='gremlin-groovy',
-                 aliases=None):
+                 traversal_source=None):
         self._pool = pool
         self._url = self._pool.url
         self._loop = self._pool._loop
@@ -34,7 +34,7 @@ class GremlinServer:
         self._username = username
         self._password = password
         self._lang = lang
-        self._aliases = aliases
+        self._traversal_source = traversal_source
 
     async def close(self):
         await self._pool.close()
@@ -47,10 +47,16 @@ class GremlinServer:
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None,
                    username='', password='', lang='gremlin-groovy',
-                   aliases=None, **kwargs):
+                   traversal_source=None, max_conns=4, min_conns=1,
+                   max_times_acquired=16, max_inflight=64,
+                   response_timeout=None):
 
         conn_pool = pool.ConnectionPool(
             url, loop, ssl_context=ssl_context, username=username,
-            password=password, lang=lang, aliases=aliases)
+            password=password, lang=lang, traversal_source=traversal_source,
+            max_conns=max_conns, min_conns=min_conns,
+            max_times_acquired=max_times_acquired, max_inflight=max_inflight,
+            response_timeout=response_timeout)
+        await conn_pool.init_pool()
         return cls(conn_pool, ssl_context=ssl_context, username=username,
-                   password=password, lang=lang, aliases=aliases)
+                   password=password, lang=lang, traversal_source=traversal_source)

@@ -40,11 +40,11 @@ class Goblin:
     :param dict config: Config parameters for application
     """
 
-    def __init__(self, cluster, *, translator=None, aliases=None,
+    def __init__(self, cluster, *, translator=None, traversal_source=None,
                  get_hashable_id=None):
         self._cluster = cluster
         self._loop = self._cluster._loop
-        self._aliases = aliases
+        self._traversal_source = traversal_source
         self._transactions = None
         self._cluster = cluster
         self._vertices = collections.defaultdict(
@@ -121,14 +121,14 @@ class Goblin:
                                self._get_hashable_id,
                                transactions,
                                use_session=use_session,
-                               aliases=self._aliases)
+                               traversal_source=self._traversal_source)
 
     async def supports_transactions(self):
         if self._transactions is None:
             conn = await self._cluster.get_connection()
             stream = await conn.submit(
                 'graph.features().graph().supportsTransactions()',
-                aliases=self._aliases)
+                traversal_source=self._traversal_source)
             msg = await stream.fetch_data()
             stream.close()
             self._transactions = msg
