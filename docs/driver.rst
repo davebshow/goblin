@@ -3,7 +3,7 @@ Using the Driver
 
 At the its simplest, the driver provides the
 :py:meth:`open<goblin.driver.connection.Connection.open>` coroutine classmethod,
-which returns a :py:class:`Connection<goblin.driver.connection.Connection> to the
+which returns a :py:class:`Connection<goblin.driver.connection.Connection>` to the
 Gremlin Server::
 
     >>> import asyncio
@@ -11,14 +11,14 @@ Gremlin Server::
     >>> loop = asyncio.get_event_loop()
     >>> conn = await driver.Connection.open('ws://localhost:8182', loop)
 
-The :py:class:`Connection<goblin.driver.connection.Connection> object can be
-used to :py:meth:`submit<goblin.driver.connection.Connection.submit>` and
-receive messages.
+The :py:class:`Connection<goblin.driver.connection.Connection>` object can be
+used to :py:meth:`submit<goblin.driver.connection.Connection.submit>` messages
+to the Gremlin Server.
 :py:meth:`submit<goblin.driver.connection.Connection.submit>` returns a
 :py:class:`Response<goblin.driver.connection.Response>` object that implements
 the PEP 492 asynchronous iterator protocol::
 
-    >>> resp = conn.submit('1 + 1')
+    >>> resp = await conn.submit('1 + 1')
     >>> async for msg in resp:
     ...     print(msg)
     >>> await conn.close()  # conn also implements async context manager interface
@@ -35,12 +35,12 @@ on the TinkerPop Java driver::
 
     >>> cluster = await driver.Cluster.open()  # opens a cluster with default config
     >>> client = await cluster.connect()
-    >>> resp = client.submit('1 + 1')  # round robin requests to available hosts
+    >>> resp = await client.submit('1 + 1')  # round robin requests to available hosts
     >>> async for msg in resp:
     ...     print(msg)
     >>> await cluster.close()  # Close all connections to all hosts
 
-And that is it. While the :py:class:`Cluster<goblin.driver.cluster.Cluster>`
+And that is it. While :py:class:`Cluster<goblin.driver.cluster.Cluster>`
 is simple to learn and use, it provides a wide variety of configuration options.
 
 Configuring :py:class:`Cluster<goblin.driver.cluster.Cluster>`
@@ -49,8 +49,8 @@ Configuring :py:class:`Cluster<goblin.driver.cluster.Cluster>`
 Configuration options can be set on
 :py:class:`Cluster<goblin.driver.cluster.Cluster>` in one of two ways, either
 passed as keyword arguments to
-:py:meth:`open<goblin.driver.cluster.Cluster.open>` or stored in a configuration
-file, and passed to the :py:meth:`open<goblin.driver.cluster.Cluster.open>`
+:py:meth:`open<goblin.driver.cluster.Cluster.open>`, or stored in a configuration
+file and passed to the :py:meth:`open<goblin.driver.cluster.Cluster.open>`
 using the kwarg `configfile`. Configuration files can be either YAML or JSON
 format. Currently, :py:class:`Cluster<goblin.driver.cluster.Cluster>`
 uses the following configuration:
