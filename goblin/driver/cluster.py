@@ -39,18 +39,18 @@ class Cluster:
         self._closed = False
 
     @classmethod
-    async def open(cls, loop, *, config_filename=None, **config):
+    async def open(cls, loop, *, configfile=None, **config):
         """
         **coroutine** Open a cluster, connecting to all available hosts as
         specified in configuration.
 
         :param asyncio.BaseEventLoop loop:
-        :param str config_filename: Optional configuration file in .json or
+        :param str configfile: Optional configuration file in .json or
             .yml format
         """
         cluster = cls(loop, **config)
-        if config_filename:
-            cluster.config_from_file(config_filename)
+        if configfile:
+            cluster.config_from_file(configfile)
         await cluster.establish_hosts()
         return cluster
 
