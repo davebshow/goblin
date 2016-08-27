@@ -66,7 +66,7 @@ def unused_server_url(unused_tcp_port):
 @pytest.fixture
 def connection(event_loop):
     conn = event_loop.run_until_complete(
-        driver.connect("http://localhost:8182/", event_loop))
+        driver.Connection.open("http://localhost:8182/", event_loop))
     return conn
 
 

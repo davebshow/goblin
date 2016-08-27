@@ -20,37 +20,59 @@ from goblin.driver import pool
 
 class GremlinServer:
     """
-    Factory class that generates connections to the Gremlin Server. Do
-    not instantiate directly, instead use :py:meth:GremlinServer.open
+    Class that wraps a connection pool. Currently doesn't do much, but may
+    be useful in the future....
+
+    :param pool.ConnectionPool pool:
     """
 
-    def __init__(self, pool, *, ssl_context=None,
-                 username='', password='', lang='gremlin-groovy',
-                 traversal_source=None):
+    def __init__(self, pool):
         self._pool = pool
-        self._url = self._pool.url
-        self._loop = self._pool._loop
-        self._ssl_context = ssl_context
-        self._username = username
-        self._password = password
-        self._lang = lang
-        self._traversal_source = traversal_source
 
+    @property
+    def pool(self):
+        """
+        Readonly property.
+
+        :returns: :py:class:`ConnectionPool<goblin.driver.pool.ConnectionPool>`
+        """
     async def close(self):
+        """**coroutine** Close underlying connection pool."""
         await self._pool.close()
 
     async def connect(self):
-        # This will use pool eventually
+        """**coroutine** Acquire a connection from the pool."""
         conn = await self._pool.acquire()
         return conn
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None,
                    username='', password='', lang='gremlin-groovy',
-                   traversal_source=None, max_conns=4, min_conns=1,
-                   max_times_acquired=16, max_inflight=64,
-                   response_timeout=None):
+                   traversal_source=None, response_timeout=None,
+                   max_conns=4, min_conns=1, max_times_acquired=16,
+                   max_inflight=64):
+        """
+        **coroutine** Establish connection pool and host to Gremlin Server.
 
+        :param str url: url for host Gremlin Server
+        :param asyncio.BaseEventLoop loop:
+        :param ssl.SSLContext ssl_context:
+        :param str username: Username for database auth
+        :param str password: Password for database auth
+        :param str lang: Language used to submit scripts (optional)
+            `gremlin-groovy` by default
+        :param dict traversal_source: Aliases traversal source (optional) `None`
+            by default
+        :param float response_timeout: (optional) `None` by default
+        :param int max_conns: Maximum number of conns to a host
+        :param int min_connsd: Minimum number of conns to a host
+        :param int max_times_acquired: Maximum number of times a conn can be
+            shared by multiple coroutines (clients)
+        :param int max_inflight: Maximum number of unprocessed requests at any
+            one time on the connection
+
+        :returns: :py:class:`GremlinServer`
+        """
         conn_pool = pool.ConnectionPool(
             url, loop, ssl_context=ssl_context, username=username,
             password=password, lang=lang, traversal_source=traversal_source,
@@ -58,5 +80,4 @@ class GremlinServer:
             max_times_acquired=max_times_acquired, max_inflight=max_inflight,
             response_timeout=response_timeout)
         await conn_pool.init_pool()
-        return cls(conn_pool, ssl_context=ssl_context, username=username,
-                   password=password, lang=lang, traversal_source=traversal_source)
+        return cls(conn_pool)

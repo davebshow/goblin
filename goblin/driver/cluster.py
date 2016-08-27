@@ -8,6 +8,12 @@ from goblin import driver, exception
 
 
 class Cluster:
+    """
+    A cluster of Gremlin Server hosts. This object provides the main high
+    level interface used by the :py:mod:`goblin.driver` module.
+
+    :param asyncio.BaseEventLoop loop:
+    """
 
     DEFAULT_CONFIG = {
         'scheme': 'ws',
@@ -34,6 +40,14 @@ class Cluster:
 
     @classmethod
     async def open(cls, loop, *, config_filename=None, **config):
+        """
+        **coroutine** Open a cluster, connecting to all available hosts as
+        specified in configuration.
+
+        :param asyncio.BaseEventLoop loop:
+        :param str config_filename: Optional configuration file in .json or
+            .yml format
+        """
         cluster = cls(loop, **config)
         if config_filename:
             cluster.config_from_file(config_filename)
@@ -42,10 +56,20 @@ class Cluster:
 
     @property
     def config(self):
+        """
+        Readonly property.
+
+        :returns: `dict` containing the cluster configuration
+        """
         return self._config
 
     async def get_connection(self):
-        """Get connection from next available host in a round robin fashion"""
+        """
+        **coroutine** Get connection from next available host in a round robin
+        fashion.
+
+        :returns: :py:class:`Connection<goblin.driver.connection.Connection>`
+        """
         if not self._hosts:
             await self.establish_hosts()
         host = self._hosts.popleft()
@@ -54,6 +78,9 @@ class Cluster:
         return conn
 
     async def establish_hosts(self):
+        """
+        **coroutine** Connect to all hosts as specified in configuration.
+        """
         scheme = self._config['scheme']
         hosts = self._config['hosts']
         port = self._config['port']
@@ -84,9 +111,12 @@ class Cluster:
             self._hosts.append(host)
 
     def config_from_file(self, filename):
-        if filename.endswith('ini'):
-            self.config_from_ini(filename)
-        elif filename.endswith('.json'):
+        """
+        Load configuration from from file.
+
+        :param str filename: Path to the configuration file.
+        """
+        if filename.endswith('.json'):
             self.config_from_json(filename)
         else:
             try:
@@ -96,6 +126,11 @@ class Cluster:
                     'Unknown config file format')
 
     def config_from_json(self, filename):
+        """
+        Load configuration from from JSON file.
+
+        :param str filename: Path to the configuration file.
+        """
         with open(filename, 'r') as f:
             config = json.load(f)
             self.config.update(config)
@@ -104,11 +139,17 @@ class Cluster:
         raise NotImplementedError
 
     async def connect(self):
+        """
+        **coroutine** Get a connected client. Main API method.
+
+        :returns: A connected instance of `Client<goblin.driver.client.Client>`
+        """
         if not self._hosts:
             await self.establish_hosts()
         return driver.Client(self, self._loop)
 
     async def close(self):
+        """**coroutine** Close cluster and all connected hosts."""
         waiters = []
         while self._hosts:
             host = self._hosts.popleft()

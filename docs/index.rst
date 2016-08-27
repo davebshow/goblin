@@ -46,7 +46,7 @@ Submit scripts and bindings to the `Gremlin Server`_::
     >>> async def go(loop):
     ...     script = "g.addV('developer').property(k1, v1)"
     ...     bindings = {'k1': 'name', 'v1': 'Leif'}
-    ...     conn = await.driver.connect('ws://localhost:8182/', loop)
+    ...     conn = await driver.Connection.open('ws://localhost:8182/', loop)
     ...     async with conn:
     ...         resp = await conn.submit(script, bindings=bindings)
     ...         async for msg in resp:
@@ -65,7 +65,7 @@ Generate and submit Gremlin traversals in native Python::
 
 
     >>> host = loop.run_until_complete(
-    ...     driver.connect("http://localhost:8182/", loop))
+    ...     driver.Connection.open("http://localhost:8182/", loop))
     >>> translator = process.GroovyTranslator('g')
     >>> graph = driver.AsyncRemoteGraph(translator, connection)
 
@@ -148,6 +148,7 @@ Contents:
    :maxdepth: 4
 
    ogm
+   driver
    modules
 
 

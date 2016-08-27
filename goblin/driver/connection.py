@@ -60,6 +60,11 @@ class Response:
 
     @property
     def done(self):
+        """
+        Readonly property.
+
+        :returns: `asyncio.Event` object
+        """
         return self._done
 
     async def __aiter__(self):
@@ -73,7 +78,10 @@ class Response:
             raise StopAsyncIteration
 
     def close(self):
+        """Close response stream by setting done flag to true."""
         self.done.set()
+        self._loop = None
+        self._response_queue = None
 
     @error_handler
     async def fetch_data(self):
@@ -107,15 +115,30 @@ class Connection(AbstractConnection):
     """
     Main classd for interacting with the Gremlin Server. Encapsulates a
     websocket connection. Not instantiated directly. Instead use
-    :py:meth:`connect<goblin.driver.server.connect>`.
+    :py:meth:`Connection.open<goblin.driver.connection.Connection.open>`.
+
+    :param str url: url for host Gremlin Server
+    :param aiohttp.ClientWebSocketResponse ws: open websocket connection
+    :param asyncio.BaseEventLoop loop:
+    :param aiohttp.ClientSession: Client session used to establish websocket
+        connections
+    :param dict traversal_source: Aliases traversal source (optional) `None`
+        by default
+    :param float response_timeout: (optional) `None` by default
+    :param str lang: Language used to submit scripts (optional)
+        `gremlin-groovy` by default
+    :param str username: Username for database auth
+    :param str password: Password for database auth
+    :param int max_inflight: Maximum number of unprocessed requests at any
+        one time on the connection
     """
-    def __init__(self, url, ws, loop, conn_factory, *, traversal_source=None,
+    def __init__(self, url, ws, loop, client_session, *, traversal_source=None,
                  response_timeout=None, lang='gremlin-groovy', username=None,
                  password=None, max_inflight=64):
         self._url = url
         self._ws = ws
         self._loop = loop
-        self._conn_factory = conn_factory
+        self._client_session = client_session
         if traversal_source is None:
             traversal_source = {}
         self._traversal_source = traversal_source
@@ -129,20 +152,52 @@ class Connection(AbstractConnection):
         self._semaphore = asyncio.Semaphore(value=max_inflight,
                                             loop=self._loop)
 
-    @property
-    def semaphore(self):
-        return self._semaphore
+    @classmethod
+    async def open(cls, url, loop, *, ssl_context=None, username='',
+                   password='', lang='gremlin-groovy', traversal_source=None,
+                   max_inflight=64, response_timeout=None):
+        """
+        **coroutine** Open a connection to the Gremlin Server.
 
-    @property
-    def response_queues(self):
-        return self._response_queues
+        :param str url: url for host Gremlin Server
+        :param asyncio.BaseEventLoop loop:
+        :param ssl.SSLContext ssl_context:
+        :param str username: Username for database auth
+        :param str password: Password for database auth
+        :param str lang: Language used to submit scripts (optional)
+            `gremlin-groovy` by default
+        :param dict traversal_source: Aliases traversal source (optional) `None`
+            by default
+        :param int max_inflight: Maximum number of unprocessed requests at any
+            one time on the connection
+        :param float response_timeout: (optional) `None` by default
+
+        :returns: :py:class:`Connection<goblin.driver.connection.Connection>`
+        """
+        connector = aiohttp.TCPConnector(ssl_context=ssl_context, loop=loop)
+        client_session = aiohttp.ClientSession(loop=loop, connector=connector)
+        ws = await client_session.ws_connect(url)
+        return cls(url, ws, loop, client_session,
+                   traversal_source=traversal_source, lang=lang,
+                   username=username, password=password,
+                   response_timeout=response_timeout)
 
     @property
     def closed(self):
+        """
+        Check if connection has been closed.
+
+        :returns: `bool`
+        """
         return self._closed or self._ws.closed
 
     @property
     def url(self):
+        """
+        Readonly property.
+
+        :returns: str The url association with this connection.
+        """
         return self._url
 
     async def submit(self,
@@ -159,16 +214,13 @@ class Connection(AbstractConnection):
         :param dict bindings: A mapping of bindings for Gremlin script.
         :param str lang: Language of scripts submitted to the server.
             "gremlin-groovy" by default
-        :param dict traversal_source: Rebind ``Graph`` and ``TraversalSource``
-            objects to different variable names in the current request
-        :param str op: Gremlin Server op argument. "eval" by default.
-        :param str processor: Gremlin Server processor argument. "" by default.
+        :param dict traversal_source: ``TraversalSource`` objects to different
+            variable names in the current request.
         :param str session: Session id (optional). Typically a uuid
-        :param str request_id: Request id (optional). Typically a uuid
 
         :returns: :py:class:`Response` object
         """
-        await self.semaphore.acquire()
+        await self._semaphore.acquire()
         if traversal_source is None:
             traversal_source = self._traversal_source
         lang = lang or self._lang
@@ -180,20 +232,20 @@ class Connection(AbstractConnection):
                                         session,
                                         request_id)
         response_queue = asyncio.Queue(loop=self._loop)
-        self.response_queues[request_id] = response_queue
+        self._response_queues[request_id] = response_queue
         if self._ws.closed:
-            self._ws = await self.conn_factory.ws_connect(self.url)
+            self._ws = await self.client_session.ws_connect(self.url)
         self._ws.send_bytes(message)
         resp = Response(response_queue, self._response_timeout, self._loop)
         self._loop.create_task(self._terminate_response(resp, request_id))
         return resp
 
     async def close(self):
-        """Close underlying connection and mark as closed."""
+        """**coroutine** Close underlying connection and mark as closed."""
         self._receive_task.cancel()
         await self._ws.close()
         self._closed = True
-        await self._conn_factory.close()
+        await self._client_session.close()
 
     def _prepare_message(self, gremlin, bindings, lang, traversal_source, session,
                          request_id):
@@ -244,7 +296,7 @@ class Connection(AbstractConnection):
     async def _terminate_response(self, resp, request_id):
         await resp.done.wait()
         del self._response_queues[request_id]
-        self.semaphore.release()
+        self._semaphore.release()
 
     async def _receive(self):
         while True:

@@ -1,5 +1,5 @@
-Goblin API
-==========
+goblin
+======
 
 .. toctree::
    :maxdepth: 4
