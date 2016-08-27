@@ -17,6 +17,7 @@
 import asyncio
 import pytest
 from goblin import Goblin, driver, element, properties, Cardinality
+from goblin.driver import pool
 from gremlin_python import process
 
 
@@ -67,6 +68,11 @@ def connection(event_loop):
     conn = event_loop.run_until_complete(
         driver.connect("http://localhost:8182/", event_loop))
     return conn
+
+
+@pytest.fixture
+def connection_pool(event_loop):
+    return pool.ConnectionPool("http://localhost:8182/", event_loop)
 
 
 @pytest.fixture

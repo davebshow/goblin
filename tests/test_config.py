@@ -57,12 +57,7 @@ def test_cluster_custom_config(event_loop, cluster_class):
     assert cluster.config['username'] == 'dave'
     assert cluster.config['password'] == 'mypass'
 
-def test_cluster_config_from_ini(cluster):
-    dirname = os.path.dirname(os.path.dirname(__file__))
-    cluster.config_from_file(dirname + '/tests/config/config.ini')
-    assert cluster.config['scheme'] == 'wss'
-    assert cluster.config['hosts'] == ['127.0.0.1', '127.0.1.1']
-#
+
 def test_cluster_config_from_json(event_loop, cluster_class):
     dirname = os.path.dirname(os.path.dirname(__file__))
     cluster = cluster_class(event_loop)

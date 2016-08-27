@@ -17,7 +17,12 @@ class Cluster:
         'ssl_keyfile': '',
         'ssl_password': '',
         'username': '',
-        'password': ''
+        'password': '',
+        'response_timeout': None,
+        'max_conns': 4,
+        'min_conns': 1,
+        'max_times_acquired': 16,
+        'max_inflight': 64
     }
 
     def __init__(self, loop, **config):
@@ -52,8 +57,13 @@ class Cluster:
         scheme = self._config['scheme']
         hosts = self._config['hosts']
         port = self._config['port']
+        response_timeout = self._config['response_timeout']
         username = self._config['username']
         password = self._config['password']
+        max_times_acquired = self._config['max_times_acquired']
+        max_conns = self._config['max_conns']
+        min_conns = self._config['min_conns']
+        max_inflight = self._config['max_inflight']
         if scheme in ['https', 'wss']:
             certfile = self._config['ssl_certfile']
             keyfile = self._config['ssl_keyfile']
@@ -66,8 +76,11 @@ class Cluster:
         for host in hosts:
             url = '{}://{}:{}/'.format(scheme, host, port)
             host = await driver.GremlinServer.open(
-                url, self._loop, ssl_context=ssl_context, username=username,
-                password=password)
+                url, self._loop, ssl_context=ssl_context,
+                response_timeout=response_timeout, username=username,
+                password=password, max_times_acquired=max_times_acquired,
+                max_conns=max_conns, min_conns=min_conns,
+                max_inflight=max_inflight)
             self._hosts.append(host)
 
     def config_from_file(self, filename):
@@ -82,16 +95,6 @@ class Cluster:
                 raise exception.ConfigurationError(
                     'Unknown config file format')
 
-    def config_from_ini(self, filename):
-        # HMMM
-        with open(filename, 'r') as f:
-            config = configparser.ConfigParser()
-            config.read_file(f, source='filename')
-            config = dict(config['CLUSTER'])
-            config['hosts'] = [
-                host.strip() for host in config['hosts'].split(',')]
-            self.config.update(config)
-
     def config_from_json(self, filename):
         with open(filename, 'r') as f:
             config = json.load(f)
@@ -103,7 +106,7 @@ class Cluster:
     async def connect(self):
         if not self._hosts:
             await self.establish_hosts()
-        return driver.Client(self)
+        return driver.Client(self, self._loop)
 
     async def close(self):
         waiters = []

@@ -1,7 +1,8 @@
 class Client:
 
-    def __init__(self, cluster):
+    def __init__(self, cluster, loop):
         self._cluster = cluster
+        self._loop = loop
 
     @property
     def cluster(self):
@@ -12,16 +13,16 @@ class Client:
                      *,
                      bindings=None,
                      lang=None,
-                     aliases=None,
+                     traversal_source=None,
                      session=None):
         conn = await self.cluster.get_connection()
         resp = await conn.submit(gremlin,
                                  bindings=bindings,
                                  lang=lang,
-                                 aliases=aliases,
+                                 traversal_source=traversal_source,
                                  session=session)
+        self._loop.create_task(conn.release_task(resp))
         return resp
 
     async def close(self):
-        await self._cluster.close()
         self._cluster = None

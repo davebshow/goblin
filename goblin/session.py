@@ -42,12 +42,12 @@ class Session(connection.AbstractConnection):
     """
 
     def __init__(self, app, conn, get_hashable_id, transactions, *,
-                 use_session=False, aliases=None):
+                 use_session=False, traversal_source=None):
         self._app = app
         self._conn = conn
         self._loop = self._app._loop
         self._use_session = False
-        self._aliases = aliases or dict()
+        self._traversal_source = traversal_source or dict()
         self._pending = collections.deque()
         self._current = weakref.WeakValueDictionary()
         self._get_hashable_id = get_hashable_id
@@ -80,8 +80,6 @@ class Session(connection.AbstractConnection):
 
     def close(self):
         """
-        Close the underlying db connection and disconnect session from Goblin
-        application.
         """
         # await self.conn.close()
         self._conn = None
@@ -130,7 +128,7 @@ class Session(connection.AbstractConnection):
         """
         await self.flush()
         async_iter = await self.conn.submit(
-            gremlin, bindings=bindings, lang=lang, aliases=self._aliases)
+            gremlin, bindings=bindings, lang=lang, traversal_source=self._traversal_source)
         response_queue = asyncio.Queue(loop=self._loop)
         self._loop.create_task(
             self._receive(async_iter, response_queue))
@@ -320,7 +318,7 @@ class Session(connection.AbstractConnection):
     async def _simple_traversal(self, traversal, element):
         stream = await self.conn.submit(
             repr(traversal), bindings=traversal.bindings,
-            aliases=self._aliases)
+            traversal_source=self._traversal_source)
         msg = await stream.fetch_data()
         stream.close()
         if msg:
@@ -369,7 +367,7 @@ class Session(connection.AbstractConnection):
     async def _check_vertex(self, vertex):
         """Used to check for existence, does not update session vertex"""
         traversal = self.g.V(vertex.id)
-        stream = await self.conn.submit(repr(traversal), aliases=self._aliases)
+        stream = await self.conn.submit(repr(traversal), traversal_source=self._traversal_source)
         msg = await stream.fetch_data()
         stream.close()
         return msg
@@ -377,7 +375,7 @@ class Session(connection.AbstractConnection):
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
         traversal = self.g.E(edge.id)
-        stream = await self.conn.submit(repr(traversal), aliases=self._aliases)
+        stream = await self.conn.submit(repr(traversal), traversal_source=self._traversal_source)
         msg = await stream.fetch_data()
         stream.close()
         return msg
@@ -414,7 +412,7 @@ class Session(connection.AbstractConnection):
                         db_name).hasValue(value).property(key, val)
                     stream = await self.conn.submit(
                         repr(traversal), bindings=traversal.bindings,
-                        aliases=self._aliases)
+                        traversal_source=self._traversal_source)
                     await stream.fetch_data()
                     stream.close()
                 else:

@@ -56,8 +56,8 @@ async def test_204_empty_stream(connection):
         async for msg in stream:
             resp = True
     assert not resp
-#
-#
+
+
 @pytest.mark.asyncio
 async def test_server_error(connection):
     async with connection:
@@ -79,7 +79,7 @@ async def test_resp_queue_removed_from_conn(connection):
         stream = await connection.submit("1 + 1")
         async for msg in stream:
             pass
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0)
         assert stream._response_queue not in list(
             connection._response_queues.values())
 
@@ -91,3 +91,12 @@ async def test_stream_done(connection):
         async for msg in stream:
             pass
         assert stream.done
+
+@pytest.mark.asyncio
+async def test_connection(connection):
+    async with connection:
+        connection._response_timeout = 0.0000001
+        with pytest.raises(exception.ResponseTimeoutError):
+            stream = await connection.submit("1 + 1")
+            async for msg in stream:
+                pass

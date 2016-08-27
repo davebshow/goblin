@@ -15,20 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
-import aiohttp
-
-from goblin.driver import connection
-
-
-async def connect(url, loop, *, ssl_context=None, username='', password='',
-                  lang='gremlin-groovy', aliases=None):
-    connector = aiohttp.TCPConnector(ssl_context=ssl_context, loop=loop)
-    client_session = aiohttp.ClientSession(loop=loop, connector=connector)
-    ws = await client_session.ws_connect(url)
-    return connection.Connection(url, ws, loop, client_session,
-                                 aliases=aliases, lang=lang,
-                                 username=username, password=password)
+from goblin.driver import pool
 
 
 class GremlinServer:
@@ -37,60 +24,39 @@ class GremlinServer:
     not instantiate directly, instead use :py:meth:GremlinServer.open
     """
 
-    def __init__(self, conn, *, ssl_context=None,
+    def __init__(self, pool, *, ssl_context=None,
                  username='', password='', lang='gremlin-groovy',
-                 aliases=None):
-        self._conn = conn
-        self._url = self._conn.url
-        self._loop = self._conn._loop
+                 traversal_source=None):
+        self._pool = pool
+        self._url = self._pool.url
+        self._loop = self._pool._loop
         self._ssl_context = ssl_context
         self._username = username
         self._password = password
         self._lang = lang
-        self._aliases = aliases
+        self._traversal_source = traversal_source
 
     async def close(self):
-        await self._conn.close()
+        await self._pool.close()
 
     async def connect(self):
         # This will use pool eventually
-        if self._conn.closed:
-            self._conn = self.get_connection(username=self._username,
-                                             password=self._password,
-                                             lang=self._lang,
-                                             aliases=self._aliases)
-
-        return self._conn
+        conn = await self._pool.acquire()
+        return conn
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None,
                    username='', password='', lang='gremlin-groovy',
-                   aliases=None, **kwargs):
+                   traversal_source=None, max_conns=4, min_conns=1,
+                   max_times_acquired=16, max_inflight=64,
+                   response_timeout=None):
 
-        conn = await connect(url, loop, ssl_context=ssl_context,
-                             username=username, password=password, lang=lang,
-                             aliases=aliases)
-        return cls(conn, ssl_context=ssl_context, username=username,
-                   password=password, lang=lang, aliases=aliases)
-
-
-    async def get_connection(self, username=None, password=None, lang=None,
-                             aliases=None):
-        """
-        Open a connection to the Gremlin Server.
-
-        :param str url: Database url
-        :param asyncio.BaseEventLoop loop: Event loop implementation
-        :param str username: Username for server auth
-        :param str password: Password for server auth
-
-        :returns: :py:class:`Connection<goblin.driver.connection.Connection>`
-        """
-        username = username or self._username
-        password = password or self._password
-        aliasess = aliases or self._aliases
-        lang = lang or self._lang
-        return await connect(self._url, self._loop,
-                             ssl_context=self._ssl_context,
-                             username=username, password=password, lang=lang,
-                             aliases=aliases)
+        conn_pool = pool.ConnectionPool(
+            url, loop, ssl_context=ssl_context, username=username,
+            password=password, lang=lang, traversal_source=traversal_source,
+            max_conns=max_conns, min_conns=min_conns,
+            max_times_acquired=max_times_acquired, max_inflight=max_inflight,
+            response_timeout=response_timeout)
+        await conn_pool.init_pool()
+        return cls(conn_pool, ssl_context=ssl_context, username=username,
+                   password=password, lang=lang, traversal_source=traversal_source)

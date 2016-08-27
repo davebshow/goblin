@@ -15,9 +15,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
-from goblin.driver.cluster import Cluster
-from goblin.driver.client import Client
-from goblin.driver.connection import AbstractConnection
-from goblin.driver.graph import AsyncRemoteGraph
-from goblin.driver.pool import connect
-from goblin.driver.server import GremlinServer
+import asyncio
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_client_auto_release(cluster):
+    client = await cluster.connect()
+    resp = await client.submit("1 + 1")
+    async for msg in resp:
+        pass
+    await asyncio.sleep(0)
+    host = cluster._hosts.popleft()
+    assert len(host._pool._available) == 1
+    await host.close()
