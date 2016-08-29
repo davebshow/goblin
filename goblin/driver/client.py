@@ -24,12 +24,11 @@ class Client:
         return self._cluster
 
     async def submit(self,
-                     gremlin,
                      *,
-                     bindings=None,
-                     lang=None,
-                     traversal_source=None,
-                     session=None):
+                     processor='',
+                     op='eval',
+                     mime_type='application/json',
+                     **args):
         """
         **coroutine** Submit a script and bindings to the Gremlin Server.
 
@@ -44,11 +43,8 @@ class Client:
         :returns: :py:class:`Response` object
         """
         conn = await self.cluster.get_connection()
-        resp = await conn.submit(gremlin,
-                                 bindings=bindings,
-                                 lang=lang,
-                                 traversal_source=traversal_source,
-                                 session=session)
+        resp = await conn.submit(
+            processor=processor, op=op, mime_type=mime_type, **args)
         self._loop.create_task(conn.release_task(resp))
         return resp
 

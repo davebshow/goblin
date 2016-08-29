@@ -18,7 +18,7 @@ to the Gremlin Server.
 :py:class:`Response<goblin.driver.connection.Response>` object that implements
 the PEP 492 asynchronous iterator protocol::
 
-    >>> resp = await conn.submit('1 + 1')
+    >>> resp = await conn.submit(gremlin='1 + 1')
     >>> async for msg in resp:
     ...     print(msg)
     >>> await conn.close()  # conn also implements async context manager interface
@@ -35,7 +35,7 @@ on the TinkerPop Java driver::
 
     >>> cluster = await driver.Cluster.open()  # opens a cluster with default config
     >>> client = await cluster.connect()
-    >>> resp = await client.submit('1 + 1')  # round robin requests to available hosts
+    >>> resp = await client.submit(gremlin='1 + 1')  # round robin requests to available hosts
     >>> async for msg in resp:
     ...     print(msg)
     >>> await cluster.close()  # Close all connections to all hosts

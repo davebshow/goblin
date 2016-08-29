@@ -37,12 +37,11 @@ class PooledConnection:
         self._times_acquired -= 1
 
     async def submit(self,
-                     gremlin,
                      *,
-                     bindings=None,
-                     lang=None,
-                     traversal_source=None,
-                     session=None):
+                     processor='',
+                     op='eval',
+                     mime_type='application/json',
+                     **args):
         """
         **coroutine** Submit a script and bindings to the Gremlin Server
 
@@ -56,9 +55,8 @@ class PooledConnection:
 
         :returns: :py:class:`Response` object
         """
-        return await self._conn.submit(gremlin, bindings=bindings, lang=lang,
-                                       traversal_source=traversal_source,
-                                       session=session)
+        return await self._conn.submit(processor=processor, op=op,
+                                       mime_type=mime_type, **args)
 
     async def release_task(self, resp):
         await resp.done.wait()

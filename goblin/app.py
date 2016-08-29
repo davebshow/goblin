@@ -127,7 +127,7 @@ class Goblin:
         if self._transactions is None:
             conn = await self._cluster.get_connection()
             stream = await conn.submit(
-                'graph.features().graph().supportsTransactions()',
+                gremlin='graph.features().graph().supportsTransactions()',
                 traversal_source=self._traversal_source)
             msg = await stream.fetch_data()
             stream.close()
