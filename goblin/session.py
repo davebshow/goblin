@@ -137,8 +137,12 @@ class Session(connection.AbstractConnection):
 
     async def _receive(self, async_iter, response_queue):
         async for result in async_iter:
-            if (isinstance(result, dict) and
-                    result.get('type', '') in ['vertex', 'edge']):
+            response_queue.put_nowait(self._deserialize_result(result))
+        response_queue.put_nowait(None)
+
+    def _deserialize_result(self, result):
+        if isinstance(result, dict):
+            if result.get('type', '') in ['vertex', 'edge']:
                 hashable_id = self._get_hashable_id(result['id'])
                 current = self.current.get(hashable_id, None)
                 if not current:
@@ -151,10 +155,15 @@ class Session(connection.AbstractConnection):
                         current.source = GenericVertex()
                         current.target = GenericVertex()
                 element = current.__mapping__.mapper_func(result, current)
-                response_queue.put_nowait(element)
+                return element
             else:
-                response_queue.put_nowait(result)
-        response_queue.put_nowait(None)
+                for key in result:
+                    result[key] = self._deserialize_result(result[key])
+                return result
+        elif isinstance(result, list):
+            return [self._deserialize_result(item) for item in result]
+        else:
+            return result
 
     # Creation API
     def add(self, *elements):
