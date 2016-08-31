@@ -19,4 +19,5 @@ from goblin.driver.cluster import Cluster
 from goblin.driver.client import Client
 from goblin.driver.connection import AbstractConnection, Connection
 from goblin.driver.graph import AsyncRemoteGraph
+from goblin.driver.serializer import GraphSONMessageSerializer
 from goblin.driver.server import GremlinServer

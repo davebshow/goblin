@@ -21,7 +21,17 @@ import configparser
 import json
 import ssl
 
+import yaml
+
 from goblin import driver, exception
+
+
+def my_import(name):
+    components = name.split('.')
+    mod = __import__(components[0])
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod
 
 
 class Cluster:
@@ -45,12 +55,13 @@ class Cluster:
         'max_conns': 4,
         'min_conns': 1,
         'max_times_acquired': 16,
-        'max_inflight': 64
+        'max_inflight': 64,
+        'message_serializer': 'goblin.driver.GraphSONMessageSerializer'
     }
 
     def __init__(self, loop, **config):
         self._loop = loop
-        self._config = dict(self.DEFAULT_CONFIG)
+        self._config = self._get_message_serializer(dict(self.DEFAULT_CONFIG))
         self._config.update(config)
         self._hosts = collections.deque()
         self._closed = False
@@ -133,14 +144,21 @@ class Cluster:
 
         :param str filename: Path to the configuration file.
         """
-        if filename.endswith('.json'):
+        if filename.endswith('yml') or filename.endswith('yaml'):
+            self.config_from_yaml(filename)
+        elif filename.endswith('.json'):
             self.config_from_json(filename)
         else:
-            try:
-                self.config_from_module(filename)
-            except:
-                raise exception.ConfigurationError(
-                    'Unknown config file format')
+            # try:
+            #     self.config_from_module(filename)
+            # except:
+            raise exception.ConfigurationError('Unknown config file format')
+
+    def config_from_yaml(self, filename):
+        with open(filename, 'r') as f:
+            config = yaml.load(f)
+        config = self._get_message_serializer(config)
+        self._config.update(config)
 
     def config_from_json(self, filename):
         """
@@ -150,7 +168,14 @@ class Cluster:
         """
         with open(filename, 'r') as f:
             config = json.load(f)
-            self.config.update(config)
+        config = self._get_message_serializer(config)
+        self.config.update(config)
+
+    def _get_message_serializer(self, config):
+        message_serializer = config.get('message_serializer', '')
+        if message_serializer:
+            config['message_serializer'] = my_import(message_serializer)
+        return config
 
     def config_from_module(self, filename):
         raise NotImplementedError

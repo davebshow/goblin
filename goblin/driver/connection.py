@@ -202,7 +202,6 @@ class Connection(AbstractConnection):
         :param str op: Gremlin Server op argument
         :param args: Keyword arguments for Gremlin Server. Depend on processor
             and op.
-
         :returns: :py:class:`Response` object
         """
         await self._semaphore.acquire()

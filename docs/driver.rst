@@ -57,7 +57,7 @@ uses the following configuration:
 
 +-------------------+----------------------------------------------+-------------+
 |Key                |Description                                   |Default      |
-+==================++==============================================+=============+
++===================+==============================================+=============+
 |scheme             |URI scheme, typically 'ws' or 'wss' for secure|'ws'         |
 |                   |websockets                                    |             |
 +-------------------+----------------------------------------------+-------------+
@@ -89,4 +89,8 @@ uses the following configuration:
 +-------------------+----------------------------------------------+-------------+
 |max_inflight       |The maximum number of unresolved messages     |64           |
 |                   |that may be pending on any one connection     |             |
++-------------------+----------------------------------------------+-------------+
+|message_serializer |String denoting the class used for message    |'classpath'  |
+|                   |serialization, currently only supports        |             |
+|                   |basic GraphSONMessageSerializer               |             |
 +-------------------+----------------------------------------------+-------------+

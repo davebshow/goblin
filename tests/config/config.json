@@ -1,1 +1,13 @@
-{"ssl_password": "", "port": 8182, "ssl_certfile": "", "scheme": "wss", "hosts": ["localhost"], "username": "dave", "password": "mypass", "ssl_keyfile": ""}
+{
+   "ssl_password":"",
+   "port":8182,
+   "ssl_certfile":"",
+   "scheme":"wss",
+   "hosts":[
+      "localhost"
+   ],
+   "username":"dave",
+   "password":"mypass",
+   "ssl_keyfile":"",
+   "message_serializer":"goblin.driver.GraphSONMessageSerializer"
+}

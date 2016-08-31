@@ -18,7 +18,7 @@ import os
 
 import pytest
 
-from goblin import exception
+from goblin import driver, exception
 
 
 def test_cluster_default_config(cluster):
@@ -42,6 +42,8 @@ async def test_app_default_config(app):
     assert app.config['ssl_password'] == ''
     assert app.config['username'] == ''
     assert app.config['password'] == ''
+    assert issubclass(app.config['message_serializer'],
+                      driver.GraphSONMessageSerializer)
     await app.close()
 
 
@@ -56,6 +58,8 @@ def test_cluster_custom_config(event_loop, cluster_class):
     assert cluster.config['ssl_password'] == ''
     assert cluster.config['username'] == 'dave'
     assert cluster.config['password'] == 'mypass'
+    assert issubclass(cluster.config['message_serializer'],
+                      driver.GraphSONMessageSerializer)
 
 
 def test_cluster_config_from_json(event_loop, cluster_class):
@@ -70,3 +74,21 @@ def test_cluster_config_from_json(event_loop, cluster_class):
     assert cluster.config['ssl_password'] == ''
     assert cluster.config['username'] == 'dave'
     assert cluster.config['password'] == 'mypass'
+
+    assert issubclass(cluster.config['message_serializer'],
+                      driver.GraphSONMessageSerializer)
+
+def test_cluster_config_from_yaml(event_loop, cluster_class):
+    dirname = os.path.dirname(os.path.dirname(__file__))
+    cluster = cluster_class(event_loop)
+    cluster.config_from_file(dirname + '/tests/config/config.yml')
+    assert cluster.config['scheme'] == 'wss'
+    assert cluster.config['hosts'] == ['localhost']
+    assert cluster.config['port'] == 8183
+    assert cluster.config['ssl_certfile'] == ''
+    assert cluster.config['ssl_keyfile'] == ''
+    assert cluster.config['ssl_password'] == ''
+    assert cluster.config['username'] == ''
+    assert cluster.config['password'] == ''
+    assert issubclass(cluster.config['message_serializer'],
+                      driver.GraphSONMessageSerializer)
