@@ -120,8 +120,6 @@ class Session(connection.AbstractConnection):
 
         :param str gremlin: Gremlin script to submit to server.
         :param dict bindings: A mapping of bindings for Gremlin script.
-        :param str lang: Language of scripts submitted to the server.
-            "gremlin-groovy" by default
 
         :returns:
             :py:class:`TraversalResponse<goblin.traversal.TraversalResponse>`

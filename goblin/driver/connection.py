@@ -122,26 +122,19 @@ class Connection(AbstractConnection):
     :param asyncio.BaseEventLoop loop:
     :param aiohttp.ClientSession: Client session used to establish websocket
         connections
-    :param dict traversal_source: Aliases traversal source (optional) `None`
-        by default
     :param float response_timeout: (optional) `None` by default
-    :param str lang: Language used to submit scripts (optional)
-        `gremlin-groovy` by default
     :param str username: Username for database auth
     :param str password: Password for database auth
     :param int max_inflight: Maximum number of unprocessed requests at any
         one time on the connection
     """
-    def __init__(self, url, ws, loop, client_session, *, traversal_source=None,
-                 response_timeout=None, lang='gremlin-groovy', username=None,
-                 password=None, max_inflight=64):
+    def __init__(self, url, ws, loop, client_session, *, response_timeout=None,
+                 username=None, password=None, max_inflight=64):
         self._url = url
         self._ws = ws
         self._loop = loop
         self._client_session = client_session
-        self._traversal_source = traversal_source
         self._response_timeout = response_timeout
-        self._lang = lang
         self._username = username
         self._password = password
         self._closed = False
@@ -152,8 +145,7 @@ class Connection(AbstractConnection):
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None, username='',
-                   password='', lang='gremlin-groovy', traversal_source=None,
-                   max_inflight=64, response_timeout=None):
+                   password='', max_inflight=64, response_timeout=None):
         """
         **coroutine** Open a connection to the Gremlin Server.
 
@@ -162,10 +154,7 @@ class Connection(AbstractConnection):
         :param ssl.SSLContext ssl_context:
         :param str username: Username for database auth
         :param str password: Password for database auth
-        :param str lang: Language used to submit scripts (optional)
-            `gremlin-groovy` by default
-        :param dict traversal_source: Aliases traversal source (optional) `None`
-            by default
+
         :param int max_inflight: Maximum number of unprocessed requests at any
             one time on the connection
         :param float response_timeout: (optional) `None` by default
@@ -175,10 +164,8 @@ class Connection(AbstractConnection):
         connector = aiohttp.TCPConnector(ssl_context=ssl_context, loop=loop)
         client_session = aiohttp.ClientSession(loop=loop, connector=connector)
         ws = await client_session.ws_connect(url)
-        return cls(url, ws, loop, client_session,
-                   traversal_source=traversal_source, lang=lang,
-                   username=username, password=password,
-                   response_timeout=response_timeout)
+        return cls(url, ws, loop, client_session, username=username,
+                   password=password, response_timeout=response_timeout)
 
     @property
     def closed(self):
@@ -206,14 +193,10 @@ class Connection(AbstractConnection):
                      **args):
         """
         Submit a script and bindings to the Gremlin Server
-
-        :param str gremlin: Gremlin script to submit to server.
-        :param dict bindings: A mapping of bindings for Gremlin script.
-        :param str lang: Language of scripts submitted to the server.
-            "gremlin-groovy" by default
-        :param dict traversal_source: ``TraversalSource`` objects to different
-            variable names in the current request.
-        :param str session: Session id (optional). Typically a uuid
+        :param str processor: Gremlin Server processor argument
+        :param str op: Gremlin Server op argument
+        :param args: Arguments for Gremlin Server. Depend on processor and
+            op.
 
         :returns: :py:class:`Response` object
         """
@@ -237,6 +220,7 @@ class Connection(AbstractConnection):
             'op': op,
             'args': args
         }
+        message['args'].update({'lang': 'gremlin-groovy'})
         message = json.dumps(message)
         mime_len = '\x10'
         message = b''.join([mime_len.encode('utf-8'),

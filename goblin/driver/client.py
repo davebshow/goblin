@@ -11,6 +11,10 @@ class Client:
     def __init__(self, cluster, loop):
         self._cluster = cluster
         self._loop = loop
+        self._traversal_source = {}
+
+    def set_traversal_source(self, traversal_source):
+        self._traversal_source = traversal_source
 
     @property
     def cluster(self):
@@ -23,6 +27,11 @@ class Client:
         """
         return self._cluster
 
+    def alias(self, traversal_source):
+        client = Client(self._cluster, self._loop)
+        client.set_traversal_source(traversal_source)
+        return client
+
     async def submit(self,
                      *,
                      processor='',
@@ -31,15 +40,10 @@ class Client:
                      **args):
         """
         **coroutine** Submit a script and bindings to the Gremlin Server.
-
-        :param str gremlin: Gremlin script to submit to server.
-        :param dict bindings: A mapping of bindings for Gremlin script.
-        :param str lang: Language of scripts submitted to the server.
-            "gremlin-groovy" by default
-        :param dict traversal_source: ``TraversalSource`` objects to different
-            variable names in the current request.
-        :param str session: Session id (optional). Typically a uuid
-
+        :param str processor: Gremlin Server processor argument
+        :param str op: Gremlin Server op argument
+        :param args: Arguments for Gremlin Server. Depend on processor and
+            op.
         :returns: :py:class:`Response` object
         """
         conn = await self.cluster.get_connection()

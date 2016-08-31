@@ -40,7 +40,7 @@ async def test_conn_context_manager(connection):
 @pytest.mark.asyncio
 async def test_submit(connection):
     async with connection:
-        stream = await connection.submit(gremlin="1 + 1", lang='gremlin-groovy')
+        stream = await connection.submit(gremlin="1 + 1")
         results = []
         async for msg in stream:
             results.append(msg)

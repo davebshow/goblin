@@ -29,3 +29,12 @@ async def test_client_auto_release(cluster):
     host = cluster._hosts.popleft()
     assert len(host._pool._available) == 1
     await host.close()
+
+
+@pytest.mark.asyncio
+async def test_alias(cluster):
+    client = await cluster.connect()
+    aliased_client = client.alias({"g": "g1"})
+    assert aliased_client._traversal_source == {"g": "g1"}
+    assert aliased_client._cluster is client._cluster
+    assert aliased_client._loop is client._loop
