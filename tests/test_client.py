@@ -22,7 +22,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_client_auto_release(cluster):
     client = await cluster.connect()
-    resp = await client.submit("1 + 1")
+    resp = await client.submit(gremlin="1 + 1")
     async for msg in resp:
         pass
     await asyncio.sleep(0)

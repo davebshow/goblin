@@ -110,17 +110,16 @@ class Session(connection.AbstractConnection):
         return self.traversal_factory.traversal(element_class=element_class)
 
     async def submit(self,
-                    gremlin,
-                    *,
-                    bindings=None,
-                    lang='gremlin-groovy'):
+                     *,
+                     processor='',
+                     op='eval',
+                     mime_type='application/json',
+                     **args):
         """
         Submit a query to the Gremiln Server.
 
         :param str gremlin: Gremlin script to submit to server.
         :param dict bindings: A mapping of bindings for Gremlin script.
-        :param str lang: Language of scripts submitted to the server.
-            "gremlin-groovy" by default
 
         :returns:
             :py:class:`TraversalResponse<goblin.traversal.TraversalResponse>`
@@ -128,7 +127,7 @@ class Session(connection.AbstractConnection):
         """
         await self.flush()
         async_iter = await self.conn.submit(
-            gremlin, bindings=bindings, lang=lang, traversal_source=self._traversal_source)
+            processor=processor, op=op, mime_type=mime_type, **args)
         response_queue = asyncio.Queue(loop=self._loop)
         self._loop.create_task(
             self._receive(async_iter, response_queue))
@@ -317,7 +316,7 @@ class Session(connection.AbstractConnection):
     # *metodos especiales privados for creation API
     async def _simple_traversal(self, traversal, element):
         stream = await self.conn.submit(
-            repr(traversal), bindings=traversal.bindings,
+            gremlin=repr(traversal), bindings=traversal.bindings,
             traversal_source=self._traversal_source)
         msg = await stream.fetch_data()
         stream.close()
@@ -367,7 +366,8 @@ class Session(connection.AbstractConnection):
     async def _check_vertex(self, vertex):
         """Used to check for existence, does not update session vertex"""
         traversal = self.g.V(vertex.id)
-        stream = await self.conn.submit(repr(traversal), traversal_source=self._traversal_source)
+        stream = await self.conn.submit(
+            gremlin=repr(traversal), traversal_source=self._traversal_source)
         msg = await stream.fetch_data()
         stream.close()
         return msg
@@ -375,7 +375,8 @@ class Session(connection.AbstractConnection):
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
         traversal = self.g.E(edge.id)
-        stream = await self.conn.submit(repr(traversal), traversal_source=self._traversal_source)
+        stream = await self.conn.submit(
+            gremlin=repr(traversal), traversal_source=self._traversal_source)
         msg = await stream.fetch_data()
         stream.close()
         return msg
@@ -411,7 +412,7 @@ class Session(connection.AbstractConnection):
                     traversal = self.g.V(result.id).properties(
                         db_name).hasValue(value).property(key, val)
                     stream = await self.conn.submit(
-                        repr(traversal), bindings=traversal.bindings,
+                        gremlin=repr(traversal), bindings=traversal.bindings,
                         traversal_source=self._traversal_source)
                     await stream.fetch_data()
                     stream.close()

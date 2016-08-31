@@ -123,22 +123,18 @@ class Connection(AbstractConnection):
     :param aiohttp.ClientSession: Client session used to establish websocket
         connections
     :param float response_timeout: (optional) `None` by default
-    :param str lang: Language used to submit scripts (optional)
-        `gremlin-groovy` by default
     :param str username: Username for database auth
     :param str password: Password for database auth
     :param int max_inflight: Maximum number of unprocessed requests at any
         one time on the connection
     """
     def __init__(self, url, ws, loop, client_session, *, response_timeout=None,
-                 lang='gremlin-groovy', username=None, password=None,
-                 max_inflight=64):
+                 username=None, password=None, max_inflight=64):
         self._url = url
         self._ws = ws
         self._loop = loop
         self._client_session = client_session
         self._response_timeout = response_timeout
-        self._lang = lang
         self._username = username
         self._password = password
         self._closed = False
@@ -149,8 +145,7 @@ class Connection(AbstractConnection):
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None, username='',
-                   password='', lang='gremlin-groovy', max_inflight=64,
-                   response_timeout=None):
+                   password='', max_inflight=64, response_timeout=None):
         """
         **coroutine** Open a connection to the Gremlin Server.
 
@@ -159,8 +154,6 @@ class Connection(AbstractConnection):
         :param ssl.SSLContext ssl_context:
         :param str username: Username for database auth
         :param str password: Password for database auth
-        :param str lang: Language used to submit scripts (optional)
-            `gremlin-groovy` by default
 
         :param int max_inflight: Maximum number of unprocessed requests at any
             one time on the connection
@@ -171,9 +164,8 @@ class Connection(AbstractConnection):
         connector = aiohttp.TCPConnector(ssl_context=ssl_context, loop=loop)
         client_session = aiohttp.ClientSession(loop=loop, connector=connector)
         ws = await client_session.ws_connect(url)
-        return cls(url, ws, loop, client_session, lang=lang,
-                   username=username, password=password,
-                   response_timeout=response_timeout)
+        return cls(url, ws, loop, client_session, username=username,
+                   password=password, response_timeout=response_timeout)
 
     @property
     def closed(self):
@@ -194,36 +186,24 @@ class Connection(AbstractConnection):
         return self._url
 
     async def submit(self,
-                     gremlin,
                      *,
-                     bindings=None,
-                     lang=None,
-                     traversal_source=None,
-                     session=None):
+                     processor='',
+                     op='eval',
+                     mime_type='application/json',
+                     **args):
         """
         Submit a script and bindings to the Gremlin Server
-
-        :param str gremlin: Gremlin script to submit to server.
-        :param dict bindings: A mapping of bindings for Gremlin script.
-        :param str lang: Language of scripts submitted to the server.
-            "gremlin-groovy" by default
-        :param dict traversal_source: ``TraversalSource`` objects to different
-            variable names in the current request.
-        :param str session: Session id (optional). Typically a uuid
+        :param str processor: Gremlin Server processor argument
+        :param str op: Gremlin Server op argument
+        :param args: Arguments for Gremlin Server. Depend on processor and
+            op.
 
         :returns: :py:class:`Response` object
         """
         await self._semaphore.acquire()
-        if traversal_source is None:
-            traversal_source = {}
-        lang = lang or self._lang
         request_id = str(uuid.uuid4())
-        message = self._prepare_message(gremlin,
-                                        bindings,
-                                        lang,
-                                        traversal_source,
-                                        session,
-                                        request_id)
+        message = self._prepare_message(
+            request_id, processor, op, mime_type, **args)
         response_queue = asyncio.Queue(loop=self._loop)
         self._response_queues[request_id] = response_queue
         if self._ws.closed:
@@ -233,58 +213,36 @@ class Connection(AbstractConnection):
         self._loop.create_task(self._terminate_response(resp, request_id))
         return resp
 
+    def _prepare_message(self, request_id, processor, op, mime_type, **args):
+        message = {
+            'requestId': request_id,
+            'processor': processor,
+            'op': op,
+            'args': args
+        }
+        message['args'].update({'lang': 'gremlin-groovy'})
+        message = json.dumps(message)
+        mime_len = '\x10'
+        message = b''.join([mime_len.encode('utf-8'),
+                            mime_type.encode('utf-8'),
+                            message.encode('utf-8')])
+        return message
+
+    def _authenticate(self, username, password, session):
+        auth = b''.join([b'\x00', username.encode('utf-8'),
+                         b'\x00', password.encode('utf-8')])
+        request_id = str(uuid.uuid4())
+        args = {'sasl': base64.b64encode(auth).decode()}
+        message = self._prepare_message(
+            request_id, '', 'authentication', **args)
+        self._ws.send_bytes(message, binary=True)
+
     async def close(self):
         """**coroutine** Close underlying connection and mark as closed."""
         self._receive_task.cancel()
         await self._ws.close()
         self._closed = True
         await self._client_session.close()
-
-    def _prepare_message(self, gremlin, bindings, lang, traversal_source, session,
-                         request_id):
-        message = {
-            'requestId': request_id,
-            'op': 'eval',
-            'processor': '',
-            'args': {
-                'gremlin': gremlin,
-                'bindings': bindings,
-                'language':  lang,
-                'aliases': traversal_source
-            }
-        }
-        message = self._finalize_message(message, session)
-        return message
-
-    def _authenticate(self, username, password, session):
-        auth = b''.join([b'\x00', username.encode('utf-8'),
-                         b'\x00', password.encode('utf-8')])
-        message = {
-            'requestId': str(uuid.uuid4()),
-            'op': 'authentication',
-            'processor': '',
-            'args': {
-                'sasl': base64.b64encode(auth).decode()
-            }
-        }
-        message = self._finalize_message(message, session)
-        self._ws.submit(message, binary=True)
-
-    def _finalize_message(self, message, session):
-        if session:
-            message['processor'] = 'session'
-            message['args']['session'] = session
-        message = json.dumps(message)
-        return self._set_message_header(message, 'application/json')
-
-    @staticmethod
-    def _set_message_header(message, mime_type):
-        if mime_type == 'application/json':
-            mime_len = b'\x10'
-            mime_type = b'application/json'
-        else:
-            raise ValueError('Unknown mime type.')
-        return b''.join([mime_len, mime_type, message.encode('utf-8')])
 
     async def _terminate_response(self, resp, request_id):
         await resp.done.wait()

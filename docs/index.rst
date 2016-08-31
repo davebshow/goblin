@@ -48,7 +48,7 @@ Submit scripts and bindings to the `Gremlin Server`_::
     ...     bindings = {'k1': 'name', 'v1': 'Leif'}
     ...     conn = await driver.Connection.open('ws://localhost:8182/', loop)
     ...     async with conn:
-    ...         resp = await conn.submit(script, bindings=bindings)
+    ...         resp = await conn.submit(gremlin=script, bindings=bindings)
     ...         async for msg in resp:
     ...             print(msg)
 

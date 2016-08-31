@@ -44,7 +44,7 @@ class AsyncGraphTraversal(GraphTraversal):
 class AsyncRemoteStrategy(TraversalStrategy):
     async def apply(self, traversal):
         result = await traversal.graph.remote_connection.submit(
-            traversal.graph.translator.translate(traversal.bytecode),
+            gremlin=traversal.graph.translator.translate(traversal.bytecode),
             bindings=traversal.bindings,
             lang=traversal.graph.translator.target_language)
         return result

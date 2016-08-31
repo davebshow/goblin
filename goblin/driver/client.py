@@ -33,32 +33,22 @@ class Client:
         return client
 
     async def submit(self,
-                     gremlin,
                      *,
-                     bindings=None,
-                     lang=None,
-                     traversal_source=None,
-                     session=None):
+                     processor='',
+                     op='eval',
+                     mime_type='application/json',
+                     **args):
         """
         **coroutine** Submit a script and bindings to the Gremlin Server.
-
-        :param str gremlin: Gremlin script to submit to server.
-        :param dict bindings: A mapping of bindings for Gremlin script.
-        :param str lang: Language of scripts submitted to the server.
-            "gremlin-groovy" by default
-        :param dict traversal_source: ``TraversalSource`` objects to different
-            variable names in the current request.
-        :param str session: Session id (optional). Typically a uuid
-
+        :param str processor: Gremlin Server processor argument
+        :param str op: Gremlin Server op argument
+        :param args: Arguments for Gremlin Server. Depend on processor and
+            op.
         :returns: :py:class:`Response` object
         """
-        traversal_source = traversal_source or self._traversal_source
         conn = await self.cluster.get_connection()
-        resp = await conn.submit(gremlin,
-                                 bindings=bindings,
-                                 lang=lang,
-                                 traversal_source=traversal_source,
-                                 session=session)
+        resp = await conn.submit(
+            processor=processor, op=op, mime_type=mime_type, **args)
         self._loop.create_task(conn.release_task(resp))
         return resp
 

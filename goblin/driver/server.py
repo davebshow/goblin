@@ -47,9 +47,9 @@ class GremlinServer:
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None,
-                   username='', password='', lang='gremlin-groovy',
-                   response_timeout=None, max_conns=4, min_conns=1,
-                   max_times_acquired=16, max_inflight=64):
+                   username='', password='', response_timeout=None,
+                   max_conns=4, min_conns=1, max_times_acquired=16,
+                   max_inflight=64):
         """
         **coroutine** Establish connection pool and host to Gremlin Server.
 
@@ -58,8 +58,6 @@ class GremlinServer:
         :param ssl.SSLContext ssl_context:
         :param str username: Username for database auth
         :param str password: Password for database auth
-        :param str lang: Language used to submit scripts (optional)
-            `gremlin-groovy` by default
         :param float response_timeout: (optional) `None` by default
         :param int max_conns: Maximum number of conns to a host
         :param int min_connsd: Minimum number of conns to a host
@@ -72,8 +70,8 @@ class GremlinServer:
         """
         conn_pool = pool.ConnectionPool(
             url, loop, ssl_context=ssl_context, username=username,
-            password=password, lang=lang, max_conns=max_conns,
-            min_conns=min_conns, max_times_acquired=max_times_acquired,
-            max_inflight=max_inflight, response_timeout=response_timeout)
+            password=password, max_conns=max_conns, min_conns=min_conns,
+            max_times_acquired=max_times_acquired, max_inflight=max_inflight,
+            response_timeout=response_timeout)
         await conn_pool.init_pool()
         return cls(conn_pool)
