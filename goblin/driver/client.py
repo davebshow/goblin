@@ -11,6 +11,10 @@ class Client:
     def __init__(self, cluster, loop):
         self._cluster = cluster
         self._loop = loop
+        self._traversal_source = {}
+
+    def set_traversal_source(self, traversal_source):
+        self._traversal_source = traversal_source
 
     @property
     def cluster(self):
@@ -22,6 +26,11 @@ class Client:
             client.
         """
         return self._cluster
+
+    def alias(self, traversal_source):
+        client = Client(self._cluster, self._loop)
+        client.set_traversal_source(traversal_source)
+        return client
 
     async def submit(self,
                      gremlin,
@@ -43,6 +52,7 @@ class Client:
 
         :returns: :py:class:`Response` object
         """
+        traversal_source = traversal_source or self._traversal_source
         conn = await self.cluster.get_connection()
         resp = await conn.submit(gremlin,
                                  bindings=bindings,

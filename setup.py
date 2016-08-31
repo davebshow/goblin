@@ -15,7 +15,8 @@ setup(
     install_requires=[
         "aenum==1.4.5",
         "aiohttp==0.22.1",
-        "inflection==0.3.1"
+        "inflection==0.3.1",
+        "PyYAML==3.12"
     ],
     test_suite="tests",
     setup_requires=['pytest-runner'],

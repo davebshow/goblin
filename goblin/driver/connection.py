@@ -122,8 +122,6 @@ class Connection(AbstractConnection):
     :param asyncio.BaseEventLoop loop:
     :param aiohttp.ClientSession: Client session used to establish websocket
         connections
-    :param dict traversal_source: Aliases traversal source (optional) `None`
-        by default
     :param float response_timeout: (optional) `None` by default
     :param str lang: Language used to submit scripts (optional)
         `gremlin-groovy` by default
@@ -132,16 +130,13 @@ class Connection(AbstractConnection):
     :param int max_inflight: Maximum number of unprocessed requests at any
         one time on the connection
     """
-    def __init__(self, url, ws, loop, client_session, *, traversal_source=None,
-                 response_timeout=None, lang='gremlin-groovy', username=None,
-                 password=None, max_inflight=64):
+    def __init__(self, url, ws, loop, client_session, *, response_timeout=None,
+                 lang='gremlin-groovy', username=None, password=None,
+                 max_inflight=64):
         self._url = url
         self._ws = ws
         self._loop = loop
         self._client_session = client_session
-        if traversal_source is None:
-            traversal_source = {}
-        self._traversal_source = traversal_source
         self._response_timeout = response_timeout
         self._lang = lang
         self._username = username
@@ -154,8 +149,8 @@ class Connection(AbstractConnection):
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None, username='',
-                   password='', lang='gremlin-groovy', traversal_source=None,
-                   max_inflight=64, response_timeout=None):
+                   password='', lang='gremlin-groovy', max_inflight=64,
+                   response_timeout=None):
         """
         **coroutine** Open a connection to the Gremlin Server.
 
@@ -166,8 +161,7 @@ class Connection(AbstractConnection):
         :param str password: Password for database auth
         :param str lang: Language used to submit scripts (optional)
             `gremlin-groovy` by default
-        :param dict traversal_source: Aliases traversal source (optional) `None`
-            by default
+
         :param int max_inflight: Maximum number of unprocessed requests at any
             one time on the connection
         :param float response_timeout: (optional) `None` by default
@@ -177,8 +171,7 @@ class Connection(AbstractConnection):
         connector = aiohttp.TCPConnector(ssl_context=ssl_context, loop=loop)
         client_session = aiohttp.ClientSession(loop=loop, connector=connector)
         ws = await client_session.ws_connect(url)
-        return cls(url, ws, loop, client_session,
-                   traversal_source=traversal_source, lang=lang,
+        return cls(url, ws, loop, client_session, lang=lang,
                    username=username, password=password,
                    response_timeout=response_timeout)
 
@@ -222,7 +215,7 @@ class Connection(AbstractConnection):
         """
         await self._semaphore.acquire()
         if traversal_source is None:
-            traversal_source = self._traversal_source
+            traversal_source = {}
         lang = lang or self._lang
         request_id = str(uuid.uuid4())
         message = self._prepare_message(gremlin,
