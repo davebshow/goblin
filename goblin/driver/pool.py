@@ -78,7 +78,7 @@ class PooledConnection:
         self._pool.release(self)
 
     async def close(self):
-        """???"""
+        """Close underlying connection"""
         await self._conn.close()
         self._conn = None
         self._pool = None

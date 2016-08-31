@@ -69,7 +69,3 @@ class Client:
             processor=processor, op=op, **args)
         self._loop.create_task(conn.release_task(resp))
         return resp
-
-    async def close(self):
-        """**coroutine** Close client and ???cluster???"""
-        self._cluster = None
