@@ -22,6 +22,8 @@ import pytest
 from goblin import element
 from goblin.traversal import bindprop
 
+from gremlin_python.process.graph_traversal import __
+
 
 @pytest.mark.asyncio
 async def test_session_close(session):
@@ -326,3 +328,20 @@ class TestTraversalApi:
                 'name', 'leif').one_or_none()
             one = await session.g.V(p1.id).count().one_or_none()
             assert one == 1
+
+    @pytest.mark.asyncio
+    async def test_deserialize_nested_map(self, session, person_class):
+        async with session:
+            await session.g.addV('person').property(
+                person_class.name, 'leif').property('place_of_birth', 'detroit').one_or_none()
+
+            await session.g.addV('person').property(person_class.name, 'David').property(
+                person_class.nicknames, 'davebshow').property(
+                person_class.nicknames, 'Dave').one_or_none()
+
+            resp = await (session.g.V().hasLabel('person')._as('x').valueMap()._as('y')
+                          .select('x', 'y').fold().one_or_none())
+
+            for item in resp:
+                assert isinstance(item['x'], person_class)
+                assert isinstance(item['y'], dict)
