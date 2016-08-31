@@ -30,7 +30,7 @@ from goblin.element import GenericVertex
 logger = logging.getLogger(__name__)
 
 
-class Session(connection.AbstractConnection):
+class Session:
     """
     Provides the main API for interacting with the database. Does not
     necessarily correpsond to a database session. Don't instantiate directly,
@@ -71,19 +71,6 @@ class Session(connection.AbstractConnection):
     @property
     def current(self):
         return self._current
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        self.close()
-
-    def close(self):
-        """
-        """
-        # await self.conn.close()
-        self._conn = None
-        self._app = None
 
     # Traversal API
     @property

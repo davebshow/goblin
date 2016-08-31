@@ -111,10 +111,7 @@ class Goblin:
 
         :returns: :py:class:`Session<goblin.session.Session>` object
         """
-        if not use_session:
-            conn = await self._cluster.connect()
-        else:
-            conn = await self._cluster.get_connection()
+        conn = await self._cluster.connect()
         transactions = await self.supports_transactions()
         return session.Session(self,
                                conn,

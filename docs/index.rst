@@ -115,20 +115,19 @@ database::
 
     >>> async def go(app):
     ...     session = await app.session()
-    ...     async with session:
-    ...         leif = Person()
-    ...         leif.name = 'Leif'
-    ...         leif.age = 28
-    ...         jon = Person()
-    ...         jon.name = 'Jonathan'
-    ...         works_with = Knows(leif, jon)
-    ...         session.add(leif, jon, works_with)
-    ...         await session.flush()
-    ...         result = await session.g.E(works_with.id).one_or_none()
-    ...         assert result is works_with
-    ...         people = await session.traversal(Person).all()  # element class based traversal source
-    ...         async for person in people:
-    ...             print(person)
+    ...     leif = Person()
+    ...     leif.name = 'Leif'
+    ...     leif.age = 28
+    ...     jon = Person()
+    ...     jon.name = 'Jonathan'
+    ...     works_with = Knows(leif, jon)
+    ...     session.add(leif, jon, works_with)
+    ...     await session.flush()
+    ...     result = await session.g.E(works_with.id).one_or_none()
+    ...     assert result is works_with
+    ...     people = await session.traversal(Person).all()  # element class based traversal source
+    ...     async for person in people:
+    ...         print(person)
 
 
     >>> loop.run_until_complete(go(app))
