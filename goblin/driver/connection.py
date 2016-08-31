@@ -217,7 +217,6 @@ class Connection(AbstractConnection):
 
         :returns: :py:class:`Response` object
         """
-        import ipdb; ipdb.set_trace()
         await self._semaphore.acquire()
         request_id = str(uuid.uuid4())
         message = self._prepare_message(
@@ -239,7 +238,6 @@ class Connection(AbstractConnection):
             'args': args
         }
         message = json.dumps(message)
-        mime_len = hex(len(mime_type))
         mime_len = '\x10'
         message = b''.join([mime_len.encode('utf-8'),
                             mime_type.encode('utf-8'),
