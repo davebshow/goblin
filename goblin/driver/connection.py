@@ -26,6 +26,7 @@ import uuid
 import aiohttp
 
 from goblin import exception
+from goblin.driver import serializer
 
 
 logger = logging.getLogger(__name__)
@@ -129,7 +130,8 @@ class Connection(AbstractConnection):
         one time on the connection
     """
     def __init__(self, url, ws, loop, client_session, *, response_timeout=None,
-                 username=None, password=None, max_inflight=64):
+                 username=None, password=None, max_inflight=64,
+                 message_serializer=serializer.GraphSONMessageSerializer):
         self._url = url
         self._ws = ws
         self._loop = loop
@@ -142,6 +144,10 @@ class Connection(AbstractConnection):
         self._receive_task = self._loop.create_task(self._receive())
         self._semaphore = asyncio.Semaphore(value=max_inflight,
                                             loop=self._loop)
+        if isinstance(message_serializer, type):
+            message_serializer = message_serializer()
+        self._message_serializer = message_serializer
+
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None, username='',
@@ -189,21 +195,20 @@ class Connection(AbstractConnection):
                      *,
                      processor='',
                      op='eval',
-                     mime_type='application/json',
                      **args):
         """
         Submit a script and bindings to the Gremlin Server
         :param str processor: Gremlin Server processor argument
         :param str op: Gremlin Server op argument
-        :param args: Arguments for Gremlin Server. Depend on processor and
-            op.
+        :param args: Keyword arguments for Gremlin Server. Depend on processor
+            and op.
 
         :returns: :py:class:`Response` object
         """
         await self._semaphore.acquire()
         request_id = str(uuid.uuid4())
-        message = self._prepare_message(
-            request_id, processor, op, mime_type, **args)
+        message = self._message_serializer.serialize_message(
+            request_id, processor, op, **args)
         response_queue = asyncio.Queue(loop=self._loop)
         self._response_queues[request_id] = response_queue
         if self._ws.closed:
@@ -213,27 +218,12 @@ class Connection(AbstractConnection):
         self._loop.create_task(self._terminate_response(resp, request_id))
         return resp
 
-    def _prepare_message(self, request_id, processor, op, mime_type, **args):
-        message = {
-            'requestId': request_id,
-            'processor': processor,
-            'op': op,
-            'args': args
-        }
-        message['args'].update({'lang': 'gremlin-groovy'})
-        message = json.dumps(message)
-        mime_len = '\x10'
-        message = b''.join([mime_len.encode('utf-8'),
-                            mime_type.encode('utf-8'),
-                            message.encode('utf-8')])
-        return message
-
     def _authenticate(self, username, password, session):
         auth = b''.join([b'\x00', username.encode('utf-8'),
                          b'\x00', password.encode('utf-8')])
         request_id = str(uuid.uuid4())
         args = {'sasl': base64.b64encode(auth).decode()}
-        message = self._prepare_message(
+        message = self._message_serializer.serialize_message(
             request_id, '', 'authentication', **args)
         self._ws.send_bytes(message, binary=True)
 

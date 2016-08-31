@@ -1,3 +1,21 @@
+# Copyright 2016 ZEROFAIL
+#
+# This file is part of Goblin.
+#
+# Goblin is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Goblin is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
+
+
 class Client:
     """
     Client that utilizes a :py:class:`Cluster<goblin.driver.cluster.Cluster>`
@@ -36,19 +54,19 @@ class Client:
                      *,
                      processor='',
                      op='eval',
-                     mime_type='application/json',
                      **args):
         """
         **coroutine** Submit a script and bindings to the Gremlin Server.
         :param str processor: Gremlin Server processor argument
         :param str op: Gremlin Server op argument
-        :param args: Arguments for Gremlin Server. Depend on processor and
-            op.
+        :param args: Keyword arguments for Gremlin Server. Depend on processor
+            and op.
+
         :returns: :py:class:`Response` object
         """
         conn = await self.cluster.get_connection()
         resp = await conn.submit(
-            processor=processor, op=op, mime_type=mime_type, **args)
+            processor=processor, op=op, **args)
         self._loop.create_task(conn.release_task(resp))
         return resp
 

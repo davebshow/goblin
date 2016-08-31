@@ -1,3 +1,20 @@
+# Copyright 2016 ZEROFAIL
+#
+# This file is part of Goblin.
+#
+# Goblin is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Goblin is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import collections
 
@@ -40,21 +57,18 @@ class PooledConnection:
                      *,
                      processor='',
                      op='eval',
-                     mime_type='application/json',
-                     **kwargs):
+                     **args):
         """
         **coroutine** Submit a script and bindings to the Gremlin Server
 
-        :param str gremlin: Gremlin script to submit to server.
-        :param dict bindings: A mapping of bindings for Gremlin script.
-        :param dict traversal_source: ``TraversalSource`` objects to different
-            variable names in the current request.
-        :param str session: Session id (optional). Typically a uuid
+        :param str processor: Gremlin Server processor argument
+        :param str op: Gremlin Server op argument
+        :param args: Keyword arguments for Gremlin Server. Depend on processor
+            and op.
 
         :returns: :py:class:`Response` object
         """
-        return await self._conn.submit(processor=processor, op=op,
-                                       mime_type=mime_type, **kwargs)
+        return await self._conn.submit(processor=processor, op=op, **args)
 
     async def release_task(self, resp):
         await resp.done.wait()
