@@ -208,6 +208,7 @@ class Connection(AbstractConnection):
         request_id = str(uuid.uuid4())
         message = self._message_serializer.serialize_message(
             request_id, processor, op, **args)
+        logger.debug(message)
         response_queue = asyncio.Queue(loop=self._loop)
         self._response_queues[request_id] = response_queue
         if self._ws.closed:

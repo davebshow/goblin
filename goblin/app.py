@@ -58,9 +58,11 @@ class Goblin:
         self._get_hashable_id = get_hashable_id
 
     @classmethod
-    async def open(cls, loop, *, get_hashable_id=None, **config):
+    async def open(cls, loop, *, get_hashable_id=None, traversal_source=None,
+                   **config):
         cluster = await driver.Cluster.open(loop, **config)
-        app = Goblin(cluster, get_hashable_id=get_hashable_id)
+        app = Goblin(cluster, get_hashable_id=get_hashable_id,
+                     traversal_source=traversal_source)
         await app.supports_transactions()
         return app
 
