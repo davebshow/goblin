@@ -26,13 +26,19 @@ class Client:
         client
     :param asyncio.BaseEventLoop loop:
     """
-    def __init__(self, cluster, loop):
+    def __init__(self, cluster, loop, *, aliases=None,
+                 processor=None, op=None):
         self._cluster = cluster
         self._loop = loop
-        self._traversal_source = {}
-
-    def set_traversal_source(self, traversal_source):
-        self._traversal_source = traversal_source
+        if aliases is None:
+            aliases ={}
+        self._aliases = aliases
+        if processor is None:
+            processor = ''
+        self._processor = processor
+        if op is None:
+            op = 'eval'
+        self._op = op
 
     @property
     def cluster(self):
@@ -45,15 +51,15 @@ class Client:
         """
         return self._cluster
 
-    def alias(self, traversal_source):
-        client = Client(self._cluster, self._loop)
-        client.set_traversal_source(traversal_source)
+    def alias(self, aliases):
+        client = Client(self._cluster, self._loop,
+                        aliases=aliases)
         return client
 
     async def submit(self,
                      *,
-                     processor='',
-                     op='eval',
+                     processor=None,
+                     op=None,
                      **args):
         """
         **coroutine** Submit a script and bindings to the Gremlin Server.
@@ -64,6 +70,12 @@ class Client:
 
         :returns: :py:class:`Response` object
         """
+        processor = processor or self._processor
+        op = op or self._op
+        # Certain traversal processor ops don't support this arg
+        if not args.get('aliases') and op not in ['keys', 'close',
+                                                  'authentication']:
+            args['aliases'] = self._aliases
         conn = await self.cluster.get_connection()
         resp = await conn.submit(
             processor=processor, op=op, **args)

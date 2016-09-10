@@ -49,3 +49,9 @@ async def test_transaction_discovery(app):
 async def test_translator(app):
     assert isinstance(app.translator, process.GroovyTranslator)
     await app.close()
+
+@pytest.mark.asyncio
+async def test_aliases(app):
+    session = await app.session()
+    assert session._conn._aliases == {'g': 'g'}
+    await app.close()

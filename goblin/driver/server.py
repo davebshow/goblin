@@ -26,8 +26,33 @@ class GremlinServer:
     :param pool.ConnectionPool pool:
     """
 
-    def __init__(self, pool):
-        self._pool = pool
+    def __init__(self, url, loop, **config):
+        self._pool = None
+        self._url = url
+        self._loop = loop
+        self._response_timeout = config['response_timeout']
+        self._username = config['username']
+        self._password = config['password']
+        self._max_times_acquired = config['max_times_acquired']
+        self._max_conns = config['max_conns']
+        self._min_conns = config['min_conns']
+        self._max_inflight = config['max_inflight']
+        self._message_serializer = config['message_serializer']
+        scheme = config['scheme']
+        if scheme in ['https', 'wss']:
+            certfile = config['ssl_certfile']
+            keyfile = config['ssl_keyfile']
+            ssl_password = config['ssl_password']
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+            ssl_context.load_cert_chain(
+                certfile, keyfile=keyfile, password=ssl_password)
+            self._ssl_context = ssl_context
+        else:
+            self._ssl_context = None
+
+    @property
+    def url(self):
+        return self._url
 
     @property
     def pool(self):
@@ -36,20 +61,34 @@ class GremlinServer:
 
         :returns: :py:class:`ConnectionPool<goblin.driver.pool.ConnectionPool>`
         """
+        if self._pool:
+            return self._pool
+
     async def close(self):
         """**coroutine** Close underlying connection pool."""
-        await self._pool.close()
+        if self._pool:
+            await self._pool.close()
+            self._pool = None
 
     async def connect(self):
         """**coroutine** Acquire a connection from the pool."""
-        conn = await self._pool.acquire()
+        try:
+            conn = await self._pool.acquire()
+        except AttributeError:
+            raise Exception("Please initialize pool")
         return conn
 
+    async def initialize(self):
+        conn_pool = pool.ConnectionPool(
+            self._url, self._loop, self._ssl_context, self._username,
+            self._password, self._max_conns, self._min_conns,
+            self._max_times_acquired, self._max_inflight,
+            self._response_timeout, self._message_serializer)
+        await conn_pool.init_pool()
+        self._pool = conn_pool
+
     @classmethod
-    async def open(cls, url, loop, *, ssl_context=None,
-                   username='', password='', response_timeout=None,
-                   max_conns=4, min_conns=1, max_times_acquired=16,
-                   max_inflight=64):
+    async def open(cls, url, loop, **config):
         """
         **coroutine** Establish connection pool and host to Gremlin Server.
 
@@ -68,10 +107,7 @@ class GremlinServer:
 
         :returns: :py:class:`GremlinServer`
         """
-        conn_pool = pool.ConnectionPool(
-            url, loop, ssl_context=ssl_context, username=username,
-            password=password, max_conns=max_conns, min_conns=min_conns,
-            max_times_acquired=max_times_acquired, max_inflight=max_inflight,
-            response_timeout=response_timeout)
-        await conn_pool.init_pool()
-        return cls(conn_pool)
+
+        host = cls(url, loop, **config)
+        await host.initialize()
+        return host

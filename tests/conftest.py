@@ -17,7 +17,7 @@
 import asyncio
 import pytest
 from goblin import Goblin, driver, element, properties, Cardinality
-from goblin.driver import pool
+from goblin.driver import pool, serializer
 from gremlin_python import process
 
 
@@ -60,19 +60,21 @@ def gremlin_server():
 
 @pytest.fixture
 def unused_server_url(unused_tcp_port):
-    return 'http://localhost:{}/'.format(unused_tcp_port)
+    return 'http://localhost:{}/gremlin'.format(unused_tcp_port)
 
 
 @pytest.fixture
 def connection(event_loop):
     conn = event_loop.run_until_complete(
-        driver.Connection.open("http://localhost:8182/", event_loop))
+        driver.Connection.open("http://localhost:8182/gremlin", event_loop))
     return conn
 
 
 @pytest.fixture
 def connection_pool(event_loop):
-    return pool.ConnectionPool("http://localhost:8182/", event_loop)
+    return pool.ConnectionPool(
+        "http://localhost:8182/gremlin", event_loop, None, '', '', 4, 1, 16,
+        64, None, serializer.GraphSONMessageSerializer)
 
 
 @pytest.fixture
@@ -89,7 +91,7 @@ def remote_graph(connection):
 @pytest.fixture
 def app(request, event_loop):
     app = event_loop.run_until_complete(
-        Goblin.open(event_loop))
+        Goblin.open(event_loop, aliases={'g': 'g'}))
     app.register(Person, Place, Knows, LivesIn)
     return app
 

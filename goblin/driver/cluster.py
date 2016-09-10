@@ -59,15 +59,18 @@ class Cluster:
         'message_serializer': 'goblin.driver.GraphSONMessageSerializer'
     }
 
-    def __init__(self, loop, **config):
+    def __init__(self, loop, aliases=None, **config):
         self._loop = loop
         self._config = self._get_message_serializer(dict(self.DEFAULT_CONFIG))
         self._config.update(config)
         self._hosts = collections.deque()
         self._closed = False
+        if aliases is None:
+            aliases = {}
+        self._aliases = aliases
 
     @classmethod
-    async def open(cls, loop, *, configfile=None, **config):
+    async def open(cls, loop, *, aliases=None, configfile=None, **config):
         """
         **coroutine** Open a cluster, connecting to all available hosts as
         specified in configuration.
@@ -76,11 +79,15 @@ class Cluster:
         :param str configfile: Optional configuration file in .json or
             .yml format
         """
-        cluster = cls(loop, **config)
+        cluster = cls(loop, aliases=aliases, **config)
         if configfile:
             cluster.config_from_file(configfile)
         await cluster.establish_hosts()
         return cluster
+
+    @property
+    def hosts(self):
+        return self._hosts
 
     @property
     def config(self):
@@ -112,30 +119,10 @@ class Cluster:
         scheme = self._config['scheme']
         hosts = self._config['hosts']
         port = self._config['port']
-        response_timeout = self._config['response_timeout']
-        username = self._config['username']
-        password = self._config['password']
-        max_times_acquired = self._config['max_times_acquired']
-        max_conns = self._config['max_conns']
-        min_conns = self._config['min_conns']
-        max_inflight = self._config['max_inflight']
-        if scheme in ['https', 'wss']:
-            certfile = self._config['ssl_certfile']
-            keyfile = self._config['ssl_keyfile']
-            ssl_password = self._config['ssl_password']
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-            ssl_context.load_cert_chain(
-                certfile, keyfile=keyfile, password=ssl_password)
-        else:
-            ssl_context = None
         for host in hosts:
-            url = '{}://{}:{}/'.format(scheme, host, port)
+            url = '{}://{}:{}/gremlin'.format(scheme, host, port)
             host = await driver.GremlinServer.open(
-                url, self._loop, ssl_context=ssl_context,
-                response_timeout=response_timeout, username=username,
-                password=password, max_times_acquired=max_times_acquired,
-                max_conns=max_conns, min_conns=min_conns,
-                max_inflight=max_inflight)
+                url, self._loop, **dict(self._config))
             self._hosts.append(host)
 
     def config_from_file(self, filename):
@@ -180,15 +167,17 @@ class Cluster:
     def config_from_module(self, filename):
         raise NotImplementedError
 
-    async def connect(self):
+    async def connect(self, processor=None, op=None, aliases=None):
         """
         **coroutine** Get a connected client. Main API method.
 
         :returns: A connected instance of `Client<goblin.driver.client.Client>`
         """
+        aliases = aliases or self._aliases
         if not self._hosts:
             await self.establish_hosts()
-        return driver.Client(self, self._loop)
+        return driver.Client(self, self._loop, processor=processor, op=op,
+                             aliases=aliases)
 
     async def close(self):
         """**coroutine** Close cluster and all connected hosts."""

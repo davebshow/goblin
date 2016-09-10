@@ -41,7 +41,7 @@ class Goblin:
     """
 
     def __init__(self, cluster, *, translator=None, traversal_source=None,
-                 get_hashable_id=None):
+                 get_hashable_id=None, aliases=None):
         self._cluster = cluster
         self._loop = self._cluster._loop
         self._traversal_source = traversal_source
@@ -56,10 +56,13 @@ class Goblin:
         if not get_hashable_id:
             get_hashable_id = lambda x: x
         self._get_hashable_id = get_hashable_id
+        if aliases is None:
+            aliases = {}
+        self._aliases = aliases
 
     @classmethod
-    async def open(cls, loop, *, get_hashable_id=None, **config):
-        cluster = await driver.Cluster.open(loop, **config)
+    async def open(cls, loop, *, get_hashable_id=None, aliases=None, **config):
+        cluster = await driver.Cluster.open(loop, aliases=aliases, **config)
         app = Goblin(cluster, get_hashable_id=get_hashable_id)
         await app.supports_transactions()
         return app
@@ -103,7 +106,8 @@ class Goblin:
     def register_from_module(self, modulename):
         pass
 
-    async def session(self, *, use_session=False):
+    async def session(self, *, use_session=False, processor='', op='eval',
+                      aliases=None):
         """
         Create a session object.
 
@@ -111,21 +115,21 @@ class Goblin:
 
         :returns: :py:class:`Session<goblin.session.Session>` object
         """
-        conn = await self._cluster.connect()
+        conn = await self._cluster.connect(processor=processor, op=op,
+                                           aliases=aliases)
         transactions = await self.supports_transactions()
         return session.Session(self,
                                conn,
                                self._get_hashable_id,
                                transactions,
-                               use_session=use_session,
-                               traversal_source=self._traversal_source)
+                               use_session=use_session)
 
     async def supports_transactions(self):
         if self._transactions is None:
             conn = await self._cluster.get_connection()
             stream = await conn.submit(
                 gremlin='graph.features().graph().supportsTransactions()',
-                traversal_source=self._traversal_source)
+                aliases=self._aliases)
             msg = await stream.fetch_data()
             stream.close()
             self._transactions = msg

@@ -30,7 +30,7 @@ from goblin.element import GenericVertex
 logger = logging.getLogger(__name__)
 
 
-class Session:
+class Session(connection.AbstractConnection):
     """
     Provides the main API for interacting with the database. Does not
     necessarily correpsond to a database session. Don't instantiate directly,
@@ -42,12 +42,11 @@ class Session:
     """
 
     def __init__(self, app, conn, get_hashable_id, transactions, *,
-                 use_session=False, traversal_source=None):
+                 use_session=False):
         self._app = app
         self._conn = conn
         self._loop = self._app._loop
         self._use_session = False
-        self._traversal_source = traversal_source or dict()
         self._pending = collections.deque()
         self._current = weakref.WeakValueDictionary()
         self._get_hashable_id = get_hashable_id
@@ -71,6 +70,18 @@ class Session:
     @property
     def current(self):
         return self._current
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.close()
+
+    def close(self):
+        """
+        """
+        self._conn = None
+        self._app = None
 
     # Traversal API
     @property
@@ -97,10 +108,6 @@ class Session:
         return self.traversal_factory.traversal(element_class=element_class)
 
     async def submit(self,
-                     *,
-                     processor='',
-                     op='eval',
-                     mime_type='application/json',
                      **args):
         """
         Submit a query to the Gremiln Server.
@@ -113,8 +120,7 @@ class Session:
             object
         """
         await self.flush()
-        async_iter = await self.conn.submit(
-            processor=processor, op=op, mime_type=mime_type, **args)
+        async_iter = await self.conn.submit(**args)
         response_queue = asyncio.Queue(loop=self._loop)
         self._loop.create_task(
             self._receive(async_iter, response_queue))
@@ -303,8 +309,7 @@ class Session:
     # *metodos especiales privados for creation API
     async def _simple_traversal(self, traversal, element):
         stream = await self.conn.submit(
-            gremlin=repr(traversal), bindings=traversal.bindings,
-            traversal_source=self._traversal_source)
+            gremlin=repr(traversal), bindings=traversal.bindings)
         msg = await stream.fetch_data()
         stream.close()
         if msg:
@@ -353,8 +358,7 @@ class Session:
     async def _check_vertex(self, vertex):
         """Used to check for existence, does not update session vertex"""
         traversal = self.g.V(vertex.id)
-        stream = await self.conn.submit(
-            gremlin=repr(traversal), traversal_source=self._traversal_source)
+        stream = await self.conn.submit(gremlin=repr(traversal))
         msg = await stream.fetch_data()
         stream.close()
         return msg
@@ -362,8 +366,7 @@ class Session:
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
         traversal = self.g.E(edge.id)
-        stream = await self.conn.submit(
-            gremlin=repr(traversal), traversal_source=self._traversal_source)
+        stream = await self.conn.submit(gremlin=repr(traversal))
         msg = await stream.fetch_data()
         stream.close()
         return msg
@@ -399,8 +402,7 @@ class Session:
                     traversal = self.g.V(result.id).properties(
                         db_name).hasValue(value).property(key, val)
                     stream = await self.conn.submit(
-                        gremlin=repr(traversal), bindings=traversal.bindings,
-                        traversal_source=self._traversal_source)
+                        gremlin=repr(traversal), bindings=traversal.bindings)
                     await stream.fetch_data()
                     stream.close()
                 else:

@@ -129,9 +129,8 @@ class Connection(AbstractConnection):
     :param int max_inflight: Maximum number of unprocessed requests at any
         one time on the connection
     """
-    def __init__(self, url, ws, loop, client_session, *, response_timeout=None,
-                 username=None, password=None, max_inflight=64,
-                 message_serializer=serializer.GraphSONMessageSerializer):
+    def __init__(self, url, ws, loop, client_session, username, password,
+                 max_inflight, response_timeout, message_serializer):
         self._url = url
         self._ws = ws
         self._loop = loop
@@ -151,7 +150,8 @@ class Connection(AbstractConnection):
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None, username='',
-                   password='', max_inflight=64, response_timeout=None):
+                   password='', max_inflight=64, response_timeout=None,
+                   message_serializer=serializer.GraphSONMessageSerializer):
         """
         **coroutine** Open a connection to the Gremlin Server.
 
@@ -170,8 +170,8 @@ class Connection(AbstractConnection):
         connector = aiohttp.TCPConnector(ssl_context=ssl_context, loop=loop)
         client_session = aiohttp.ClientSession(loop=loop, connector=connector)
         ws = await client_session.ws_connect(url)
-        return cls(url, ws, loop, client_session, username=username,
-                   password=password, response_timeout=response_timeout)
+        return cls(url, ws, loop, client_session, username, password,
+                   max_inflight, response_timeout, message_serializer)
 
     @property
     def closed(self):

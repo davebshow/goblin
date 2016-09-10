@@ -31,4 +31,5 @@ class GraphSONMessageSerializer:
         mime_len = b'\x10'
         mime_type = b'application/json'
         message = b''.join([mime_len, mime_type, message.encode('utf-8')])
+        print(message)
         return message
