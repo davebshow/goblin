@@ -136,9 +136,6 @@ class Cluster:
         elif filename.endswith('.json'):
             self.config_from_json(filename)
         else:
-            # try:
-            #     self.config_from_module(filename)
-            # except:
             raise exception.ConfigurationError('Unknown config file format')
 
     def config_from_yaml(self, filename):
