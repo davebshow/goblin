@@ -20,7 +20,7 @@ setup(
     ],
     test_suite="tests",
     setup_requires=['pytest-runner'],
-    tests_require=['pytest-asyncio', 'pytest>=3.0.2'],
+    tests_require=['pytest-asyncio', 'pytest'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
