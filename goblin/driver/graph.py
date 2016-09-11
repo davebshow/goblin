@@ -68,11 +68,6 @@ class AsyncGraphTraversal(GraphTraversal):
     async def __aiter__(self):
         return self
 
-    async def __await__(self):
-        if self.traversers is None:
-            await self._get_traversers()
-        return self
-
     async def __anext__(self):
         if self.traversers is None:
             await self._get_traversers()

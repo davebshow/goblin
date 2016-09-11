@@ -235,7 +235,7 @@ class TestTraversalApi:
         jon = person_class()
         session.add(dave, leif, jon)
         await session.flush()
-        resp = await session.traversal(person_class)
+        resp = session.traversal(person_class)
         results = []
         async for msg in resp:
             assert isinstance(msg, person_class)
