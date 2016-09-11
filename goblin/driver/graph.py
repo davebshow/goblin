@@ -17,6 +17,8 @@
 
 """A temporary solution to allow integration with gremlin_python package."""
 
+import functools
+
 from gremlin_python.process.graph_traversal import (
     GraphTraversal, GraphTraversalSource)
 from gremlin_python.process.traversal import TraversalStrategies
@@ -27,8 +29,16 @@ from goblin.driver.serializer import GraphSON2MessageSerializer
 
 
 class AsyncRemoteTraversalSideEffects(RemoteTraversalSideEffects):
-    pass
 
+    def __init__(self, keys_lambda, value_lambda):
+        self.keys_lambda = keys_lambda
+        self.value_lambda = value_lambda
+
+    async def keys(self):
+        return await self.keys_lambda()
+
+    async def get(self, key):
+        return await self.value_lambda(key)
 
 
 class AsyncRemoteStrategy(RemoteStrategy):
@@ -38,16 +48,19 @@ class AsyncRemoteStrategy(RemoteStrategy):
                       GraphSON2MessageSerializer):
             processor = 'traversal'
             op = 'bytecode'
-            side_effects = RemoteTraversal
+            side_effects = AsyncRemoteTraversalSideEffects
         else:
             processor = ''
             op = 'eval'
             side_effects = None
         if traversal.traversers is None:
-            remote_traversal = await self.remote_connection.submit(
+            resp = await self.remote_connection.submit(
                 gremlin=traversal.bytecode, processor=processor, op=op)
+            traversal.traversers = resp
+            if side_effects:
+                pass
             traversal.side_effects = side_effects
-            traversal.traversers = remote_traversal#.traversers
+
 
 
 class AsyncGraphTraversal(GraphTraversal):

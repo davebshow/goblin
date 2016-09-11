@@ -126,7 +126,8 @@ class Session(connection.AbstractConnection):
         response_queue = asyncio.Queue(loop=self._loop)
         self._loop.create_task(
             self._receive(async_iter, response_queue))
-        return traversal.TraversalResponse(response_queue)
+        return traversal.TraversalResponse(response_queue,
+                                           async_iter.request_id)
 
     async def _receive(self, async_iter, response_queue):
         while True:
@@ -317,7 +318,7 @@ class Session(connection.AbstractConnection):
     async def _simple_traversal(self, traversal, element):
         stream = await self.conn.submit(
             gremlin=traversal.bytecode)
-        msg = await stream.fetch_data()    
+        msg = await stream.fetch_data()
         stream.close()
         if msg:
             msg = msg.object

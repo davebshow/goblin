@@ -61,8 +61,8 @@ class Response:
         self._done = asyncio.Event(loop=self._loop)
 
     @property
-    def response_id(self):
-        return self._reponse_id
+    def request_id(self):
+        return self._request_id
 
     @property
     def done(self):

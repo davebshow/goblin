@@ -51,9 +51,14 @@ def bindprop(element_class, ogm_name, val, *, binding=None):
 
 class TraversalResponse:
     """Asynchronous iterator that encapsulates a traversal response queue"""
-    def __init__(self, response_queue):
+    def __init__(self, response_queue, request_id):
         self._queue = response_queue
+        self._request_id = request_id
         self._done = False
+
+    @property
+    def request_id(self):
+        return self._request_id
 
     async def __aiter__(self):
         return self
