@@ -53,11 +53,16 @@ def error_handler(fn):
 
 class Response:
     """Gremlin Server response implementated as an async iterator."""
-    def __init__(self, response_queue, timeout, loop):
+    def __init__(self, response_queue, request_id, timeout, loop):
         self._response_queue = response_queue
+        self._request_id = request_id
         self._loop = loop
         self._timeout = timeout
         self._done = asyncio.Event(loop=self._loop)
+
+    @property
+    def response_id(self):
+        return self._reponse_id
 
     @property
     def done(self):
@@ -216,7 +221,7 @@ class Connection(AbstractConnection):
         if self._ws.closed:
             self._ws = await self.client_session.ws_connect(self.url)
         self._ws.send_bytes(message)
-        resp = Response(response_queue, self._response_timeout, self._loop)
+        resp = Response(response_queue, request_id, self._response_timeout, self._loop)
         self._loop.create_task(self._terminate_response(resp, request_id))
         return resp
 
