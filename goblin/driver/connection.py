@@ -42,7 +42,7 @@ def error_handler(fn):
     async def wrapper(self):
         msg = await fn(self)
         if msg:
-            if msg.status_code not in [200, 206, 204]:
+            if msg.status_code not in [200, 206]:
                 self.close()
                 raise exception.GremlinServerError(
                     "{0}: {1}".format(msg.status_code, msg.message))
