@@ -40,11 +40,9 @@ class Goblin:
     :param dict config: Config parameters for application
     """
 
-    def __init__(self, cluster, *, traversal_source=None, get_hashable_id=None,
-                 aliases=None):
+    def __init__(self, cluster, *, get_hashable_id=None, aliases=None):
         self._cluster = cluster
         self._loop = self._cluster._loop
-        self._traversal_source = traversal_source
         self._transactions = None
         self._cluster = cluster
         self._vertices = collections.defaultdict(
