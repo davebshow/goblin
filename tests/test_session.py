@@ -157,7 +157,7 @@ class TestCreationApi:
         result = await session.g.V(rid).one_or_none()
         assert not result
         await app.close()
-
+#
     @pytest.mark.asyncio
     async def test_remove_edge(self, app, person_class, place_class,
                                lives_in_class):
@@ -235,7 +235,7 @@ class TestTraversalApi:
         jon = person_class()
         session.add(dave, leif, jon)
         await session.flush()
-        resp = await session.traversal(person_class).all()
+        resp = await session.traversal(person_class)
         results = []
         async for msg in resp:
             assert isinstance(msg, person_class)

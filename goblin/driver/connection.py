@@ -42,7 +42,7 @@ def error_handler(fn):
     async def wrapper(self):
         msg = await fn(self)
         if msg:
-            if msg.status_code not in [200, 206]:
+            if msg.status_code not in [200, 206, 204]:
                 self.close()
                 raise exception.GremlinServerError(
                     "{0}: {1}".format(msg.status_code, msg.message))
@@ -74,7 +74,7 @@ class Response:
     async def __anext__(self):
         msg = await self.fetch_data()
         if msg:
-            return msg
+            return msg.object
         else:
             raise StopAsyncIteration
 
@@ -269,9 +269,11 @@ class Connection(AbstractConnection):
                 else:
                     if data:
                         for result in data:
+                            result = self._message_serializer.deserialize_message(result)
                             message = Message(status_code, result, msg)
                             response_queue.put_nowait(message)
                     else:
+                        data = self._message_serializer.deserialize_message(data)
                         message = Message(status_code, data, msg)
                         response_queue.put_nowait(message)
                     if status_code != 206:

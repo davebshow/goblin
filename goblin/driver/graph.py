@@ -52,8 +52,46 @@ class AsyncRemoteStrategy(RemoteStrategy):
 
 class AsyncGraphTraversal(GraphTraversal):
 
-    # def __init__(self, graph, traversal_strategies, bytecode):
-    #     GraphTraversal.__init__(self, graph, traversal_strategies, bytecode)
+    async def __aiter__(self):
+        return self
+
+    async def __await__(self):
+        if self.traversers is None:
+            await self._get_traversers()
+        return self
+
+    async def __anext__(self):
+        if self.traversers is None:
+            await self._get_traversers()
+        if self.last_traverser is None:
+            self.last_traverser = await self.traversers.fetch_data()
+            if self.last_traverser is None:
+                raise StopAsyncIteration
+        obj = self.last_traverser.object
+        self.last_traverser.bulk = self.last_traverser.bulk - 1
+        if self.last_traverser.bulk <= 0:
+            self.last_traverser = None
+        return obj
+
+    async def _get_traversers(self):
+        for ts in self.traversal_strategies.traversal_strategies:
+            await ts.apply(self)
+
+    async def next(self, amount=None):
+        if amount is None:
+            try:
+                return await self.__anext__()
+            except StopAsyncIteration:
+                pass
+        else:
+            count = 0
+            tempList = []
+            while count < amount:
+                count = count + 1
+                try: temp = await self.__anext__()
+                except StopIteration: return tempList
+                tempList.append(temp)
+            return tempList
 
     def toList(self):
         raise NotImplementedError
@@ -61,10 +99,11 @@ class AsyncGraphTraversal(GraphTraversal):
     def toSet(self):
         raise NotImplementedError
 
-    async def next(self):
-        for ts in self.traversal_strategies.traversal_strategies:
-            await ts.apply(self)
-        return self.traversers
+    def iterate(self):
+        raise NotImplementedError
+
+    def nextTraverser(self):
+        raise NotImplementedError
 
 
 class AsyncGraph(Graph):

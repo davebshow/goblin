@@ -17,7 +17,7 @@
 
 import json
 
-from gremlin_python.process.traversal import Bytecode
+from gremlin_python.process.traversal import Bytecode, Traverser
 from gremlin_python.process.translator import GroovyTranslator
 
 
@@ -73,6 +73,9 @@ class GraphSONMessageSerializer:
         mime_type = b'application/json'
         message = b''.join([mime_len, mime_type, message.encode('utf-8')])
         return message
+
+    def deserialize_message(self, message):
+        return Traverser(message)
 
 class GraphSON2MessageSerializer(GraphSONMessageSerializer):
     pass

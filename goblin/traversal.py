@@ -61,24 +61,20 @@ class TraversalResponse:
     async def __anext__(self):
         if self._done:
             return
-        msg = await self._queue.get()
+        msg = await self.fetch_data()
         if msg:
             return msg
         else:
             self._done = True
             raise StopAsyncIteration
 
+    async def fetch_data(self):
+        return await self._queue.get()
+
 
 # This is all until we figure out GLV integration...
 class GoblinTraversal(graph.AsyncGraphTraversal):
 
-    async def all(self):
-        """
-        Get all results from traversal.
-
-        :returns: :py:class:`TraversalResponse` object
-        """
-        return await self.next()
 
     async def one_or_none(self):
         """
@@ -87,7 +83,7 @@ class GoblinTraversal(graph.AsyncGraphTraversal):
         :returns: :py:class:`Element<goblin.element.Element>` object
         """
         result = None
-        async for msg in await self.next():
+        async for msg in self:
             result = msg
         return result
 

@@ -129,22 +129,27 @@ class Session(connection.AbstractConnection):
         return traversal.TraversalResponse(response_queue)
 
     async def _receive(self, async_iter, response_queue):
-        async for result in async_iter:
-            if (isinstance(result, dict) and
-                    result.get('type', '') in ['vertex', 'edge']):
-                hashable_id = self._get_hashable_id(result['id'])
+        while True:
+            result = await async_iter.fetch_data()
+            if result is None:
+                break
+            obj = result.object
+            if (isinstance(obj, dict) and
+                    obj.get('type', '') in ['vertex', 'edge']):
+                hashable_id = self._get_hashable_id(obj['id'])
                 current = self.current.get(hashable_id, None)
                 if not current:
-                    element_type = result['type']
-                    label = result['label']
+                    element_type = obj['type']
+                    label = obj['label']
                     if element_type == 'vertex':
                         current = self.app.vertices[label]()
                     else:
                         current = self.app.edges[label]()
                         current.source = GenericVertex()
                         current.target = GenericVertex()
-                element = current.__mapping__.mapper_func(result, current)
-                response_queue.put_nowait(element)
+                element = current.__mapping__.mapper_func(obj, current)
+                result.object = element
+                response_queue.put_nowait(result)
             else:
                 response_queue.put_nowait(result)
         response_queue.put_nowait(None)
@@ -312,9 +317,10 @@ class Session(connection.AbstractConnection):
     async def _simple_traversal(self, traversal, element):
         stream = await self.conn.submit(
             gremlin=traversal.bytecode)
-        msg = await stream.fetch_data()
+        msg = await stream.fetch_data()    
         stream.close()
         if msg:
+            msg = msg.object
             msg = element.__mapping__.mapper_func(msg, element)
             return msg
 
@@ -363,7 +369,7 @@ class Session(connection.AbstractConnection):
         stream = await self.conn.submit(gremlin=traversal.bytecode)
         msg = await stream.fetch_data()
         stream.close()
-        return msg
+        return msg.object
 
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
@@ -371,7 +377,7 @@ class Session(connection.AbstractConnection):
         stream = await self.conn.submit(gremlin=traversal.bytecode)
         msg = await stream.fetch_data()
         stream.close()
-        return msg
+        return msg.object
 
     async def _update_vertex_properties(self, vertex, traversal, props):
         traversal, removals, metaprops = self.traversal_factory.add_properties(
