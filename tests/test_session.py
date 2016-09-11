@@ -21,6 +21,7 @@ import pytest
 
 from goblin import element
 from goblin.traversal import bindprop
+from gremlin_python.process.translator import GroovyTranslator
 
 
 class TestCreationApi:
@@ -219,9 +220,10 @@ class TestTraversalApi:
                                                knows_class):
         session = await app.session()
         traversal = session.traversal(person_class)
-        assert repr(traversal) == 'g.V().hasLabel("person")'
+        translator = GroovyTranslator('g')
+        assert translator.translate(traversal.bytecode) == 'g.V().hasLabel("person")'
         traversal = session.traversal(knows_class)
-        assert repr(traversal) == 'g.E().hasLabel("knows")'
+        assert translator.translate(traversal.bytecode) == 'g.E().hasLabel("knows")'
         await app.close()
 
 

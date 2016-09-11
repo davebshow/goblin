@@ -45,10 +45,6 @@ async def test_transaction_discovery(app):
     assert app._transactions is not None
     await app.close()
 
-@pytest.mark.asyncio
-async def test_translator(app):
-    assert isinstance(app.translator, process.GroovyTranslator)
-    await app.close()
 
 @pytest.mark.asyncio
 async def test_aliases(app):

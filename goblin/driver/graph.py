@@ -18,17 +18,42 @@
 """A temporary solution to allow integration with gremlin_python package."""
 
 from gremlin_python.process.graph_traversal import (
-    GraphTraversalSource, GraphTraversal)
-from gremlin_python.process.traversal import (
-    TraversalStrategy, TraversalStrategies)
+    GraphTraversal, GraphTraversalSource)
+from gremlin_python.process.traversal import TraversalStrategies
+from gremlin_python.driver.remote_connection import (
+    RemoteStrategy, RemoteTraversalSideEffects)
+from gremlin_python.structure.graph import Graph
+from goblin.driver.serializer import GraphSON2MessageSerializer
+
+
+class AsyncRemoteTraversalSideEffects(RemoteTraversalSideEffects):
+    pass
+
+
+
+class AsyncRemoteStrategy(RemoteStrategy):
+
+    async def apply(self, traversal):
+        if isinstance(self.remote_connection.message_serializer,
+                      GraphSON2MessageSerializer):
+            processor = 'traversal'
+            op = 'bytecode'
+            side_effects = RemoteTraversal
+        else:
+            processor = ''
+            op = 'eval'
+            side_effects = None
+        if traversal.traversers is None:
+            remote_traversal = await self.remote_connection.submit(
+                gremlin=traversal.bytecode, processor=processor, op=op)
+            traversal.side_effects = side_effects
+            traversal.traversers = remote_traversal#.traversers
 
 
 class AsyncGraphTraversal(GraphTraversal):
-    def __init__(self, graph, traversal_strategies, bytecode):
-        GraphTraversal.__init__(self, graph, traversal_strategies, bytecode)
 
-    def __repr__(self):
-        return self.graph.translator.translate(self.bytecode)
+    # def __init__(self, graph, traversal_strategies, bytecode):
+    #     GraphTraversal.__init__(self, graph, traversal_strategies, bytecode)
 
     def toList(self):
         raise NotImplementedError
@@ -37,26 +62,12 @@ class AsyncGraphTraversal(GraphTraversal):
         raise NotImplementedError
 
     async def next(self):
-        resp = await self.traversal_strategies.apply(self)
-        return resp
+        for ts in self.traversal_strategies.traversal_strategies:
+            await ts.apply(self)
+        return self.traversers
 
 
-class AsyncRemoteStrategy(TraversalStrategy):
-    async def apply(self, traversal):
-        result = await traversal.graph.remote_connection.submit(
-            gremlin=traversal.graph.translator.translate(traversal.bytecode),
-            bindings=traversal.bindings,
-            lang=traversal.graph.translator.target_language)
-        return result
-
-
-class AsyncGraph:
-    def traversal(self):
-        return GraphTraversalSource(self, self.traversal_strategy,
-                                    graph_traversal=self.graph_traversal)
-
-
-class AsyncRemoteGraph(AsyncGraph):
+class AsyncGraph(Graph):
     """
     Generate asynchronous gremlin traversals using native Python.
 
@@ -68,24 +79,11 @@ class AsyncRemoteGraph(AsyncGraph):
     :param gremlin_python.process.GraphTraversal graph_traversal:
         Custom graph traversal class
     """
-    def __init__(self, translator, remote_connection, *, graph_traversal=None):
-        self.traversal_strategy = AsyncRemoteStrategy()  # A single traversal strategy
-        self.translator = translator
-        self.remote_connection = remote_connection
+
+    def traversal(self, *, graph_traversal=None):
         if graph_traversal is None:
             graph_traversal = AsyncGraphTraversal
-        self.graph_traversal = graph_traversal
-
-    def __repr__(self):
-        return "remotegraph[" + self.remote_connection.url + "]"
-
-    async def close(self):
-        """Close underlying remote connection"""
-        await self.remote_connection.close()
-        self.remote_connection = None
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.close()
+        return GraphTraversalSource(
+            self, TraversalStrategies.global_cache[self.__class__],
+            remote_strategy=AsyncRemoteStrategy,
+            graph_traversal=graph_traversal)

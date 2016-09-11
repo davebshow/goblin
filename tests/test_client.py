@@ -38,3 +38,4 @@ async def test_alias(cluster):
     assert aliased_client._aliases == {"g": "g1"}
     assert aliased_client._cluster is client._cluster
     assert aliased_client._loop is client._loop
+    await cluster.close()

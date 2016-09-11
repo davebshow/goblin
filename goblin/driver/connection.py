@@ -147,7 +147,6 @@ class Connection(AbstractConnection):
             message_serializer = message_serializer()
         self._message_serializer = message_serializer
 
-
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None, username='',
                    password='', max_inflight=64, response_timeout=None,
@@ -172,6 +171,10 @@ class Connection(AbstractConnection):
         ws = await client_session.ws_connect(url)
         return cls(url, ws, loop, client_session, username, password,
                    max_inflight, response_timeout, message_serializer)
+
+    @property
+    def message_serializer(self):
+        return self._message_serializer
 
     @property
     def closed(self):

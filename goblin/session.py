@@ -50,10 +50,12 @@ class Session(connection.AbstractConnection):
         self._pending = collections.deque()
         self._current = weakref.WeakValueDictionary()
         self._get_hashable_id = get_hashable_id
-        remote_graph = graph.AsyncRemoteGraph(
-            self._app.translator, self,
-            graph_traversal=traversal.GoblinTraversal)
-        self._traversal_factory = traversal.TraversalFactory(remote_graph)
+        self._traversal_factory = traversal.TraversalFactory(
+            graph.AsyncGraph(), self)
+
+    @property
+    def message_serializer(self):
+        return self.conn.message_serializer
 
     @property
     def app(self):
@@ -309,7 +311,7 @@ class Session(connection.AbstractConnection):
     # *metodos especiales privados for creation API
     async def _simple_traversal(self, traversal, element):
         stream = await self.conn.submit(
-            gremlin=repr(traversal), bindings=traversal.bindings)
+            gremlin=traversal.bytecode)
         msg = await stream.fetch_data()
         stream.close()
         if msg:
@@ -358,7 +360,7 @@ class Session(connection.AbstractConnection):
     async def _check_vertex(self, vertex):
         """Used to check for existence, does not update session vertex"""
         traversal = self.g.V(vertex.id)
-        stream = await self.conn.submit(gremlin=repr(traversal))
+        stream = await self.conn.submit(gremlin=traversal.bytecode)
         msg = await stream.fetch_data()
         stream.close()
         return msg
@@ -366,7 +368,7 @@ class Session(connection.AbstractConnection):
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
         traversal = self.g.E(edge.id)
-        stream = await self.conn.submit(gremlin=repr(traversal))
+        stream = await self.conn.submit(gremlin=traversal.bytecode)
         msg = await stream.fetch_data()
         stream.close()
         return msg
@@ -402,7 +404,7 @@ class Session(connection.AbstractConnection):
                     traversal = self.g.V(result.id).properties(
                         db_name).hasValue(value).property(key, val)
                     stream = await self.conn.submit(
-                        gremlin=repr(traversal), bindings=traversal.bindings)
+                        gremlin=traversal.bytecode)
                     await stream.fetch_data()
                     stream.close()
                 else:

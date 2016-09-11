@@ -41,6 +41,10 @@ class Client:
         self._op = op
 
     @property
+    def message_serializer(self):
+        return self.cluster.config['message_serializer']
+
+    @property
     def cluster(self):
         """
         Readonly property.

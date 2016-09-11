@@ -83,9 +83,8 @@ def cluster(event_loop):
 
 
 @pytest.fixture
-def remote_graph(connection):
-     translator = process.GroovyTranslator('g')
-     return driver.AsyncRemoteGraph(translator, connection)
+def remote_graph():
+     return driver.AsyncGraph()
 
 
 @pytest.fixture

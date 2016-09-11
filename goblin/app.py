@@ -40,8 +40,8 @@ class Goblin:
     :param dict config: Config parameters for application
     """
 
-    def __init__(self, cluster, *, translator=None, traversal_source=None,
-                 get_hashable_id=None, aliases=None):
+    def __init__(self, cluster, *, traversal_source=None, get_hashable_id=None,
+                 aliases=None):
         self._cluster = cluster
         self._loop = self._cluster._loop
         self._traversal_source = traversal_source
@@ -50,9 +50,6 @@ class Goblin:
         self._vertices = collections.defaultdict(
             lambda: element.GenericVertex)
         self._edges = collections.defaultdict(lambda: element.GenericEdge)
-        if not translator:
-            translator = process.GroovyTranslator('g')
-        self._translator = translator
         if not get_hashable_id:
             get_hashable_id = lambda x: x
         self._get_hashable_id = get_hashable_id
@@ -80,11 +77,6 @@ class Goblin:
     def edges(self):
         """Registered edge classes"""
         return self._edges
-
-    @property
-    def translator(self):
-        """gremlin-python translator class"""
-        return self._translator
 
     @property
     def url(self):

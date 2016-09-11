@@ -23,7 +23,7 @@ import logging
 
 from goblin import cardinality, element, mapper
 from goblin.driver import connection, graph
-from gremlin_python import process
+from gremlin_python.process.traversal import Cardinality
 
 
 logger = logging.getLogger(__name__)
@@ -94,8 +94,9 @@ class GoblinTraversal(graph.AsyncGraphTraversal):
 
 class TraversalFactory:
     """Helper that wraps a AsyncRemoteGraph"""
-    def __init__(self, graph):
+    def __init__(self, graph, remote_connection):
         self._graph = graph
+        self._remote_connection = remote_connection
 
     @property
     def graph(self):
@@ -112,10 +113,10 @@ class TraversalFactory:
 
         :returns: :py:class:`GoblinTraversal`
         """
-        traversal = self.graph.traversal()
+        traversal = self.graph.traversal(
+            graph_traversal=GoblinTraversal).withRemote(self._remote_connection)
         if element_class:
             label = element_class.__mapping__.label
-            traversal = self._graph.traversal()
             if element_class.__type__ == 'vertex':
                 traversal = traversal.V()
             if element_class.__type__ == 'edge':
@@ -150,11 +151,11 @@ class TraversalFactory:
                 if card:
                     # Maybe use a dict here as a translator
                     if card == cardinality.Cardinality.list:
-                        card = process.Cardinality.list
+                        card = Cardinality.list
                     elif card == cardinality.Cardinality.set:
-                        card = process.Cardinality.set
+                        card = Cardinality.set
                     else:
-                        card = process.Cardinality.single
+                        card = Cardinality.single
                     traversal = traversal.property(card, key, val)
                 else:
                     traversal = traversal.property(key, val)
