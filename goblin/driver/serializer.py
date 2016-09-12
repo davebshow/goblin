@@ -38,7 +38,7 @@ class GraphSONMessageSerializer:
         def authentication(self, args):
             return args
 
-        def eval(self, **args):
+        def eval(self, args):
             gremlin = args['gremlin']
             if isinstance(gremlin, Bytecode):
                 translator = GroovyTranslator('g')
@@ -46,8 +46,10 @@ class GraphSONMessageSerializer:
                 args['bindings'] = gremlin.bindings
             return args
 
+
     class session(standard):
         pass
+
 
     def get_processor(self, processor):
         processor = getattr(self, processor, None)
@@ -61,21 +63,87 @@ class GraphSONMessageSerializer:
         else:
             processor_obj = self.get_processor(processor)
         op_method = processor_obj.get_op(op)
-        args = op_method(**args)
+        args = op_method(args)
+        message = self.build_message(request_id, processor, op, args)
+        return self.finalize_message(message,  b'\x10', b'application/json')
+
+    def build_message(self, request_id, processor, op, args):
         message = {
             'requestId': request_id,
             'processor': processor,
             'op': op,
             'args': args
         }
+        return message
+
+    def finalize_message(self, message, mime_len, mime_type):
         message = json.dumps(message)
-        mime_len = b'\x10'
-        mime_type = b'application/json'
         message = b''.join([mime_len, mime_type, message.encode('utf-8')])
         return message
 
     def deserialize_message(self, message):
         return Traverser(message)
 
+
 class GraphSON2MessageSerializer(GraphSONMessageSerializer):
-    pass
+
+
+    class session:
+
+        def authentication(self, args):
+            return args
+
+        def eval(self, args):
+            gremlin = args['gremlin']
+            if isinstance(gremlin, Bytecode):
+                translator = GroovyTranslator('g')
+                args['gremlin'] = translator.translate(gremlin)
+                args['bindings'] = gremlin.bindings
+            session = args['session']
+            args['session'] = {'@type': 'g:UUID', '@value': session}
+            return args
+
+        def close(self, args):
+            args['session'] = {'@type': 'g:UUID', '@value': session}
+            return args
+
+
+    class traversal:
+
+        def authentication(self, args):
+            return args
+
+        def bytecode(self, args):
+            gremlin = args['gremlin']
+            args['gremlin'] = GraphSONWriter.writeObject(gremlin)
+            aliases = args.get('aliases', '')
+            if not aliases:
+                aliases = {'g': 'g'}
+            args['aliases'] = aliases
+            return args
+
+        def close(self, args):
+            side_effect = args['sideEffect']
+            args['sideEffect'] = {'@type': 'g:UUID', '@value': side_effect}
+            return args
+
+        def gather(self):
+            args['sideEffect'] = {'@type': 'g:UUID', '@value': side_effect}
+            aliases = args.get('aliases', '')
+            if not aliases:
+                aliases = {'g': 'g'}
+            args['aliases'] = aliases
+
+        def keys(self):
+            side_effect = args['sideEffect']
+            args['sideEffect'] = {'@type': 'g:UUID', '@value': side_effect}
+            return args
+
+    def build_message(self, request_id, processor, op, args):
+        message = {
+            'requestId': {'@type': 'g:UUID', '@value': request_id},
+            'processor': processor,
+            'op': op,
+            'args': args
+        }
+        return message

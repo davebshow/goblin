@@ -80,7 +80,6 @@ class TraversalResponse:
 # This is all until we figure out GLV integration...
 class GoblinTraversal(graph.AsyncGraphTraversal):
 
-
     async def one_or_none(self):
         """
         Get one or zero results from a traveral.
