@@ -22,10 +22,7 @@ __author__ = 'Marko A. Rodriguez (http://markorodriguez.com)'
 import json
 from abc import abstractmethod
 from aenum import Enum
-from types import FloatType
 from types import FunctionType
-from types import IntType
-from types import LongType
 
 from gremlin_python import statics
 from gremlin_python.process.traversal import Binding
@@ -37,6 +34,13 @@ from gremlin_python.structure.graph import Edge
 from gremlin_python.structure.graph import Property
 from gremlin_python.structure.graph import Vertex
 from gremlin_python.structure.graph import VertexProperty
+
+
+class long(int): pass
+FloatType = float
+IntType = int
+LongType = long
+
 
 
 class GraphSONWriter(object):

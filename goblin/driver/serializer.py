@@ -19,6 +19,7 @@ import json
 
 from gremlin_python.process.traversal import Bytecode, Traverser
 from gremlin_python.process.translator import GroovyTranslator
+from gremlin_python.structure.io.graphson import GraphSONWriter, GraphSONReader
 
 
 class Processor:
@@ -65,7 +66,7 @@ class GraphSONMessageSerializer:
         op_method = processor_obj.get_op(op)
         args = op_method(args)
         message = self.build_message(request_id, processor, op, args)
-        return self.finalize_message(message,  b'\x10', b'application/json')
+        return message
 
     def build_message(self, request_id, processor, op, args):
         message = {
@@ -74,7 +75,7 @@ class GraphSONMessageSerializer:
             'op': op,
             'args': args
         }
-        return message
+        return self.finalize_message(message,  b'\x10', b'application/json')
 
     def finalize_message(self, message, mime_len, mime_type):
         message = json.dumps(message)
@@ -88,7 +89,7 @@ class GraphSONMessageSerializer:
 class GraphSON2MessageSerializer(GraphSONMessageSerializer):
 
 
-    class session:
+    class session(Processor):
 
         def authentication(self, args):
             return args
@@ -108,7 +109,7 @@ class GraphSON2MessageSerializer(GraphSONMessageSerializer):
             return args
 
 
-    class traversal:
+    class traversal(Processor):
 
         def authentication(self, args):
             return args
@@ -146,4 +147,11 @@ class GraphSON2MessageSerializer(GraphSONMessageSerializer):
             'op': op,
             'args': args
         }
-        return message
+        return self.finalize_message(message, b"\x21",
+                                     b"application/vnd.gremlin-v2.0+json")
+
+    def deserialize_message(self, message):
+        obj = GraphSONReader._objectify(message)
+        if not isinstance(obj, Traverser):
+            obj = Traverser(obj)
+        return obj

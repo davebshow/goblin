@@ -94,7 +94,7 @@ async def test_stream_done(connection):
         assert stream.done
 
 @pytest.mark.asyncio
-async def test_connection(connection):
+async def test_connection_response_timeout(connection):
     async with connection:
         connection._response_timeout = 0.0000001
         with pytest.raises(exception.ResponseTimeoutError):
