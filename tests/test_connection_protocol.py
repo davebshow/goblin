@@ -31,8 +31,9 @@ async def test_eval(remote_graph, connection):
         traversal = "g.addV('person').property('name', 'leifur')"
         resp = await connection.submit(
             processor='', op='eval', gremlin=traversal, scriptEvalTimeout=1)
+
         async for msg in resp:
-            assert msg.label == 'person'
+            assert msg['label'] == 'person'
 
 
 @pytest.mark.asyncio
@@ -119,7 +120,7 @@ async def test_session(connection):
             op='eval',
             session=session)
         async for msg in resp:
-            assert msg.label == 'person'
+            assert msg['label'] == 'person'
         resp = await connection.submit(
             gremlin="v.values('name')",
             processor='session',

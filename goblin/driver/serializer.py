@@ -137,7 +137,11 @@ class GraphSON2MessageSerializer(GraphSONMessageSerializer):
                                      b"application/vnd.gremlin-v2.0+json")
 
     def deserialize_message(self, message):
-        obj = GraphSONReader._objectify(message)
-        if not isinstance(obj, Traverser):
-            obj = Traverser(obj)
+        if isinstance(message, dict):
+            if message.get('@type', '') == 'g:Traverser':
+                obj = GraphSONReader._objectify(message)
+            else:
+                obj = Traverser(message.get('@value', message))
+        else:
+            obj = Traverser(message)
         return obj
