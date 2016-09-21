@@ -18,6 +18,7 @@
 import pytest
 
 from goblin import element
+from goblin.driver import serializer
 from gremlin_python import process
 
 

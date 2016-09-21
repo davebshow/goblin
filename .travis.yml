@@ -10,7 +10,7 @@ services:
   - docker
 
 before_install:
-  - docker pull leifurhauks/gremlin-server-tinkergraph:tp322
+  - docker pull leifurhauks/gremlin-server-tinkergraph
 
 install:
   - pip install -r requirements.txt

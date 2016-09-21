@@ -52,8 +52,13 @@ async def test_sessioned_client(cluster):
     assert isinstance(client.cluster, GremlinServer)
     resp = await client.submit(gremlin="v = g.addV('person').property('name', 'joe').next(); v")
     async for msg in resp:
-        assert msg['properties']['name'][0]['value'] == 'joe'
+        try:
+            assert msg['properties']['name'][0]['value'] == 'joe'
+        except KeyError:
+            assert msg['properties']['name'][0]['@value']['value'] == 'joe'
+
     resp = await client.submit(gremlin="g.V(v.id).values('name')")
+
     async for msg in resp:
         assert msg == 'joe'
     await cluster.close()

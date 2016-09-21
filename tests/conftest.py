@@ -21,6 +21,11 @@ from goblin.driver import pool, serializer
 from gremlin_python import process
 
 
+def pytest_generate_tests(metafunc):
+    if 'cluster' in metafunc.fixturenames:
+        metafunc.parametrize("cluster", ['c1', 'c2'], indirect=True)
+
+
 class HistoricalName(element.VertexProperty):
     notes = properties.Property(properties.String)
     year = properties.Property(properties.Integer)  # this is dumb but handy
@@ -78,8 +83,16 @@ def connection_pool(event_loop):
 
 
 @pytest.fixture
-def cluster(event_loop):
-    return driver.Cluster(event_loop)
+def cluster(request, event_loop):
+    if request.param == 'c1':
+        cluster = driver.Cluster(
+            event_loop,
+            message_serializer=serializer.GraphSONMessageSerializer)
+    elif request.param == 'c2':
+        cluster = driver.Cluster(
+            event_loop,
+            message_serializer=serializer.GraphSON2MessageSerializer)
+    return cluster
 
 
 @pytest.fixture
@@ -91,8 +104,10 @@ def remote_graph():
 def app(request, event_loop):
     app = event_loop.run_until_complete(
         Goblin.open(event_loop, aliases={'g': 'g'}))
+
     app.register(Person, Place, Knows, LivesIn)
     return app
+
 
 # Instance fixtures
 @pytest.fixture

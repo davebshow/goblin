@@ -26,7 +26,9 @@ from goblin import cardinality, exception, mapper
 from goblin.driver import connection, graph
 from goblin.element import GenericVertex
 
+from gremlin_python.driver.remote_connection import RemoteStrategy
 from gremlin_python.process.traversal import Cardinality
+
 
 
 logger = logging.getLogger(__name__)
@@ -78,6 +80,17 @@ class TraversalResponse:
 
     async def fetch_data(self):
         return await self._queue.get()
+
+
+class GoblinAsyncRemoteStrategy(RemoteStrategy):
+
+    async def apply(self, traversal):
+
+        if traversal.traversers is None:
+            resp = await self.remote_connection.submit(
+                gremlin=traversal.bytecode, processor='', op='eval')
+            traversal.traversers = resp
+            traversal.side_effects = None
 
 
 class Session(connection.AbstractConnection):
@@ -153,7 +166,8 @@ class Session(connection.AbstractConnection):
         trigger complex deserailization.
         """
         return self.graph.traversal(
-            graph_traversal=graph.AsyncGraphTraversal).withRemote(self.conn)
+            graph_traversal=graph.AsyncGraphTraversal,
+            remote_strategy=GoblinAsyncRemoteStrategy).withRemote(self.conn)
 
     def traversal(self, element_class=None):
         """
@@ -167,7 +181,8 @@ class Session(connection.AbstractConnection):
         :returns: :py:class:`AsyncGraphTraversal`
         """
         traversal = self.graph.traversal(
-            graph_traversal=graph.AsyncGraphTraversal).withRemote(self)
+            graph_traversal=graph.AsyncGraphTraversal,
+            remote_strategy=GoblinAsyncRemoteStrategy).withRemote(self)
         if element_class:
             label = element_class.__mapping__.label
             if element_class.__type__ == 'vertex':

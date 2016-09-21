@@ -148,10 +148,12 @@ class AsyncGraph(Graph):
         Custom graph traversal class
     """
 
-    def traversal(self, *, graph_traversal=None):
+    def traversal(self, *, graph_traversal=None, remote_strategy=None):
         if graph_traversal is None:
             graph_traversal = AsyncGraphTraversal
+        if remote_strategy is None:
+            remote_strategy = AsyncRemoteStrategy
         return GraphTraversalSource(
             self, TraversalStrategies.global_cache[self.__class__],
-            remote_strategy=AsyncRemoteStrategy,
+            remote_strategy=remote_strategy,
             graph_traversal=graph_traversal)
