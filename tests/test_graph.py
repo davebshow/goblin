@@ -45,7 +45,6 @@ async def test_submit_traversal(remote_graph, connection):
         assert none is None
 
 
-@pytest.mark.skip('CI does not run against TinkerPop 3.2.2+')
 @pytest.mark.asyncio
 async def test_side_effects(remote_graph, connection):
     async with connection:

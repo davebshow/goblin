@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
+from goblin import exception
+
 
 class Client:
     """
@@ -98,10 +100,12 @@ class SessionedClient(Client):
     def session(self):
         return self._session
 
-    async def submit(self, gremlin, **args):
+    async def submit(self, **args):
+        if not args.get('gremlin', ''):
+            raise exception.ClientError('Session requires a gremlin string')
         return await super().submit(processor='session', op='eval',
                                     session=self.session,
-                                    gremlin=gremlin, **args)
+                                    **args)
 
     async def close(self):
         raise NotImplementedError

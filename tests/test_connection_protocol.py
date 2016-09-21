@@ -23,9 +23,6 @@ from goblin import exception
 from goblin.driver import serializer
 
 
-pytestmark = pytest.mark.skip('CI does not run against TinkerPop 3.2.2+')
-
-
 @pytest.mark.asyncio
 async def test_eval(remote_graph, connection):
     async with connection:
