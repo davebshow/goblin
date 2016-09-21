@@ -26,8 +26,8 @@ class Client:
         client
     :param asyncio.BaseEventLoop loop:
     """
-    def __init__(self, cluster, loop, *, aliases=None,
-                 processor=None, op=None):
+    def __init__(self, cluster, loop, *, aliases=None, processor=None,
+                 op=None):
         self._cluster = cluster
         self._loop = loop
         if aliases is None:
@@ -85,3 +85,23 @@ class Client:
             processor=processor, op=op, **args)
         self._loop.create_task(conn.release_task(resp))
         return resp
+
+
+class SessionedClient(Client):
+
+    def __init__(self, cluster, loop, session, *, aliases=None):
+        super().__init__(cluster, loop, aliases=aliases, processor='session',
+                         op='eval')
+        self._session = session
+
+    @property
+    def session(self):
+        return self._session
+
+    async def submit(self, gremlin, **args):
+        return await super().submit(processor='session', op='eval',
+                                    session=self.session,
+                                    gremlin=gremlin, **args)
+
+    async def close(self):
+        raise NotImplementedError

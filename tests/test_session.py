@@ -20,8 +20,15 @@
 import pytest
 
 from goblin import element
-from goblin.traversal import bindprop
+from goblin.session import bindprop
 from gremlin_python.process.translator import GroovyTranslator
+
+
+def test_bindprop(person_class):
+    db_val, (binding, val) = bindprop(person_class, 'name', 'dave', binding='n1')
+    assert db_val == 'name'
+    assert binding == 'n1'
+    assert val == 'dave'
 
 
 class TestCreationApi:

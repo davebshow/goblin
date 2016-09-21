@@ -105,11 +105,28 @@ class AsyncGraphTraversal(GraphTraversal):
                 tempList.append(temp)
             return tempList
 
-    def toList(self):
-        raise NotImplementedError
+    async def toList(self):
+        results = []
+        async for msg in self:
+            results.append(msg)
+        return results
 
-    def toSet(self):
-        raise NotImplementedError
+    async def toSet(self):
+        results = set()
+        async for msg in self:
+            results.add(msg)
+        return results
+
+    async def one_or_none(self):
+        """
+        Get one or zero results from a traveral.
+
+        :returns: :py:class:`Element<goblin.element.Element>` object
+        """
+        result = None
+        async for msg in self:
+            result = msg
+        return result
 
     def iterate(self):
         raise NotImplementedError
