@@ -41,9 +41,6 @@ class Goblin:
     """
 
     def __init__(self, cluster, *, get_hashable_id=None, aliases=None):
-        # Goblin app currently only supports GraphSON1
-        cluster.config.update({
-            'message_serializer': driver.serializer.GraphSONMessageSerializer})
         self._cluster = cluster
         self._loop = self._cluster._loop
         self._transactions = None
@@ -60,8 +57,11 @@ class Goblin:
 
     @classmethod
     async def open(cls, loop, *, get_hashable_id=None, aliases=None, **config):
+        # App currently only supports GraphSON 1
         cluster = await driver.Cluster.open(
-            loop, aliases=aliases, **config)
+            loop, aliases=aliases,
+            message_serializer=driver.serializer.GraphSONMessageSerializer,
+            **config)
         app = Goblin(cluster, get_hashable_id=get_hashable_id, aliases=aliases)
         await app.supports_transactions()
         return app

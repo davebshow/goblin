@@ -56,7 +56,7 @@ class Cluster:
         'min_conns': 1,
         'max_times_acquired': 16,
         'max_inflight': 64,
-        'message_serializer': 'goblin.driver.GraphSONMessageSerializer'
+        'message_serializer': 'goblin.driver.GraphSON2MessageSerializer'
     }
 
     def __init__(self, loop, aliases=None, **config):
