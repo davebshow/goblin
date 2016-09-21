@@ -164,7 +164,8 @@ class Cluster:
     def config_from_module(self, filename):
         raise NotImplementedError
 
-    async def connect(self, processor=None, op=None, aliases=None):
+    async def connect(self, processor=None, op=None, aliases=None,
+                      session=None):
         """
         **coroutine** Get a connected client. Main API method.
 
@@ -173,8 +174,15 @@ class Cluster:
         aliases = aliases or self._aliases
         if not self._hosts:
             await self.establish_hosts()
-        return driver.Client(self, self._loop, processor=processor, op=op,
-                             aliases=aliases)
+        if session:
+            host = self._hosts.popleft()
+            client = driver.SessionedClient(host, self._loop, session,
+                                            aliases=aliases)
+            self._hosts.append(host)
+        else:
+            client = driver.Client(self, self._loop, processor=processor,
+                                   op=op, aliases=aliases)
+        return client
 
     async def close(self):
         """**coroutine** Close cluster and all connected hosts."""

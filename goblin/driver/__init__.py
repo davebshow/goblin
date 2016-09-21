@@ -16,7 +16,7 @@
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
 from goblin.driver.cluster import Cluster
-from goblin.driver.client import Client
+from goblin.driver.client import Client, SessionedClient
 from goblin.driver.connection import AbstractConnection, Connection
 from goblin.driver.graph import AsyncGraph
 from goblin.driver.serializer import GraphSONMessageSerializer
