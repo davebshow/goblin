@@ -108,7 +108,7 @@ class Cluster:
         if not self._hosts:
             await self.establish_hosts()
         host = self._hosts.popleft()
-        conn = await host.connect()
+        conn = await host.get_connection()
         self._hosts.append(host)
         return conn
 

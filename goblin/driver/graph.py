@@ -30,15 +30,11 @@ from goblin.driver.serializer import GraphSON2MessageSerializer
 
 class AsyncRemoteTraversalSideEffects(RemoteTraversalSideEffects):
 
-    def __init__(self, keys_lambda, value_lambda):
-        self.keys_lambda = keys_lambda
-        self.value_lambda = value_lambda
-
     async def keys(self):
         return await self.keys_lambda()
 
     async def get(self, key):
-        return await self.value_lambda(key)
+        return await self.value_lambda(sideEffectKey=key)
 
 
 class AsyncRemoteStrategy(RemoteStrategy):
@@ -58,7 +54,15 @@ class AsyncRemoteStrategy(RemoteStrategy):
                 gremlin=traversal.bytecode, processor=processor, op=op)
             traversal.traversers = resp
             if side_effects:
-                pass
+                keys_lambda = functools.partial(self.remote_connection.submit,
+                                                processor='traversal',
+                                                op='keys',
+                                                sideEffect=resp.request_id)
+                value_lambda = functools.partial(self.remote_connection.submit,
+                                                 processor='traversal',
+                                                 op='gather',
+                                                 sideEffect=resp.request_id)
+                side_effects = side_effects(keys_lambda, value_lambda)
             traversal.side_effects = side_effects
 
 

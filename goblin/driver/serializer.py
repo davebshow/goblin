@@ -89,23 +89,9 @@ class GraphSONMessageSerializer:
 class GraphSON2MessageSerializer(GraphSONMessageSerializer):
 
 
-    class session(Processor):
-
-        def authentication(self, args):
-            return args
-
-        def eval(self, args):
-            gremlin = args['gremlin']
-            if isinstance(gremlin, Bytecode):
-                translator = GroovyTranslator('g')
-                args['gremlin'] = translator.translate(gremlin)
-                args['bindings'] = gremlin.bindings
-            session = args['session']
-            args['session'] = {'@type': 'g:UUID', '@value': session}
-            return args
+    class session(GraphSONMessageSerializer.session):
 
         def close(self, args):
-            args['session'] = {'@type': 'g:UUID', '@value': session}
             return args
 
 
@@ -124,18 +110,18 @@ class GraphSON2MessageSerializer(GraphSONMessageSerializer):
             return args
 
         def close(self, args):
-            side_effect = args['sideEffect']
-            args['sideEffect'] = {'@type': 'g:UUID', '@value': side_effect}
-            return args
+            return self.keys(args)
 
-        def gather(self):
+        def gather(self, args):
+            side_effect = args['sideEffect']
             args['sideEffect'] = {'@type': 'g:UUID', '@value': side_effect}
             aliases = args.get('aliases', '')
             if not aliases:
                 aliases = {'g': 'g'}
             args['aliases'] = aliases
+            return args
 
-        def keys(self):
+        def keys(self, args):
             side_effect = args['sideEffect']
             args['sideEffect'] = {'@type': 'g:UUID', '@value': side_effect}
             return args
