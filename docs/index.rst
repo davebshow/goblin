@@ -46,7 +46,8 @@ Submit scripts and bindings to the `Gremlin Server`_::
     >>> async def go(loop):
     ...     script = "g.addV('developer').property(k1, v1)"
     ...     bindings = {'k1': 'name', 'v1': 'Leif'}
-    ...     conn = await driver.Connection.open('ws://localhost:8182/gremlin', loop)
+    ...     conn = await driver.Connection.open(
+    ...         'ws://localhost:8182/gremlin', loop)
     ...     async with conn:
     ...         resp = await conn.submit(gremlin=script, bindings=bindings)
     ...         async for msg in resp:
@@ -64,7 +65,8 @@ Generate and submit Gremlin traversals in native Python::
 
 
     >>> remote_conn = loop.run_until_complete(
-    ...     driver.Connection.open("http://localhost:8182/gremlin", loop))
+    ...     driver.Connection.open(
+    ...         "http://localhost:8182/gremlin", loop))
     >>> graph = driver.AsyncGraph()
     >>> g = graph.traversal().withRemote(remote_conn)
 
@@ -79,7 +81,8 @@ Generate and submit Gremlin traversals in native Python::
     >>> loop.run_until_complete(go(g))
     # {'properties': {'name': [{'value': 'Leif', 'id': 3}]}, 'label': 'developer', 'id': 2, 'type': 'vertex'}
 
-For more information on using the AsyncGraph, see the :doc:`GLV docs</glv>`
+For more information on using the :py:class:`goblin.driver.graph.AsyncGraph<AsyncGraph>`,
+see the :doc:`GLV docs</glv>`
 
 
 **OGM**
@@ -143,12 +146,30 @@ for an element, that element will be updated to reflect these changes.
 For more information on using the OGM, see the :doc:`OGM docs</ogm>`
 
 
+A note about GraphSON message serialization
+-------------------------------------------
+
+The :py:mod:`goblin.driver` provides support for both GraphSON2 and GraphSON1
+out of the box. By default, it uses the
+:py:class:`GraphSON2MessageSerializer<goblin.driver.serializer.GraphSON2MessageSerializer>`.
+Since GraphSON2 was only recently included in the TinkerPop 3.2.2 release,
+:py:mod:`goblin.driver` also ships with
+:py:class:`GraphSONMessageSerializer<goblin.driver.serializer.GraphSONMessageSerializer>`.
+In the near future (when projects like Titan and DSE support the 3.2 Gremlin
+Server line), support for GraphsSON1 will be dropped.
+
+The :py:mod:`goblin<Goblin>` OGM still uses GraphSON1 by default and will do so
+until :py:mod:`goblin.driver` support is dropped. It will then be updated to
+use GraphSON2.
+
+
 Contents:
 
 .. toctree::
    :maxdepth: 4
 
    ogm
+   glv
    driver
    modules
 

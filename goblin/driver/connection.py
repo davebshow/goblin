@@ -291,3 +291,6 @@ class Connection(AbstractConnection):
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
         self._conn = None
+
+
+DriverRemoteConnection = Connection
