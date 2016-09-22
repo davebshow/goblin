@@ -123,7 +123,7 @@ database::
     ...     works_with = Knows(leif, jon)
     ...     session.add(leif, jon, works_with)
     ...     await session.flush()
-    ...     result = await session.g.E(works_with.id).one_or_none()
+    ...     result = await session.g.E(works_with.id).oneOrNone()
     ...     assert result is works_with
     ...     people = await session.traversal(Person).all()  # element class based traversal source
     ...     async for person in people:

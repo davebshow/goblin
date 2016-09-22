@@ -117,7 +117,7 @@ class AsyncGraphTraversal(GraphTraversal):
             results.add(msg)
         return results
 
-    async def one_or_none(self):
+    async def oneOrNone(self):
         """
         Get one or zero results from a traveral.
 

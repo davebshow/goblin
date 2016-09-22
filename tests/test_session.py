@@ -157,11 +157,11 @@ class TestCreationApi:
         person.name = 'dave'
         person.age = 35
         await session.save(person)
-        result = await session.g.V(person.id).one_or_none()
+        result = await session.g.V(person.id).oneOrNone()
         assert result is person
         rid = result.id
         await session.remove_vertex(person)
-        result = await session.g.V(rid).one_or_none()
+        result = await session.g.V(rid).oneOrNone()
         assert not result
         await app.close()
 #
@@ -177,11 +177,11 @@ class TestCreationApi:
         lives_in = lives_in_class(jon, montreal)
         session.add(jon, montreal, lives_in)
         await session.flush()
-        result = await session.g.E(lives_in.id).one_or_none()
+        result = await session.g.E(lives_in.id).oneOrNone()
         assert result is lives_in
         rid = result.id
         await session.remove_edge(lives_in)
-        result = await session.g.E(rid).one_or_none()
+        result = await session.g.E(rid).oneOrNone()
         assert not result
         await app.close()
 
@@ -251,14 +251,14 @@ class TestTraversalApi:
         await app.close()
 
     @pytest.mark.asyncio
-    async def test_one_or_none_one(self, app, person_class):
+    async def test_oneOrNone_one(self, app, person_class):
         session = await app.session()
         dave = person_class()
         leif = person_class()
         jon = person_class()
         session.add(dave, leif, jon)
         await session.flush()
-        resp = await session.traversal(person_class).one_or_none()
+        resp = await session.traversal(person_class).oneOrNone()
         assert isinstance(resp, person_class)
         await app.close()
 
@@ -270,14 +270,14 @@ class TestTraversalApi:
         result1 = await session.save(itziri)
         bound_name = bindprop(person_class, 'name', 'itziri', binding='v1')
         p1 = await session.traversal(person_class).has(
-        *bound_name).one_or_none()
+        *bound_name).oneOrNone()
         await app.close()
 
     @pytest.mark.asyncio
-    async def test_one_or_none_none(self, app):
+    async def test_oneOrNone_none(self, app):
         session = await app.session()
         none = await session.g.V().hasLabel(
-            'a very unlikey label').one_or_none()
+            'a very unlikey label').oneOrNone()
         assert not none
         await app.close()
 
@@ -285,7 +285,7 @@ class TestTraversalApi:
     async def test_vertex_deserialization(self, app, person_class):
         session = await app.session()
         resp = await session.g.addV('person').property(
-            person_class.name, 'leif').property('place_of_birth', 'detroit').one_or_none()
+            person_class.name, 'leif').property('place_of_birth', 'detroit').oneOrNone()
         assert isinstance(resp, person_class)
         assert resp.name == 'leif'
         assert resp.place_of_birth == 'detroit'
@@ -294,12 +294,12 @@ class TestTraversalApi:
     @pytest.mark.asyncio
     async def test_edge_desialization(self, app, knows_class):
         session = await app.session()
-        p1 = await session.g.addV('person').one_or_none()
-        p2 = await session.g.addV('person').one_or_none()
+        p1 = await session.g.addV('person').oneOrNone()
+        p2 = await session.g.addV('person').oneOrNone()
         e1 = await session.g.V(p1.id).addE('knows').to(
         session.g.V(p2.id)).property(
             knows_class.notes, 'somehow').property(
-            'how_long', 1).one_or_none()
+            'how_long', 1).oneOrNone()
         assert isinstance(e1, knows_class)
         assert e1.notes == 'somehow'
         assert e1.how_long == 1
@@ -309,7 +309,7 @@ class TestTraversalApi:
     async def test_unregistered_vertex_deserialization(self, app):
         session = await app.session()
         dave = await session.g.addV(
-            'unregistered').property('name', 'dave').one_or_none()
+            'unregistered').property('name', 'dave').oneOrNone()
         assert isinstance(dave, element.GenericVertex)
         assert dave.name == 'dave'
         assert dave.__label__ == 'unregistered'
@@ -318,10 +318,10 @@ class TestTraversalApi:
     @pytest.mark.asyncio
     async def test_unregistered_edge_desialization(self, app):
         session = await app.session()
-        p1 = await session.g.addV('person').one_or_none()
-        p2 = await session.g.addV('person').one_or_none()
+        p1 = await session.g.addV('person').oneOrNone()
+        p2 = await session.g.addV('person').oneOrNone()
         e1 = await session.g.V(p1.id).addE('unregistered').to(
-        session.g.V(p2.id)).property('how_long', 1).one_or_none()
+        session.g.V(p2.id)).property('how_long', 1).oneOrNone()
         assert isinstance(e1, element.GenericEdge)
         assert e1.how_long == 1
         assert e1.__label__ == 'unregistered'
@@ -331,8 +331,8 @@ class TestTraversalApi:
     async def test_property_deserialization(self, app):
         session = await app.session()
         p1 = await session.g.addV('person').property(
-        'name', 'leif').one_or_none()
-        name = await session.g.V(p1.id).properties('name').one_or_none()
+        'name', 'leif').oneOrNone()
+        name = await session.g.V(p1.id).properties('name').oneOrNone()
         assert name['value'] == 'leif'
         assert name['label'] == 'name'
         await app.close()
@@ -341,7 +341,7 @@ class TestTraversalApi:
     async def test_non_element_deserialization(self, app):
         session = await app.session()
         p1 = await session.g.addV('person').property(
-        'name', 'leif').one_or_none()
-        one = await session.g.V(p1.id).count().one_or_none()
+        'name', 'leif').oneOrNone()
+        one = await session.g.V(p1.id).count().oneOrNone()
         assert one == 1
         await app.close()

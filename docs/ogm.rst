@@ -318,13 +318,13 @@ the value to be specified::
     >>> traversal.has(bindprop(Person, 'name', 'Leifur', binding='v1'))
 
 Finally, to submit a traversal, :py:mod:`Goblin` provides two methods:
-:py:meth:`all` and :py:meth:`one_or_none`. :py:meth:`all` returns all results
-produced by the traversal, while :py:meth:`one_or_none` returns either the last
+:py:meth:`all` and :py:meth:`oneOrNone`. :py:meth:`all` returns all results
+produced by the traversal, while :py:meth:`oneOrNone` returns either the last
 result, or in the case that the traversal did not return results, `None`. Remember
 to `await` the traversal when calling these methods::
 
     >>> traversal = session.traversal(Person)
     >>> leif = await traversal.has(
-    ...     bindprop(Person, 'name', 'Leifur', binding='v1')).one_or_none()
+    ...     bindprop(Person, 'name', 'Leifur', binding='v1')).oneOrNone()
 
 And that is pretty much it. We hope you enjoy the :py:mod:`Goblin` OGM.

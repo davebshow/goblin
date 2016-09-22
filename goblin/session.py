@@ -342,7 +342,7 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Vertex<goblin.element.Vertex>` | None
         """
-        return await self.g.V(vertex.id).one_or_none()
+        return await self.g.V(vertex.id).oneOrNone()
 
     async def get_edge(self, edge):
         """
@@ -352,7 +352,7 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Edge<goblin.element.Edge>` | None
         """
-        return await self.g.E(edge.id).one_or_none()
+        return await self.g.E(edge.id).oneOrNone()
 
     async def update_vertex(self, vertex):
         """
@@ -396,7 +396,7 @@ class Session(connection.AbstractConnection):
 
     # *metodos especiales privados for creation API
     async def _simple_traversal(self, traversal, element):
-        msg = await traversal.one_or_none()
+        msg = await traversal.oneOrNone()
         if msg:
             msg = element.__mapping__.mapper_func(msg, element)
         return msg
@@ -441,24 +441,24 @@ class Session(connection.AbstractConnection):
 
     async def _check_vertex(self, vertex):
         """Used to check for existence, does not update session vertex"""
-        msg = await self._g.V(vertex.id).one_or_none()
+        msg = await self._g.V(vertex.id).oneOrNone()
         return msg
 
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
-        msg = await self._g.E(edge.id).one_or_none()
+        msg = await self._g.E(edge.id).oneOrNone()
         return msg
 
     async def _update_vertex_properties(self, vertex, traversal, props):
         traversal, removals, metaprops = self._add_properties(traversal, props)
         for k in removals:
-            await self._g.V(vertex.id).properties(k).drop().one_or_none()
+            await self._g.V(vertex.id).properties(k).drop().oneOrNone()
         result = await self._simple_traversal(traversal, vertex)
         if metaprops:
             removals = await self._add_metaprops(result, metaprops)
             for db_name, key, value in removals:
                 await self._g.V(vertex.id).properties(
-                    db_name).has(key, value).drop().one_or_none()
+                    db_name).has(key, value).drop().oneOrNone()
             traversal = self._g.V(vertex.id)
             result = await self._simple_traversal(traversal, vertex)
         return result
@@ -466,7 +466,7 @@ class Session(connection.AbstractConnection):
     async def _update_edge_properties(self, edge, traversal, props):
         traversal, removals, _ = self._add_properties(traversal, props)
         for k in removals:
-            await self._g.E(edge.id).properties(k).drop().one_or_none()
+            await self._g.E(edge.id).properties(k).drop().oneOrNone()
         return await self._simple_traversal(traversal, edge)
 
     async def _add_metaprops(self, result, metaprops):
@@ -477,7 +477,7 @@ class Session(connection.AbstractConnection):
                 if val:
                     traversal = self._g.V(result.id).properties(
                         db_name).hasValue(value).property(key, val)
-                    await traversal.one_or_none()
+                    await traversal.oneOrNone()
                 else:
                     potential_removals.append((db_name, key, value))
         return potential_removals
