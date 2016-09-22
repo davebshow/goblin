@@ -21,6 +21,9 @@ import pytest
 from goblin import driver, exception
 
 
+dirname = os.path.dirname(os.path.dirname(__file__))
+
+
 def test_cluster_default_config(cluster):
     assert cluster.config['scheme'] == 'ws'
     assert cluster.config['hosts'] == ['localhost']
@@ -63,7 +66,6 @@ def test_cluster_custom_config(event_loop, cluster_class):
 
 
 def test_cluster_config_from_json(event_loop, cluster_class):
-    dirname = os.path.dirname(os.path.dirname(__file__))
     cluster = cluster_class(event_loop)
     cluster.config_from_file(dirname + '/tests/config/config.json')
     assert cluster.config['scheme'] == 'wss'
@@ -78,8 +80,8 @@ def test_cluster_config_from_json(event_loop, cluster_class):
     assert issubclass(cluster.config['message_serializer'],
                       driver.GraphSONMessageSerializer)
 
+
 def test_cluster_config_from_yaml(event_loop, cluster_class):
-    dirname = os.path.dirname(os.path.dirname(__file__))
     cluster = cluster_class(event_loop)
     cluster.config_from_file(dirname + '/tests/config/config.yml')
     assert cluster.config['scheme'] == 'wss'
@@ -92,3 +94,35 @@ def test_cluster_config_from_yaml(event_loop, cluster_class):
     assert cluster.config['password'] == ''
     assert issubclass(cluster.config['message_serializer'],
                       driver.GraphSONMessageSerializer)
+
+@pytest.mark.asyncio
+async def test_app_config_from_json(app):
+    app.config_from_file(dirname + '/tests/config/config.json')
+    assert app.config['scheme'] == 'wss'
+    assert app.config['hosts'] == ['localhost']
+    assert app.config['port'] == 8182
+    assert app.config['ssl_certfile'] == ''
+    assert app.config['ssl_keyfile'] == ''
+    assert app.config['ssl_password'] == ''
+    assert app.config['username'] == 'dave'
+    assert app.config['password'] == 'mypass'
+
+    assert issubclass(app.config['message_serializer'],
+                      driver.GraphSONMessageSerializer)
+    await app.close()
+
+
+@pytest.mark.asyncio
+async def test_app_config_from_yaml(app):
+    app.config_from_file(dirname + '/tests/config/config.yml')
+    assert app.config['scheme'] == 'wss'
+    assert app.config['hosts'] == ['localhost']
+    assert app.config['port'] == 8183
+    assert app.config['ssl_certfile'] == ''
+    assert app.config['ssl_keyfile'] == ''
+    assert app.config['ssl_password'] == ''
+    assert app.config['username'] == ''
+    assert app.config['password'] == ''
+    assert issubclass(app.config['message_serializer'],
+                      driver.GraphSONMessageSerializer)
+    await app.close()

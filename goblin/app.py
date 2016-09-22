@@ -97,8 +97,27 @@ class Goblin:
             if element.__type__ == 'edge':
                 self._edges[element.__label__] = element
 
+    def config_from_file(self, filename):
+        """
+        Load configuration from from file.
+
+        :param str filename: Path to the configuration file.
+        """
+        self._cluster.config_from_file(filename)
+
+    def config_from_yaml(self, filename):
+        self._cluster.config_from_yaml(filename)
+
+    def config_from_json(self, filename):
+        """
+        Load configuration from from JSON file.
+
+        :param str filename: Path to the configuration file.
+        """
+        self._cluster.config_from_json(filename)
+
     def register_from_module(self, modulename):
-        pass
+        raise NotImplementedError
 
     async def session(self, *, use_session=False, processor='', op='eval',
                       aliases=None):
