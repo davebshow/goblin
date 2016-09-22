@@ -23,6 +23,7 @@ from gremlin_python.structure.io.graphson import GraphSONWriter, GraphSONReader
 
 
 class Processor:
+    """Base class for OpProcessor serialization system."""
 
     def get_op(self, op):
         op = getattr(self, op, None)
@@ -32,7 +33,7 @@ class Processor:
 
 
 class GraphSONMessageSerializer:
-
+    """Message serializer for GraphSONv1"""
     # processors and ops
     class standard(Processor):
 
@@ -87,7 +88,7 @@ class GraphSONMessageSerializer:
 
 
 class GraphSON2MessageSerializer(GraphSONMessageSerializer):
-
+    """Message serializer for GraphSONv2"""
 
     class session(GraphSONMessageSerializer.session):
 

@@ -60,7 +60,7 @@ class Goblin:
         # App currently only supports GraphSON 1
         cluster = await driver.Cluster.open(
             loop, aliases=aliases,
-            message_serializer=driver.serializer.GraphSONMessageSerializer,
+            message_serializer=driver.GraphSONMessageSerializer,
             **config)
         app = Goblin(cluster, get_hashable_id=get_hashable_id, aliases=aliases)
         await app.supports_transactions()

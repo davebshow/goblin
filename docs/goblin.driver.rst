@@ -44,6 +44,14 @@ goblin.driver.pool module
     :undoc-members:
     :show-inheritance:
 
+goblin.driver.serializer module
+-------------------------------
+
+.. automodule:: goblin.driver.serializer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 goblin.driver.server module
 ---------------------------
 

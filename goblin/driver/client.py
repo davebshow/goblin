@@ -69,11 +69,11 @@ class Client:
                      **args):
         """
         **coroutine** Submit a script and bindings to the Gremlin Server.
+
         :param str processor: Gremlin Server processor argument
         :param str op: Gremlin Server op argument
         :param args: Keyword arguments for Gremlin Server. Depend on processor
             and op.
-
         :returns: :py:class:`Response` object
         """
         processor = processor or self._processor

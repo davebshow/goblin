@@ -90,6 +90,12 @@ class AsyncGraphTraversal(GraphTraversal):
             await ts.apply(self)
 
     async def next(self, amount=None):
+        """
+        **coroutine** Return the next result from the iterator.
+
+        :param int amount: The number of results returned, defaults to None
+            (1 result)
+        """
         if amount is None:
             try:
                 return await self.__anext__()
@@ -106,12 +112,14 @@ class AsyncGraphTraversal(GraphTraversal):
             return tempList
 
     async def toList(self):
+        """**coroutine** Submit the travesal, iterate results, return a list"""
         results = []
         async for msg in self:
             results.append(msg)
         return results
 
     async def toSet(self):
+        """**coroutine** Submit the travesal, iterate results, return a set"""
         results = set()
         async for msg in self:
             results.add(msg)
@@ -119,9 +127,8 @@ class AsyncGraphTraversal(GraphTraversal):
 
     async def oneOrNone(self):
         """
-        Get one or zero results from a traveral.
-
-        :returns: :py:class:`Element<goblin.element.Element>` object
+        **coroutine** Get one or zero results from a traveral. Returns last
+        iterated result.
         """
         result = None
         async for msg in self:
@@ -136,19 +143,20 @@ class AsyncGraphTraversal(GraphTraversal):
 
 
 class AsyncGraph(Graph):
-    """
-    Generate asynchronous gremlin traversals using native Python.
-
-    :param gremlin_python.process.GroovyTranslator translator:
-        gremlin_python translator class, typically
-        :py:class:`GroovyTranslator<gremlin_python.process.GroovyTranslator>`
-    :param goblin.driver.connection connection: underlying remote
-        connection
-    :param gremlin_python.process.GraphTraversal graph_traversal:
-        Custom graph traversal class
-    """
+    """Generate asynchronous gremlin traversals using native Python"""
 
     def traversal(self, *, graph_traversal=None, remote_strategy=None):
+        """
+        Get a traversal source from the Graph
+
+        :param gremlin_python.process.GraphTraversal graph_traversal:
+            Custom graph traversal class
+        :param gremlin_python.driver.remote_connection.RemoteStrategy remote_strategy:
+            Custom remote strategy class
+
+        :returns:
+            :py:class:`gremlin_python.process.graph_traversal.GraphTraversalSource`
+        """
         if graph_traversal is None:
             graph_traversal = AsyncGraphTraversal
         if remote_strategy is None:

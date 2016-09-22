@@ -46,7 +46,7 @@ Submit scripts and bindings to the `Gremlin Server`_::
     >>> async def go(loop):
     ...     script = "g.addV('developer').property(k1, v1)"
     ...     bindings = {'k1': 'name', 'v1': 'Leif'}
-    ...     conn = await driver.Connection.open('ws://localhost:8182/', loop)
+    ...     conn = await driver.Connection.open('ws://localhost:8182/gremlin', loop)
     ...     async with conn:
     ...         resp = await conn.submit(gremlin=script, bindings=bindings)
     ...         async for msg in resp:
@@ -58,27 +58,28 @@ Submit scripts and bindings to the `Gremlin Server`_::
 
 For more information on using the driver, see the :doc:`Driver docs</driver>`
 
-**AsyncRemoteGraph**
+**AsyncGraph**
 
 Generate and submit Gremlin traversals in native Python::
 
-    >>> from gremlin_python import process
+
+    >>> remote_conn = loop.run_until_complete(
+    ...     driver.Connection.open("http://localhost:8182/gremlin", loop))
+    >>> graph = driver.AsyncGraph()
+    >>> g = graph.traversal().withRemote(remote_conn)
 
 
-    >>> host = loop.run_until_complete(
-    ...     driver.Connection.open("http://localhost:8182/", loop))
-    >>> translator = process.GroovyTranslator('g')
-    >>> graph = driver.AsyncRemoteGraph(translator, connection)
-
-    >>> async def go(graph):
-    ...     g = graph.traversal()
-    ...     resp = await g.addV('developer').property('name', 'Leif').next()
-    ...     async for msg in resp:
+    >>> async def go(g):
+    ...     traversal = g.addV('developer').property('name', 'Leif')
+    ...     async for msg in traversal:
     ...         print(msg)
-    ...     await graph.close()
+    ...     await remote_conn.close()
 
-    >>> loop.run_until_complete(go(graph))
+
+    >>> loop.run_until_complete(go(g))
     # {'properties': {'name': [{'value': 'Leif', 'id': 3}]}, 'label': 'developer', 'id': 2, 'type': 'vertex'}
+
+For more information on using the AsyncGraph, see the :doc:`GLV docs</glv>`
 
 
 **OGM**
@@ -125,7 +126,7 @@ database::
     ...     await session.flush()
     ...     result = await session.g.E(works_with.id).oneOrNone()
     ...     assert result is works_with
-    ...     people = await session.traversal(Person).all()  # element class based traversal source
+    ...     people = session.traversal(Person)  # element class based traversal source
     ...     async for person in people:
     ...         print(person)
 

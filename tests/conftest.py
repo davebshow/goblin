@@ -71,7 +71,9 @@ def unused_server_url(unused_tcp_port):
 @pytest.fixture
 def connection(event_loop):
     conn = event_loop.run_until_complete(
-        driver.Connection.open("http://localhost:8182/gremlin", event_loop))
+        driver.Connection.open(
+            "http://localhost:8182/gremlin", event_loop,
+            message_serializer=serializer.GraphSONMessageSerializer))
     return conn
 
 

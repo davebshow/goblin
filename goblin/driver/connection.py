@@ -155,7 +155,7 @@ class Connection(AbstractConnection):
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None, username='',
                    password='', max_inflight=64, response_timeout=None,
-                   message_serializer=serializer.GraphSONMessageSerializer):
+                   message_serializer=serializer.GraphSON2MessageSerializer):
         """
         **coroutine** Open a connection to the Gremlin Server.
 
@@ -206,6 +206,7 @@ class Connection(AbstractConnection):
                      **args):
         """
         Submit a script and bindings to the Gremlin Server
+
         :param str processor: Gremlin Server processor argument
         :param str op: Gremlin Server op argument
         :param args: Keyword arguments for Gremlin Server. Depend on processor
