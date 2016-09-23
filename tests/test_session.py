@@ -252,116 +252,116 @@ class TestTraversalApi:
         assert len(results) > 2
         await app.close()
 
-    @pytest.mark.asyncio
-    async def test_oneOrNone_one(self, app, person_class):
-        session = await app.session()
-        dave = person_class()
-        leif = person_class()
-        jon = person_class()
-        session.add(dave, leif, jon)
-        await session.flush()
-        resp = await session.traversal(person_class).oneOrNone()
-        assert isinstance(resp, person_class)
-        await app.close()
+    # @pytest.mark.asyncio
+    # async def test_oneOrNone_one(self, app, person_class):
+    #     session = await app.session()
+    #     dave = person_class()
+    #     leif = person_class()
+    #     jon = person_class()
+    #     session.add(dave, leif, jon)
+    #     await session.flush()
+    #     resp = await session.traversal(person_class).oneOrNone()
+    #     assert isinstance(resp, person_class)
+    #     await app.close()
 
-    @pytest.mark.asyncio
-    async def test_traversal_bindprop(self, app, person_class):
-        session = await app.session()
-        itziri = person_class()
-        itziri.name = 'itziri'
-        result1 = await session.save(itziri)
-        bound_name = bindprop(person_class, 'name', 'itziri', binding='v1')
-        p1 = await session.traversal(person_class).has(
-        *bound_name).oneOrNone()
-        await app.close()
+    # @pytest.mark.asyncio
+    # async def test_traversal_bindprop(self, app, person_class):
+    #     session = await app.session()
+    #     itziri = person_class()
+    #     itziri.name = 'itziri'
+    #     result1 = await session.save(itziri)
+    #     bound_name = bindprop(person_class, 'name', 'itziri', binding='v1')
+    #     p1 = await session.traversal(person_class).has(
+    #     *bound_name).oneOrNone()
+    #     await app.close()
 
-    @pytest.mark.asyncio
-    async def test_oneOrNone_none(self, app):
-        session = await app.session()
-        none = await session.g.V().hasLabel(
-            'a very unlikey label').oneOrNone()
-        assert not none
-        await app.close()
+    # @pytest.mark.asyncio
+    # async def test_oneOrNone_none(self, app):
+    #     session = await app.session()
+    #     none = await session.g.V().hasLabel(
+    #         'a very unlikey label').oneOrNone()
+    #     assert not none
+    #     await app.close()
 
-    @pytest.mark.asyncio
-    async def test_vertex_deserialization(self, app, person_class):
-        session = await app.session()
-        resp = await session.g.addV('person').property(
-            person_class.name, 'leif').property('place_of_birth', 'detroit').oneOrNone()
-        assert isinstance(resp, person_class)
-        assert resp.name == 'leif'
-        assert resp.place_of_birth == 'detroit'
-        await app.close()
+    # @pytest.mark.asyncio
+    # async def test_vertex_deserialization(self, app, person_class):
+    #     session = await app.session()
+    #     resp = await session.g.addV('person').property(
+    #         person_class.name, 'leif').property('place_of_birth', 'detroit').oneOrNone()
+    #     assert isinstance(resp, person_class)
+    #     assert resp.name == 'leif'
+    #     assert resp.place_of_birth == 'detroit'
+    #     await app.close()
+    #
+    # @pytest.mark.asyncio
+    # async def test_edge_desialization(self, app, knows_class):
+    #     session = await app.session()
+    #     p1 = await session.g.addV('person').oneOrNone()
+    #     p2 = await session.g.addV('person').oneOrNone()
+    #     e1 = await session.g.V(p1.id).addE('knows').to(
+    #     session.g.V(p2.id)).property(
+    #         knows_class.notes, 'somehow').property(
+    #         'how_long', 1).oneOrNone()
+    #     assert isinstance(e1, knows_class)
+    #     assert e1.notes == 'somehow'
+    #     assert e1.how_long == 1
+    #     await app.close()
 
-    @pytest.mark.asyncio
-    async def test_edge_desialization(self, app, knows_class):
-        session = await app.session()
-        p1 = await session.g.addV('person').oneOrNone()
-        p2 = await session.g.addV('person').oneOrNone()
-        e1 = await session.g.V(p1.id).addE('knows').to(
-        session.g.V(p2.id)).property(
-            knows_class.notes, 'somehow').property(
-            'how_long', 1).oneOrNone()
-        assert isinstance(e1, knows_class)
-        assert e1.notes == 'somehow'
-        assert e1.how_long == 1
-        await app.close()
+    # @pytest.mark.asyncio
+    # async def test_unregistered_vertex_deserialization(self, app):
+    #     session = await app.session()
+    #     dave = await session.g.addV(
+    #         'unregistered').property('name', 'dave').oneOrNone()
+    #     assert isinstance(dave, element.GenericVertex)
+    #     assert dave.name == 'dave'
+    #     assert dave.__label__ == 'unregistered'
+    #     await app.close()
 
-    @pytest.mark.asyncio
-    async def test_unregistered_vertex_deserialization(self, app):
-        session = await app.session()
-        dave = await session.g.addV(
-            'unregistered').property('name', 'dave').oneOrNone()
-        assert isinstance(dave, element.GenericVertex)
-        assert dave.name == 'dave'
-        assert dave.__label__ == 'unregistered'
-        await app.close()
+    # @pytest.mark.asyncio
+    # async def test_unregistered_edge_desialization(self, app):
+    #     session = await app.session()
+    #     p1 = await session.g.addV('person').oneOrNone()
+    #     p2 = await session.g.addV('person').oneOrNone()
+    #     e1 = await session.g.V(p1.id).addE('unregistered').to(
+    #     session.g.V(p2.id)).property('how_long', 1).oneOrNone()
+    #     assert isinstance(e1, element.GenericEdge)
+    #     assert e1.how_long == 1
+    #     assert e1.__label__ == 'unregistered'
+    #     await app.close()
 
-    @pytest.mark.asyncio
-    async def test_unregistered_edge_desialization(self, app):
-        session = await app.session()
-        p1 = await session.g.addV('person').oneOrNone()
-        p2 = await session.g.addV('person').oneOrNone()
-        e1 = await session.g.V(p1.id).addE('unregistered').to(
-        session.g.V(p2.id)).property('how_long', 1).oneOrNone()
-        assert isinstance(e1, element.GenericEdge)
-        assert e1.how_long == 1
-        assert e1.__label__ == 'unregistered'
-        await app.close()
-
-    @pytest.mark.asyncio
-    async def test_property_deserialization(self, app):
-        session = await app.session()
-        p1 = await session.g.addV('person').property(
-        'name', 'leif').oneOrNone()
-        name = await session.g.V(p1.id).properties('name').oneOrNone()
-        assert name['value'] == 'leif'
-        assert name['label'] == 'name'
-        await app.close()
-
-    @pytest.mark.asyncio
-    async def test_non_element_deserialization(self, app):
-        session = await app.session()
-        p1 = await session.g.addV('person').property(
-        'name', 'leif').oneOrNone()
-        one = await session.g.V(p1.id).count().oneOrNone()
-        assert one == 1
-        await app.close()
-
-
-    @pytest.mark.asyncio
-    async def test_deserialize_nested_map(self, session, person_class):
-        async with session:
-            await session.g.addV('person').property(
-                person_class.name, 'leif').property('place_of_birth', 'detroit').oneOrNone()
-
-            await session.g.addV('person').property(person_class.name, 'David').property(
-                person_class.nicknames, 'davebshow').property(
-                person_class.nicknames, 'Dave').oneOrNone()
-
-            resp = await (session.g.V().hasLabel('person')._as('x').valueMap()._as('y')
-                          .select('x', 'y').fold().oneOrNone())
-
-            for item in resp:
-                assert isinstance(item['x'], person_class)
-                assert isinstance(item['y'], dict)
+    # @pytest.mark.asyncio
+    # async def test_property_deserialization(self, app):
+    #     session = await app.session()
+    #     p1 = await session.g.addV('person').property(
+    #     'name', 'leif').oneOrNone()
+    #     name = await session.g.V(p1.id).properties('name').oneOrNone()
+    #     assert name['value'] == 'leif'
+    #     assert name['label'] == 'name'
+    #     await app.close()
+#
+#     @pytest.mark.asyncio
+#     async def test_non_element_deserialization(self, app):
+#         session = await app.session()
+#         p1 = await session.g.addV('person').property(
+#         'name', 'leif').oneOrNone()
+#         one = await session.g.V(p1.id).count().oneOrNone()
+#         assert one == 1
+#         await app.close()
+#
+#
+#     @pytest.mark.asyncio
+#     async def test_deserialize_nested_map(self, session, person_class):
+#         async with session:
+#             await session.g.addV('person').property(
+#                 person_class.name, 'leif').property('place_of_birth', 'detroit').oneOrNone()
+#
+#             await session.g.addV('person').property(person_class.name, 'David').property(
+#                 person_class.nicknames, 'davebshow').property(
+#                 person_class.nicknames, 'Dave').oneOrNone()
+#
+#             resp = await (session.g.V().hasLabel('person')._as('x').valueMap()._as('y')
+#                           .select('x', 'y').fold().oneOrNone())
+#
+#             for item in resp:
+#                 assert isinstance(item['x'], person_class)
+#                 assert isinstance(item['y'], dict)

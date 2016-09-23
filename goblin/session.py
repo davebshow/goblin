@@ -27,7 +27,7 @@ from goblin.driver import connection, graph
 from goblin.element import GenericVertex
 
 from gremlin_python.driver.remote_connection import RemoteStrategy
-from gremlin_python.process.traversal import Cardinality
+from gremlin_python.process.traversal import Cardinality, Traverser
 
 
 
@@ -222,8 +222,8 @@ class Session(connection.AbstractConnection):
                 hashable_id = self._get_hashable_id(result['id'])
                 current = self.current.get(hashable_id, None)
                 if not current:
-                    element_type = obj['type']
-                    label = obj['label']
+                    element_type = result['type']
+                    label = result['label']
                     if element_type == 'vertex':
                         current = self.app.vertices[label]()
                     else:
@@ -231,15 +231,16 @@ class Session(connection.AbstractConnection):
                         current.source = GenericVertex()
                         current.target = GenericVertex()
                 element = current.__mapping__.mapper_func(result, current)
-                return element
+                return Traverser(element, 1)
             else:
                 for key in result:
                     result[key] = self._deserialize_result(result[key])
-                return result
+                return Traverser(result, 1)
         elif isinstance(result, list):
-            return [self._deserialize_result(item) for item in result]
+            result = [self._deserialize_result(item) for item in result]
+            return Traverser(result, 1)
         else:
-            return result
+            return Traverser(result, 1)
 
     # Creation API
     def add(self, *elements):
