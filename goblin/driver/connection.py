@@ -26,6 +26,7 @@ import uuid
 import aiohttp
 
 from goblin import exception
+from goblin.driver import serializer
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,8 @@ def error_handler(fn):
     async def wrapper(self):
         msg = await fn(self)
         if msg:
-            if msg.status_code not in [200, 206, 204]:
+            if msg.status_code not in [200, 206]:
+                self.close()
                 raise exception.GremlinServerError(
                     "{0}: {1}".format(msg.status_code, msg.message))
             msg = msg.data
@@ -51,10 +53,25 @@ def error_handler(fn):
 
 class Response:
     """Gremlin Server response implementated as an async iterator."""
-    def __init__(self, response_queue, loop):
+    def __init__(self, response_queue, request_id, timeout, loop):
         self._response_queue = response_queue
+        self._request_id = request_id
         self._loop = loop
-        self._done = False
+        self._timeout = timeout
+        self._done = asyncio.Event(loop=self._loop)
+
+    @property
+    def request_id(self):
+        return self._request_id
+
+    @property
+    def done(self):
+        """
+        Readonly property.
+
+        :returns: `asyncio.Event` object
+        """
+        return self._done
 
     async def __aiter__(self):
         return self
@@ -62,18 +79,30 @@ class Response:
     async def __anext__(self):
         msg = await self.fetch_data()
         if msg:
-            return msg
+            return msg.object
         else:
             raise StopAsyncIteration
+
+    def close(self):
+        """Close response stream by setting done flag to true."""
+        self.done.set()
+        self._loop = None
+        self._response_queue = None
 
     @error_handler
     async def fetch_data(self):
         """Get a single message from the response stream"""
-        if self._done:
+        if self.done.is_set():
             return None
-        msg = await self._response_queue.get()
+        try:
+            msg = await asyncio.wait_for(self._response_queue.get(),
+                                         timeout=self._timeout,
+                                         loop=self._loop)
+        except asyncio.TimeoutError:
+            self.close()
+            raise exception.ResponseTimeoutError('Response timed out')
         if msg is None:
-            self._done = True
+            self.close()
         return msg
 
 
@@ -92,167 +121,169 @@ class Connection(AbstractConnection):
     """
     Main classd for interacting with the Gremlin Server. Encapsulates a
     websocket connection. Not instantiated directly. Instead use
-    :py:meth:`GremlinServer.open<goblin.driver.api.GremlinServer.open>`.
+    :py:meth:`Connection.open<goblin.driver.connection.Connection.open>`.
+
+    :param str url: url for host Gremlin Server
+    :param aiohttp.ClientWebSocketResponse ws: open websocket connection
+    :param asyncio.BaseEventLoop loop:
+    :param aiohttp.ClientSession: Client session used to establish websocket
+        connections
+    :param float response_timeout: (optional) `None` by default
+    :param str username: Username for database auth
+    :param str password: Password for database auth
+    :param int max_inflight: Maximum number of unprocessed requests at any
+        one time on the connection
     """
-    def __init__(self, url, ws, loop, conn_factory, *, username=None,
-                 password=None):
+    def __init__(self, url, ws, loop, client_session, username, password,
+                 max_inflight, response_timeout, message_serializer):
         self._url = url
         self._ws = ws
         self._loop = loop
-        self._conn_factory = conn_factory
+        self._client_session = client_session
+        self._response_timeout = response_timeout
         self._username = username
         self._password = password
         self._closed = False
         self._response_queues = {}
+        self._receive_task = self._loop.create_task(self._receive())
+        self._semaphore = asyncio.Semaphore(value=max_inflight,
+                                            loop=self._loop)
+        if isinstance(message_serializer, type):
+            message_serializer = message_serializer()
+        self._message_serializer = message_serializer
+
+    @classmethod
+    async def open(cls, url, loop, *, ssl_context=None, username='',
+                   password='', max_inflight=64, response_timeout=None,
+                   message_serializer=serializer.GraphSON2MessageSerializer):
+        """
+        **coroutine** Open a connection to the Gremlin Server.
+
+        :param str url: url for host Gremlin Server
+        :param asyncio.BaseEventLoop loop:
+        :param ssl.SSLContext ssl_context:
+        :param str username: Username for database auth
+        :param str password: Password for database auth
+
+        :param int max_inflight: Maximum number of unprocessed requests at any
+            one time on the connection
+        :param float response_timeout: (optional) `None` by default
+
+        :returns: :py:class:`Connection<goblin.driver.connection.Connection>`
+        """
+        connector = aiohttp.TCPConnector(ssl_context=ssl_context, loop=loop)
+        client_session = aiohttp.ClientSession(loop=loop, connector=connector)
+        ws = await client_session.ws_connect(url)
+        return cls(url, ws, loop, client_session, username, password,
+                   max_inflight, response_timeout, message_serializer)
 
     @property
-    def response_queues(self):
-        return self._response_queues
+    def message_serializer(self):
+        return self._message_serializer
 
     @property
     def closed(self):
-        return self._closed
+        """
+        Check if connection has been closed.
+
+        :returns: `bool`
+        """
+        return self._closed or self._ws.closed
 
     @property
     def url(self):
+        """
+        Readonly property.
+
+        :returns: str The url association with this connection.
+        """
         return self._url
 
     async def submit(self,
-                    gremlin,
-                    *,
-                    bindings=None,
-                    lang='gremlin-groovy',
-                    aliases=None,
-                    op="eval",
-                    processor="",
-                    session=None,
-                    request_id=None):
+                     *,
+                     processor='',
+                     op='eval',
+                     **args):
         """
         Submit a script and bindings to the Gremlin Server
 
-        :param str gremlin: Gremlin script to submit to server.
-        :param dict bindings: A mapping of bindings for Gremlin script.
-        :param str lang: Language of scripts submitted to the server.
-            "gremlin-groovy" by default
-        :param dict aliases: Rebind ``Graph`` and ``TraversalSource``
-            objects to different variable names in the current request
-        :param str op: Gremlin Server op argument. "eval" by default.
-        :param str processor: Gremlin Server processor argument. "" by default.
-        :param str session: Session id (optional). Typically a uuid
-        :param str request_id: Request id (optional). Typically a uuid
-
+        :param str processor: Gremlin Server processor argument
+        :param str op: Gremlin Server op argument
+        :param args: Keyword arguments for Gremlin Server. Depend on processor
+            and op.
         :returns: :py:class:`Response` object
         """
-        if aliases is None:
-            aliases = {}
-        if request_id is None:
-            request_id = str(uuid.uuid4())
-        message = self._prepare_message(gremlin,
-                                        bindings,
-                                        lang,
-                                        aliases,
-                                        op,
-                                        processor,
-                                        session,
-                                        request_id)
+        await self._semaphore.acquire()
+        request_id = str(uuid.uuid4())
+        message = self._message_serializer.serialize_message(
+            request_id, processor, op, **args)
         response_queue = asyncio.Queue(loop=self._loop)
-        self.response_queues[request_id] = response_queue
+        self._response_queues[request_id] = response_queue
         if self._ws.closed:
-            self._ws = await self.conn_factory.ws_connect(self.url)
+            self._ws = await self.client_session.ws_connect(self.url)
         self._ws.send_bytes(message)
-        self._loop.create_task(self._receive())
-        return Response(response_queue, self._loop)
+        resp = Response(response_queue, request_id, self._response_timeout, self._loop)
+        self._loop.create_task(self._terminate_response(resp, request_id))
+        return resp
+
+    def _authenticate(self, username, password, session):
+        auth = b''.join([b'\x00', username.encode('utf-8'),
+                         b'\x00', password.encode('utf-8')])
+        request_id = str(uuid.uuid4())
+        args = {'sasl': base64.b64encode(auth).decode()}
+        message = self._message_serializer.serialize_message(
+            request_id, '', 'authentication', **args)
+        self._ws.send_bytes(message, binary=True)
 
     async def close(self):
-        """Close underlying connection and mark as closed."""
+        """**coroutine** Close underlying connection and mark as closed."""
+        self._receive_task.cancel()
         await self._ws.close()
         self._closed = True
-        await self._conn_factory.close()
+        await self._client_session.close()
 
-    def _prepare_message(self, gremlin, bindings, lang, aliases, op,
-                         processor, session, request_id):
-        message = {
-            "requestId": request_id,
-            "op": op,
-            "processor": processor,
-            "args": {
-                "gremlin": gremlin,
-                "bindings": bindings,
-                "language":  lang,
-                "aliases": aliases
-            }
-        }
-        message = self._finalize_message(message, processor, session)
-        return message
-
-    def _authenticate(self, username, password, processor, session):
-        auth = b"".join([b"\x00", username.encode("utf-8"),
-                         b"\x00", password.encode("utf-8")])
-        message = {
-            "requestId": str(uuid.uuid4()),
-            "op": "authentication",
-            "processor": "",
-            "args": {
-                "sasl": base64.b64encode(auth).decode()
-            }
-        }
-        message = self._finalize_message(message, processor, session)
-        self._ws.submit(message, binary=True)
-
-    def _finalize_message(self, message, processor, session):
-        if processor == "session":
-            if session is None:
-                raise RuntimeError("session processor requires a session id")
-            else:
-                message["args"].update({"session": session})
-        message = json.dumps(message)
-        return self._set_message_header(message, "application/json")
-
-    @staticmethod
-    def _set_message_header(message, mime_type):
-        if mime_type == "application/json":
-            mime_len = b"\x10"
-            mime_type = b"application/json"
-        else:
-            raise ValueError("Unknown mime type.")
-        return b"".join([mime_len, mime_type, message.encode("utf-8")])
+    async def _terminate_response(self, resp, request_id):
+        await resp.done.wait()
+        del self._response_queues[request_id]
+        self._semaphore.release()
 
     async def _receive(self):
-        data = await self._ws.receive()
-        if data.tp == aiohttp.MsgType.close:
-            await self._ws.close()
-        elif data.tp == aiohttp.MsgType.error:
-            raise data.data
-        elif data.tp == aiohttp.MsgType.closed:
-            pass
-        else:
-            if data.tp == aiohttp.MsgType.binary:
-                data = data.data.decode()
-            elif data.tp == aiohttp.MsgType.text:
-                data = data.strip()
-            message = json.loads(data)
-            request_id = message['requestId']
-            status_code = message['status']['code']
-            data = message["result"]["data"]
-            msg = message["status"]["message"]
-            response_queue = self._response_queues[request_id]
-            if status_code == 407:
-                await self._authenticate(self._username, self._password,
-                                         self._processor, self._session)
-                self._loop.create_task(self._receive())
+        while True:
+            data = await self._ws.receive()
+            if data.tp == aiohttp.MsgType.close:
+                await self._ws.close()
+            elif data.tp == aiohttp.MsgType.error:
+                raise data.data
+            elif data.tp == aiohttp.MsgType.closed:
+                pass
             else:
-                if data:
-                    for result in data:
-                        message = Message(status_code, result, msg)
-                        response_queue.put_nowait(message)
-                else:
-                    message = Message(status_code, data, msg)
-                    response_queue.put_nowait(message)
-                if status_code == 206:
-                    self._loop.create_task(self._receive())
-                else:
+                if data.tp == aiohttp.MsgType.binary:
+                    data = data.data.decode()
+                elif data.tp == aiohttp.MsgType.text:
+                    data = data.strip()
+                message = json.loads(data)
+                request_id = message['requestId']
+                status_code = message['status']['code']
+                data = message['result']['data']
+                msg = message['status']['message']
+                response_queue = self._response_queues[request_id]
+                if status_code == 407:
+                    await self._authenticate(self._username, self._password,
+                                             self._processor)
+                elif status_code == 204:
                     response_queue.put_nowait(None)
-                    del self._response_queues[request_id]
+                else:
+                    if data:
+                        for result in data:
+                            result = self._message_serializer.deserialize_message(result)
+                            message = Message(status_code, result, msg)
+                            response_queue.put_nowait(message)
+                    else:
+                        data = self._message_serializer.deserialize_message(data)
+                        message = Message(status_code, data, msg)
+                        response_queue.put_nowait(message)
+                    if status_code != 206:
+                        response_queue.put_nowait(None)
 
     async def __aenter__(self):
         return self
@@ -260,3 +291,6 @@ class Connection(AbstractConnection):
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
         self._conn = None
+
+
+DriverRemoteConnection = Connection

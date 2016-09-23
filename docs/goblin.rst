@@ -27,6 +27,14 @@ goblin.app module
     :undoc-members:
     :show-inheritance:
 
+goblin.cardinality module
+-------------------------
+
+.. automodule:: goblin.cardinality
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 goblin.element module
 ---------------------
 
@@ -43,7 +51,13 @@ goblin.exception module
     :undoc-members:
     :show-inheritance:
 
+goblin.manager module
+---------------------
 
+.. automodule:: goblin.manager
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 goblin.mapper module
 --------------------
@@ -69,10 +83,10 @@ goblin.session module
     :undoc-members:
     :show-inheritance:
 
-goblin.traversal module
------------------------
+Module contents
+---------------
 
-.. automodule:: goblin.traversal
+.. automodule:: goblin
     :members:
     :undoc-members:
     :show-inheritance:

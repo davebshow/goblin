@@ -17,19 +17,68 @@ specific language governing permissions and limitations
 under the License.
 '''
 
-import sys
+# Translate bytecode. Used for backwards compatiblitity
+
+from abc import abstractmethod
 from aenum import Enum
 
-from .traversal import Bytecode
-from .traversal import P
-from .traversal import RawExpression
-from .traversal import SymbolHelper
-from .traversal import Translator
+from gremlin_python.process.traversal import P, Bytecode, Binding
 
-if sys.version_info.major > 2:
-    long = int
 
-__author__ = 'Marko A. Rodriguez (http://markorodriguez.com)'
+class RawExpression(object):
+   def __init__(self, *args):
+      self.bindings = dict()
+      self.parts = [self._process_arg(arg) for arg in args]
+
+   def _process_arg(self, arg):
+      if isinstance(arg, tuple) and 2 == len(arg) and isinstance(arg[0], str):
+         self.bindings[arg[0]] = arg[1]
+         return Raw(arg[0])
+      else:
+         return Raw(arg)
+
+class Raw(object):
+   def __init__(self, value):
+      self.value = value
+
+   def __str__(self):
+      return str(self.value)
+
+
+TO_JAVA_MAP = {"_global": "global", "_as": "as", "_in": "in", "_and": "and",
+               "_or": "or", "_is": "is", "_not": "not", "_from": "from",
+               "Cardinality": "VertexProperty.Cardinality", "Barrier": "SackFunctions.Barrier"}
+
+
+class Translator(object):
+    def __init__(self, traversal_source, anonymous_traversal, target_language):
+        self.traversal_source = traversal_source
+        self.anonymous_traversal = anonymous_traversal
+        self.target_language = target_language
+
+    @abstractmethod
+    def translate(self, bytecode):
+        return
+
+    @abstractmethod
+    def __repr__(self):
+        return "translator[" + self.traversal_source + ":" + self.target_language + "]"
+
+
+class SymbolHelper(object):
+    @staticmethod
+    def toJava(symbol):
+        if (symbol in TO_JAVA_MAP):
+            return TO_JAVA_MAP[symbol]
+        else:
+            return symbol
+
+    @staticmethod
+    def mapEnum(enum):
+        if (enum in enumMap):
+            return enumMap[enum]
+        else:
+            return enum
 
 
 class GroovyTranslator(Translator):
@@ -37,16 +86,16 @@ class GroovyTranslator(Translator):
         Translator.__init__(self, traversal_source, anonymous_traversal, target_language)
 
     def translate(self, bytecode):
-        return self.__internalTranslate(self.traversal_source, bytecode)
+        return self._internalTranslate(self.traversal_source, bytecode)
 
-    def __internalTranslate(self, start, bytecode):
+    def _internalTranslate(self, start, bytecode):
         traversal_script = start
         for instruction in bytecode.source_instructions:
             traversal_script = traversal_script + "." + SymbolHelper.toJava(
-                instruction[0]) + "(" + self.stringify(*instruction[1]) + ")"
+                instruction[0]) + "(" + self.stringify(*instruction[1:]) + ")"
         for instruction in bytecode.step_instructions:
             traversal_script = traversal_script + "." + SymbolHelper.toJava(
-                instruction[0]) + "(" + self.stringify(*instruction[1]) + ")"
+                instruction[0]) + "(" + self.stringify(*instruction[1:]) + ")"
         return traversal_script
 
     def stringOrObject(self, arg):
@@ -54,7 +103,7 @@ class GroovyTranslator(Translator):
             return "\"" + arg + "\""
         elif isinstance(arg, bool):
             return str(arg).lower()
-        elif isinstance(arg, long):
+        elif isinstance(arg, int):
             return str(arg) + "L"
         elif isinstance(arg, float):
             return str(arg) + "f"
@@ -67,8 +116,10 @@ class GroovyTranslator(Translator):
             else:
                 return self.stringOrObject(arg.other) + "." + SymbolHelper.toJava(
                     arg.operator) + "(" + self.stringOrObject(arg.value) + ")"
+        elif isinstance(arg, Binding):
+            return arg.key
         elif isinstance(arg, Bytecode):
-            return self.__internalTranslate(self.anonymous_traversal, arg)
+            return self._internalTranslate(self.anonymous_traversal, arg)
         elif callable(arg):  # closures
             lambdaString = arg().strip()
             if lambdaString.startswith("{"):

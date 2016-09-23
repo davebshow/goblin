@@ -17,40 +17,64 @@
 
 import pytest
 
+from goblin.driver import serializer
+
 from gremlin_python import process
 
 
 @pytest.mark.asyncio
-async def test_close_graph(remote_graph):
-    remote_connection = remote_graph.remote_connection
-    await remote_graph.close()
-    assert remote_connection.closed
+async def test_generate_traversal(remote_graph, connection):
+    async with connection:
+        g = remote_graph.traversal().withRemote(connection)
+        traversal = g.V().hasLabel(('v1', 'person'))
+        assert isinstance(traversal, process.graph_traversal.GraphTraversal)
+        assert traversal.bytecode.bindings['v1'] == 'person'
 
 
 @pytest.mark.asyncio
-async def test_conn_context_manager(remote_graph):
-    remote_connection = remote_graph.remote_connection
-    async with remote_graph:
-        assert not remote_graph.remote_connection.closed
-    assert remote_connection.closed
-
-
-@pytest.mark.asyncio
-async def test_generate_traversal(remote_graph):
-    async with remote_graph:
-        traversal = remote_graph.traversal().V().hasLabel(('v1', 'person'))
-        assert isinstance(traversal, process.GraphTraversal)
-        assert traversal.bindings['v1'] == 'person'
-
-
-@pytest.mark.asyncio
-async def test_submit_traversal(remote_graph):
-    async with remote_graph:
-        g = remote_graph.traversal()
-        resp = await g.addV('person').property('name', 'leifur').next()
-        leif = await resp.fetch_data()
+async def test_submit_traversal(remote_graph, connection):
+    async with connection:
+        g = remote_graph.traversal().withRemote(connection)
+        resp = g.addV('person').property('name', 'leifur')
+        leif = await resp.next()
+        resp.traversers.close()
         assert leif['properties']['name'][0]['value'] == 'leifur'
         assert leif['label'] == 'person'
-        resp = await g.V(leif['id']).drop().next()
-        none = await resp.fetch_data()
+        resp = g.V(leif['id']).drop()
+        none = await resp.next()
         assert none is None
+
+
+@pytest.mark.asyncio
+async def test_side_effects(remote_graph, connection):
+    async with connection:
+        connection._message_serializer = serializer.GraphSON2MessageSerializer()
+        g = remote_graph.traversal().withRemote(connection)
+        # create some nodes
+        resp = g.addV('person').property('name', 'leifur')
+        leif = await resp.next()
+        resp.traversers.close()
+        resp = g.addV('person').property('name', 'dave')
+        dave = await resp.next()
+        resp.traversers.close()
+        resp = g.addV('person').property('name', 'jon')
+        jonthan = await resp.next()
+        resp.traversers.close()
+        traversal = g.V().aggregate('a').aggregate('b')
+        async for msg in traversal:
+            pass
+        keys = []
+        resp = await traversal.side_effects.keys()
+        async for msg in resp:
+            keys.append(msg)
+        assert keys == ['a', 'b']
+        side_effects = []
+        resp = await traversal.side_effects.get('a')
+        async for msg in resp:
+            side_effects.append(msg)
+        assert side_effects
+        side_effects = []
+        resp = await traversal.side_effects.get('b')
+        async for msg in resp:
+            side_effects.append(msg)
+        assert side_effects

@@ -15,6 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
+
+class ClientError(Exception):
+    pass
+
+
 class MappingError(Exception):
     pass
 
@@ -27,5 +32,13 @@ class ElementError(Exception):
     pass
 
 
+class ConfigurationError(Exception):
+    pass
+
+
 class GremlinServerError(Exception):
+    pass
+
+
+class ResponseTimeoutError(Exception):
     pass

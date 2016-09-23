@@ -1,0 +1,4 @@
+scheme: 'wss'
+hosts: ['localhost']
+port: 8183
+message_serializer: 'goblin.driver.GraphSONMessageSerializer'

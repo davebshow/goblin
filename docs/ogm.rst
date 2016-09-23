@@ -240,10 +240,10 @@ must be wrapped in coroutines and ran using the :py:class:`asyncio.BaseEventLoop
 but, for convenience, they are shown as if they were run in a Python interpreter.
 To use a :py:class:`Session<goblin.session.Session>`, first create a
 :py:class:`Goblin App <goblin.app.Goblin>` using
-:py:func:`create_app<goblin.app.create_app>`, then register the defined element
+:py:meth:`Goblin.open<goblin.app.Goblin.open>`, then register the defined element
 classes::
 
-    >>> app = await goblin.create_app('ws://localhost:8182/', loop)
+    >>> app = await goblin.Goblin.open(loop)
     >>> app.register(Person, City, BornIn)
     >>> session = await app.session()
 
@@ -317,14 +317,21 @@ the value to be specified::
     >>> traversal = session.traversal(Person)
     >>> traversal.has(bindprop(Person, 'name', 'Leifur', binding='v1'))
 
-Finally, to submit a traversal, :py:mod:`Goblin` provides two methods:
-:py:meth:`all` and :py:meth:`one_or_none`. :py:meth:`all` returns all results
-produced by the traversal, while :py:meth:`one_or_none` returns either the last
-result, or in the case that the traversal did not return results, `None`. Remember
-to `await` the traversal when calling these methods::
+Finally, there are a variety of ways to to submit a traversal to the server.
+First of all, all traversals are themselve asynchronous iterators, and using
+them as such will cause a traversal to be sent on the wire:
+
+    >>> async for msg in session.g.V().hasLabel('person'):
+    ...     print(msg)
+
+Furthermore, :py:mod:`Goblin` provides several convenience methods that
+submit a traversal as well as process the results :py:meth:`toList`,
+:py:meth:`toSet` and :py:meth:`oneOrNone`. These methods both submit a script
+to the server and iterate over the results. Remember to `await` the traversal
+when calling these methods::
 
     >>> traversal = session.traversal(Person)
     >>> leif = await traversal.has(
-    ...     bindprop(Person, 'name', 'Leifur', binding='v1')).one_or_none()
+    ...     bindprop(Person, 'name', 'Leifur', binding='v1')).oneOrNone()
 
 And that is pretty much it. We hope you enjoy the :py:mod:`Goblin` OGM.

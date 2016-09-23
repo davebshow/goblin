@@ -14,10 +14,16 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
-
+import asyncio
 import pytest
-from goblin import create_app, driver, element, properties, Cardinality
+from goblin import Goblin, driver, element, properties, Cardinality
+from goblin.driver import pool, serializer
 from gremlin_python import process
+
+
+def pytest_generate_tests(metafunc):
+    if 'cluster' in metafunc.fixturenames:
+        metafunc.parametrize("cluster", ['c1', 'c2'], indirect=True)
 
 
 class HistoricalName(element.VertexProperty):
@@ -43,7 +49,6 @@ class Place(element.Vertex):
         properties.Integer, card=Cardinality.set)
 
 
-
 class Knows(element.Edge):
     __label__ = 'knows'
     notes = properties.Property(properties.String, default='N/A')
@@ -60,34 +65,50 @@ def gremlin_server():
 
 @pytest.fixture
 def unused_server_url(unused_tcp_port):
-    return 'http://localhost:{}/'.format(unused_tcp_port)
+    return 'http://localhost:{}/gremlin'.format(unused_tcp_port)
 
 
 @pytest.fixture
-def connection(gremlin_server, event_loop):
+def connection(event_loop):
     conn = event_loop.run_until_complete(
-        gremlin_server.open("http://localhost:8182/", event_loop))
+        driver.Connection.open(
+            "http://localhost:8182/gremlin", event_loop,
+            message_serializer=serializer.GraphSONMessageSerializer))
     return conn
 
 
 @pytest.fixture
-def remote_graph(connection):
-     translator = process.GroovyTranslator('g')
-     return driver.AsyncRemoteGraph(translator, connection)
+def connection_pool(event_loop):
+    return pool.ConnectionPool(
+        "http://localhost:8182/gremlin", event_loop, None, '', '', 4, 1, 16,
+        64, None, serializer.GraphSONMessageSerializer)
 
 
 @pytest.fixture
-def app(event_loop):
+def cluster(request, event_loop):
+    if request.param == 'c1':
+        cluster = driver.Cluster(
+            event_loop,
+            message_serializer=serializer.GraphSONMessageSerializer)
+    elif request.param == 'c2':
+        cluster = driver.Cluster(
+            event_loop,
+            message_serializer=serializer.GraphSON2MessageSerializer)
+    return cluster
+
+
+@pytest.fixture
+def remote_graph():
+     return driver.AsyncGraph()
+
+
+@pytest.fixture
+def app(request, event_loop):
     app = event_loop.run_until_complete(
-        create_app("http://localhost:8182/", event_loop))
+        Goblin.open(event_loop, aliases={'g': 'g'}))
+
     app.register(Person, Place, Knows, LivesIn)
     return app
-
-
-@pytest.fixture
-def session(event_loop, app):
-    session = event_loop.run_until_complete(app.session())
-    return session
 
 
 # Instance fixtures
@@ -142,6 +163,11 @@ def place_name():
 
 
 # Class fixtures
+@pytest.fixture
+def cluster_class(event_loop):
+    return driver.Cluster
+
+
 @pytest.fixture
 def string_class():
     return properties.String

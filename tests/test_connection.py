@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
-
+import asyncio
 import pytest
 
 from goblin import exception
@@ -40,7 +40,7 @@ async def test_conn_context_manager(connection):
 @pytest.mark.asyncio
 async def test_submit(connection):
     async with connection:
-        stream = await connection.submit("1 + 1")
+        stream = await connection.submit(gremlin="1 + 1")
         results = []
         async for msg in stream:
             results.append(msg)
@@ -52,7 +52,8 @@ async def test_submit(connection):
 async def test_204_empty_stream(connection):
     resp = False
     async with connection:
-        stream = await connection.submit('g.V().has("unlikely", "even less likely")')
+        stream = await connection.submit(
+            gremlin='g.V().has("unlikely", "even less likely")')
         async for msg in stream:
             resp = True
     assert not resp
@@ -61,7 +62,7 @@ async def test_204_empty_stream(connection):
 @pytest.mark.asyncio
 async def test_server_error(connection):
     async with connection:
-        stream = await connection.submit('g. V jla;sdf')
+        stream = await connection.submit(gremlin='g. V jla;sdf')
         with pytest.raises(exception.GremlinServerError):
             async for msg in stream:
                 pass
@@ -70,15 +71,16 @@ async def test_server_error(connection):
 @pytest.mark.asyncio
 async def test_cant_connect(event_loop, gremlin_server, unused_server_url):
     with pytest.raises(Exception):
-        await gremlin_server.open(unused_server_url, event_loop)
+        await gremlin_server.get_connection(unused_server_url, event_loop)
 
 
 @pytest.mark.asyncio
 async def test_resp_queue_removed_from_conn(connection):
     async with connection:
-        stream = await connection.submit("1 + 1")
+        stream = await connection.submit(gremlin="1 + 1")
         async for msg in stream:
             pass
+        await asyncio.sleep(0)
         assert stream._response_queue not in list(
             connection._response_queues.values())
 
@@ -86,7 +88,16 @@ async def test_resp_queue_removed_from_conn(connection):
 @pytest.mark.asyncio
 async def test_stream_done(connection):
     async with connection:
-        stream = await connection.submit("1 + 1")
+        stream = await connection.submit(gremlin="1 + 1")
         async for msg in stream:
             pass
-        assert stream._done
+        assert stream.done
+
+@pytest.mark.asyncio
+async def test_connection_response_timeout(connection):
+    async with connection:
+        connection._response_timeout = 0.0000001
+        with pytest.raises(exception.ResponseTimeoutError):
+            stream = await connection.submit(gremlin="1 + 1")
+            async for msg in stream:
+                pass

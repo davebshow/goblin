@@ -46,9 +46,10 @@ Submit scripts and bindings to the `Gremlin Server`_::
     >>> async def go(loop):
     ...     script = "g.addV('developer').property(k1, v1)"
     ...     bindings = {'k1': 'name', 'v1': 'Leif'}
-    ...     conn = await driver.GremlinServer.open('ws://localhost:8182/', loop)
+    ...     conn = await driver.Connection.open(
+    ...         'ws://localhost:8182/gremlin', loop)
     ...     async with conn:
-    ...         resp = await conn.submit(script, bindings=bindings)
+    ...         resp = await conn.submit(gremlin=script, bindings=bindings)
     ...         async for msg in resp:
     ...             print(msg)
 
@@ -56,28 +57,32 @@ Submit scripts and bindings to the `Gremlin Server`_::
     >>> loop.run_until_complete(go(loop))
     # {'type': 'vertex', 'id': 0, 'label': 'developer', 'properties': {'name': [{'id': 1, 'value': 'Leif'}]}}
 
+For more information on using the driver, see the :doc:`Driver docs</driver>`
 
-**AsyncRemoteGraph**
+**AsyncGraph**
 
 Generate and submit Gremlin traversals in native Python::
 
-    >>> from gremlin_python import process
+
+    >>> remote_conn = loop.run_until_complete(
+    ...     driver.Connection.open(
+    ...         "http://localhost:8182/gremlin", loop))
+    >>> graph = driver.AsyncGraph()
+    >>> g = graph.traversal().withRemote(remote_conn)
 
 
-    >>> connection = loop.run_until_complete(
-    ...     driver.GremlinServer.open("http://localhost:8182/", loop))
-    >>> translator = process.GroovyTranslator('g')
-    >>> graph = driver.AsyncRemoteGraph(translator, connection)
-
-    >>> async def go(graph):
-    ...     g = graph.traversal()
-    ...     resp = await g.addV('developer').property('name', 'Leif').next()
-    ...     async for msg in resp:
+    >>> async def go(g):
+    ...     traversal = g.addV('developer').property('name', 'Leif')
+    ...     async for msg in traversal:
     ...         print(msg)
-    ...     await graph.close()
+    ...     await remote_conn.close()
 
-    >>> loop.run_until_complete(go(graph))
+
+    >>> loop.run_until_complete(go(g))
     # {'properties': {'name': [{'value': 'Leif', 'id': 3}]}, 'label': 'developer', 'id': 2, 'type': 'vertex'}
+
+For more information on using the :py:class:`goblin.driver.graph.AsyncGraph<AsyncGraph>`,
+see the :doc:`GLV docs</glv>`
 
 
 **OGM**
@@ -100,11 +105,11 @@ Define custom vertex/edge classes using the provided base :py:mod:`classes<gobli
 
 Create a :py:class:`Goblin App<goblin.app.Goblin>` and register the element classes::
 
-    >>> from goblin import create_app
+    >>> from goblin import Goblin
 
 
     >>> app = loop.run_until_complete(
-    ...     create_app('ws://localhost:8182/', loop))
+    ...     Goblin.open(loop))
     >>> app.register(Person, Knows)
 
 
@@ -114,20 +119,19 @@ database::
 
     >>> async def go(app):
     ...     session = await app.session()
-    ...     async with session:
-    ...         leif = Person()
-    ...         leif.name = 'Leif'
-    ...         leif.age = 28
-    ...         jon = Person()
-    ...         jon.name = 'Jonathan'
-    ...         works_with = Knows(leif, jon)
-    ...         session.add(leif, jon, works_with)
-    ...         await session.flush()
-    ...         result = await session.g.E(works_with.id).one_or_none()
-    ...         assert result is works_with
-    ...         people = await session.traversal(Person).all()  # element class based traversal source
-    ...         async for person in people:
-    ...             print(person)
+    ...     leif = Person()
+    ...     leif.name = 'Leif'
+    ...     leif.age = 28
+    ...     jon = Person()
+    ...     jon.name = 'Jonathan'
+    ...     works_with = Knows(leif, jon)
+    ...     session.add(leif, jon, works_with)
+    ...     await session.flush()
+    ...     result = await session.g.E(works_with.id).oneOrNone()
+    ...     assert result is works_with
+    ...     people = session.traversal(Person)  # element class based traversal source
+    ...     async for person in people:
+    ...         print(person)
 
 
     >>> loop.run_until_complete(go(app))
@@ -142,12 +146,31 @@ for an element, that element will be updated to reflect these changes.
 For more information on using the OGM, see the :doc:`OGM docs</ogm>`
 
 
+A note about GraphSON message serialization
+-------------------------------------------
+
+The :py:mod:`goblin.driver` provides support for both GraphSON2 and GraphSON1
+out of the box. By default, it uses the
+:py:class:`GraphSON2MessageSerializer<goblin.driver.serializer.GraphSON2MessageSerializer>`.
+Since GraphSON2 was only recently included in the TinkerPop 3.2.2 release,
+:py:mod:`goblin.driver` also ships with
+:py:class:`GraphSONMessageSerializer<goblin.driver.serializer.GraphSONMessageSerializer>`.
+In the near future (when projects like Titan and DSE support the 3.2 Gremlin
+Server line), support for GraphsSON1 will be dropped.
+
+The :py:mod:`goblin<Goblin>` OGM still uses GraphSON1 by default and will do so
+until :py:mod:`goblin.driver` support is dropped. It will then be updated to
+use GraphSON2.
+
+
 Contents:
 
 .. toctree::
    :maxdepth: 4
 
    ogm
+   glv
+   driver
    modules
 
 

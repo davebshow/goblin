@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
-from goblin.app import create_app, Goblin
+from goblin.app import Goblin
 from goblin.cardinality import Cardinality
 from goblin.element import Vertex, Edge, VertexProperty
 from goblin.properties import Property, String, Integer, Float, Boolean
