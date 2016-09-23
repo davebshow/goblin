@@ -11,7 +11,8 @@ setup(
     description="Python toolkit for TP3 Gremlin Server",
     packages=["goblin", "goblin.driver", "gremlin_python",
               "gremlin_python.process", "gremlin_python.driver",
-              "gremlin_python.structure", "tests"],
+              "gremlin_python.structure", "gremlin_python.structure.io",
+              "tests"],
     install_requires=[
         "aenum==1.4.5",
         "aiohttp==0.22.1",

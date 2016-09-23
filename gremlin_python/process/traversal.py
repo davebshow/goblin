@@ -17,9 +17,9 @@ specific language governing permissions and limitations
 under the License.
 '''
 import abc
-import six
 from aenum import Enum
 from .. import statics
+
 
 class Traversal(object):
     def __init__(self, graph, traversal_strategies, bytecode):
@@ -277,8 +277,7 @@ class TraversalStrategies(object):
             traversal_strategy.apply(traversal)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class TraversalStrategy(object):
+class TraversalStrategy(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def apply(self, traversal):
         return

@@ -174,7 +174,7 @@ class LambdaSerializer(GraphSONSerializer):
             if not script.strip().startswith("lambda"):
                 script = "lambda " + script
                 dict["script"] = script
-            dict["arguments"] = eval(dict["script"]).func_code.co_argcount
+            dict["arguments"] = eval(dict["script"]).__code__.co_argcount
         else:
             dict["arguments"] = -1
         return _SymbolHelper.objectify("Lambda", dict)

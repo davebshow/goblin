@@ -17,7 +17,6 @@ specific language governing permissions and limitations
 under the License.
 '''
 import abc
-import six
 
 from ..process.traversal import Traversal
 from ..process.traversal import TraversalStrategy
@@ -26,8 +25,7 @@ from ..process.traversal import TraversalSideEffects
 __author__ = 'Marko A. Rodriguez (http://markorodriguez.com)'
 
 
-@six.add_metaclass(abc.ABCMeta)
-class RemoteConnection(object):
+class RemoteConnection(metaclass=abc.ABCMeta):
     def __init__(self, url, traversal_source):
         self._url = url
         self._traversal_source = traversal_source

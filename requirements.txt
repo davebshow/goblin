@@ -16,7 +16,6 @@ pytz==2016.6.1
 pytest==3.0.2
 pytest-asyncio==0.5.0
 pytest-runner==2.9
-six==1.10.0
 snowballstemmer==1.2.1
 Sphinx==1.4.5
 wheel==0.24.0
