@@ -247,6 +247,9 @@ classes::
     >>> app.register(Person, City, BornIn)
     >>> session = await app.session()
 
+Goblin application support a variety of configuration options, for more information
+see :doc:`the Goblin application documentation</app>`.
+
 The best way to create elements is by adding them to the session, and then flushing
 the `pending` queue, thereby creating the elements in the database. The order in which
 elements are added **is** important, as elements will be created based on the order
@@ -263,6 +266,9 @@ check that they now have unique ids assigned to them::
     >>> assert leif.id
     >>> assert detroit.id
     >>> assert leif_born_in_detroit.id
+
+For more information on the :py:class:`Goblin App <goblin.app.Goblin>`, please
+see :doc:`Using the Goblin App</app>`
 
 :py:class:`Session<goblin.session.Session>` provides a variety of other CRUD functions,
 but all creation and updating can be achieved simply using the :py:meth:`add` and

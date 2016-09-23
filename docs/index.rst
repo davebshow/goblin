@@ -154,9 +154,9 @@ out of the box. By default, it uses the
 :py:class:`GraphSON2MessageSerializer<goblin.driver.serializer.GraphSON2MessageSerializer>`.
 Since GraphSON2 was only recently included in the TinkerPop 3.2.2 release,
 :py:mod:`goblin.driver` also ships with
-:py:class:`GraphSONMessageSerializer<goblin.driver.serializer.GraphSONMessageSerializer>`.
-In the near future (when projects like Titan and DSE support the 3.2 Gremlin
-Server line), support for GraphsSON1 will be dropped.
+:py:class:`GraphSONMessageSerializer<goblin.driver.serializer.GraphSONMessageSerializer>`
+for backwards compatibility. In the near future (when projects like Titan and
+DSE support the 3.2 Gremlin Server line), support for GraphsSON1 will be dropped.
 
 The :py:mod:`goblin<Goblin>` OGM still uses GraphSON1 by default and will do so
 until :py:mod:`goblin.driver` support is dropped. It will then be updated to
@@ -171,6 +171,8 @@ Contents:
    ogm
    glv
    driver
+   app
+   performance
    modules
 
 

@@ -94,3 +94,7 @@ uses the following configuration:
 |                   |serialization, currently only supports        |             |
 |                   |basic GraphSON2MessageSerializer              |             |
 +-------------------+----------------------------------------------+-------------+
+
+
+For information related to improving driver performance, please refer to the
+:doc:`performance section <performance>`.
