@@ -22,12 +22,75 @@ import collections
 import logging
 import weakref
 
-from goblin import exception, mapper, traversal
+from goblin import cardinality, exception, mapper
 from goblin.driver import connection, graph
 from goblin.element import GenericVertex
 
+from gremlin_python.driver.remote_connection import RemoteStrategy
+from gremlin_python.process.traversal import Cardinality
+
+
 
 logger = logging.getLogger(__name__)
+
+
+def bindprop(element_class, ogm_name, val, *, binding=None):
+    """
+    Helper function for binding ogm properties/values to corresponding db
+    properties/values for traversals.
+
+    :param goblin.element.Element element_class: User defined element class
+    :param str ogm_name: Name of property as defined in the ogm
+    :param val: The property value
+    :param str binding: The binding for val (optional)
+
+    :returns: tuple object ('db_property_name', ('binding(if passed)', val))
+    """
+    db_name = getattr(element_class, ogm_name, ogm_name)
+    _, data_type = element_class.__mapping__.ogm_properties[ogm_name]
+    val = data_type.to_db(val)
+    if binding:
+        val = (binding, val)
+    return db_name, val
+
+
+class TraversalResponse:
+    """Asynchronous iterator that encapsulates a traversal response queue"""
+    def __init__(self, response_queue, request_id):
+        self._queue = response_queue
+        self._request_id = request_id
+        self._done = False
+
+    @property
+    def request_id(self):
+        return self._request_id
+
+    async def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if self._done:
+            return
+        msg = await self.fetch_data()
+        if msg:
+            return msg
+        else:
+            self._done = True
+            raise StopAsyncIteration
+
+    async def fetch_data(self):
+        return await self._queue.get()
+
+
+class GoblinAsyncRemoteStrategy(RemoteStrategy):
+
+    async def apply(self, traversal):
+
+        if traversal.traversers is None:
+            resp = await self.remote_connection.submit(
+                gremlin=traversal.bytecode, processor='', op='eval')
+            traversal.traversers = resp
+            traversal.side_effects = None
 
 
 class Session(connection.AbstractConnection):
@@ -50,10 +113,15 @@ class Session(connection.AbstractConnection):
         self._pending = collections.deque()
         self._current = weakref.WeakValueDictionary()
         self._get_hashable_id = get_hashable_id
-        remote_graph = graph.AsyncRemoteGraph(
-            self._app.translator, self,
-            graph_traversal=traversal.GoblinTraversal)
-        self._traversal_factory = traversal.TraversalFactory(remote_graph)
+        self._graph = graph.AsyncGraph()
+
+    @property
+    def graph(self):
+        return self._graph
+
+    @property
+    def message_serializer(self):
+        return self.conn.message_serializer
 
     @property
     def app(self):
@@ -62,10 +130,6 @@ class Session(connection.AbstractConnection):
     @property
     def conn(self):
         return self._conn
-
-    @property
-    def traversal_factory(self):
-        return self._traversal_factory
 
     @property
     def current(self):
@@ -93,19 +157,40 @@ class Session(connection.AbstractConnection):
             :py:class:`goblin.gremlin_python.process.GraphTraversalSource`
             object
         """
-        return self.traversal_factory.traversal()
+        return self.traversal()
 
-    def traversal(self, element_class):
+    @property
+    def _g(self):
         """
-        Get a traversal spawned from an element class.
-
-        :param :goblin.element.Element element_class: Element class
-            used to spawn traversal.
-
-        :returns: :py:class:`GoblinTraversal<goblin.traversal.GoblinTraversal>`
-            object
+        Traversal source for internal use. Uses undelying conn. Doesn't
+        trigger complex deserailization.
         """
-        return self.traversal_factory.traversal(element_class=element_class)
+        return self.graph.traversal(
+            graph_traversal=graph.AsyncGraphTraversal,
+            remote_strategy=GoblinAsyncRemoteStrategy).withRemote(self.conn)
+
+    def traversal(self, element_class=None):
+        """
+        Generate a traversal using a user defined element class as a
+        starting point.
+
+        :param goblin.element.Element element_class: An optional element
+            class that will dictate the element type (vertex/edge) as well as
+            the label for the traversal source
+
+        :returns: :py:class:`AsyncGraphTraversal`
+        """
+        traversal = self.graph.traversal(
+            graph_traversal=graph.AsyncGraphTraversal,
+            remote_strategy=GoblinAsyncRemoteStrategy).withRemote(self)
+        if element_class:
+            label = element_class.__mapping__.label
+            if element_class.__type__ == 'vertex':
+                traversal = traversal.V()
+            if element_class.__type__ == 'edge':
+                traversal = traversal.E()
+            traversal = traversal.hasLabel(label)
+        return traversal
 
     async def submit(self,
                      **args):
@@ -124,25 +209,30 @@ class Session(connection.AbstractConnection):
         response_queue = asyncio.Queue(loop=self._loop)
         self._loop.create_task(
             self._receive(async_iter, response_queue))
-        return traversal.TraversalResponse(response_queue)
+        return TraversalResponse(response_queue, async_iter.request_id)
 
     async def _receive(self, async_iter, response_queue):
-        async for result in async_iter:
-            if (isinstance(result, dict) and
-                    result.get('type', '') in ['vertex', 'edge']):
-                hashable_id = self._get_hashable_id(result['id'])
+        while True:
+            result = await async_iter.fetch_data()
+            if result is None:
+                break
+            obj = result.object
+            if (isinstance(obj, dict) and
+                    obj.get('type', '') in ['vertex', 'edge']):
+                hashable_id = self._get_hashable_id(obj['id'])
                 current = self.current.get(hashable_id, None)
                 if not current:
-                    element_type = result['type']
-                    label = result['label']
+                    element_type = obj['type']
+                    label = obj['label']
                     if element_type == 'vertex':
                         current = self.app.vertices[label]()
                     else:
                         current = self.app.edges[label]()
                         current.source = GenericVertex()
                         current.target = GenericVertex()
-                element = current.__mapping__.mapper_func(result, current)
-                response_queue.put_nowait(element)
+                element = current.__mapping__.mapper_func(obj, current)
+                result.object = element
+                response_queue.put_nowait(result)
             else:
                 response_queue.put_nowait(result)
         response_queue.put_nowait(None)
@@ -172,7 +262,7 @@ class Session(connection.AbstractConnection):
 
         :param goblin.element.Vertex vertex: Vertex to be removed
         """
-        traversal = self.traversal_factory.remove_vertex(vertex)
+        traversal = self._g.V(vertex.id).drop()
         result = await self._simple_traversal(traversal, vertex)
         hashable_id = self._get_hashable_id(vertex.id)
         vertex = self.current.pop(hashable_id)
@@ -185,7 +275,7 @@ class Session(connection.AbstractConnection):
 
         :param goblin.element.Edge edge: Element to be removed
         """
-        traversal = self.traversal_factory.remove_edge(edge)
+        traversal = self._g.E(edge.id).drop()
         result = await self._simple_traversal(traversal, edge)
         hashable_id = self._get_hashable_id(edge.id)
         edge = self.current.pop(hashable_id)
@@ -252,8 +342,7 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Vertex<goblin.element.Vertex>` | None
         """
-        return await self.traversal_factory.get_vertex_by_id(
-            vertex).one_or_none()
+        return await self.g.V(vertex.id).oneOrNone()
 
     async def get_edge(self, edge):
         """
@@ -263,8 +352,7 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Edge<goblin.element.Edge>` | None
         """
-        return await self.traversal_factory.get_edge_by_id(
-            edge).one_or_none()
+        return await self.g.E(edge.id).oneOrNone()
 
     async def update_vertex(self, vertex):
         """
@@ -276,7 +364,7 @@ class Session(connection.AbstractConnection):
         """
         props = mapper.map_props_to_db(vertex, vertex.__mapping__)
         # vert_props = mapper.map_vert_props_to_db
-        traversal = self.g.V(vertex.id)
+        traversal = self._g.V(vertex.id)
         return await self._update_vertex_properties(vertex, traversal, props)
 
     async def update_edge(self, edge):
@@ -288,7 +376,7 @@ class Session(connection.AbstractConnection):
         :returns: :py:class:`Edge<goblin.element.Edge>` object
         """
         props = mapper.map_props_to_db(edge, edge.__mapping__)
-        traversal = self.g.E(edge.id)
+        traversal = self._g.E(edge.id)
         return await self._update_edge_properties(edge, traversal, props)
 
     # Transaction support
@@ -308,13 +396,10 @@ class Session(connection.AbstractConnection):
 
     # *metodos especiales privados for creation API
     async def _simple_traversal(self, traversal, element):
-        stream = await self.conn.submit(
-            gremlin=repr(traversal), bindings=traversal.bindings)
-        msg = await stream.fetch_data()
-        stream.close()
+        msg = await traversal.oneOrNone()
         if msg:
             msg = element.__mapping__.mapper_func(msg, element)
-            return msg
+        return msg
 
     async def _save_element(self,
                             elem,
@@ -331,66 +416,57 @@ class Session(connection.AbstractConnection):
             result = await create_func(elem)
         return result
 
-    async def _add_vertex(self, elem):
+    async def _add_vertex(self, vertex):
         """Convenience function for generating crud traversals."""
-        props = mapper.map_props_to_db(elem, elem.__mapping__)
-        traversal = self.g.addV(elem.__mapping__.label)
-        traversal, _, metaprops = self.traversal_factory.add_properties(
-            traversal, props)
-        result = await self._simple_traversal(traversal, elem)
+        props = mapper.map_props_to_db(vertex, vertex.__mapping__)
+        traversal = self._g.addV(vertex.__mapping__.label)
+        traversal, _, metaprops = self._add_properties(traversal, props)
+        result = await self._simple_traversal(traversal, vertex)
         if metaprops:
             await self._add_metaprops(result, metaprops)
-            traversal = self.traversal_factory.get_vertex_by_id(elem)
-            result = await self._simple_traversal(traversal, elem)
+            traversal = self._g.V(vertex.id)
+            result = await self._simple_traversal(traversal, vertex)
         return result
 
-    async def _add_edge(self, elem):
+    async def _add_edge(self, edge):
         """Convenience function for generating crud traversals."""
-        props = mapper.map_props_to_db(elem, elem.__mapping__)
-        traversal = self.g.V(elem.source.id)
-        traversal = traversal.addE(elem.__mapping__._label)
+        props = mapper.map_props_to_db(edge, edge.__mapping__)
+        traversal = self._g.V(edge.source.id)
+        traversal = traversal.addE(edge.__mapping__._label)
         traversal = traversal.to(
-            self.g.V(elem.target.id))
-        traversal, _, _ = self.traversal_factory.add_properties(
+            self._g.V(edge.target.id))
+        traversal, _, _ = self._add_properties(
             traversal, props)
-        return await self._simple_traversal(traversal, elem)
+        return await self._simple_traversal(traversal, edge)
 
     async def _check_vertex(self, vertex):
         """Used to check for existence, does not update session vertex"""
-        traversal = self.g.V(vertex.id)
-        stream = await self.conn.submit(gremlin=repr(traversal))
-        msg = await stream.fetch_data()
-        stream.close()
+        msg = await self._g.V(vertex.id).oneOrNone()
         return msg
 
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
-        traversal = self.g.E(edge.id)
-        stream = await self.conn.submit(gremlin=repr(traversal))
-        msg = await stream.fetch_data()
-        stream.close()
+        msg = await self._g.E(edge.id).oneOrNone()
         return msg
 
     async def _update_vertex_properties(self, vertex, traversal, props):
-        traversal, removals, metaprops = self.traversal_factory.add_properties(
-            traversal, props)
+        traversal, removals, metaprops = self._add_properties(traversal, props)
         for k in removals:
-            await self.g.V(vertex.id).properties(k).drop().one_or_none()
+            await self._g.V(vertex.id).properties(k).drop().oneOrNone()
         result = await self._simple_traversal(traversal, vertex)
         if metaprops:
             removals = await self._add_metaprops(result, metaprops)
             for db_name, key, value in removals:
-                await self.g.V(vertex.id).properties(
-                    db_name).has(key, value).drop().one_or_none()
-            traversal = self.traversal_factory.get_vertex_by_id(vertex)
+                await self._g.V(vertex.id).properties(
+                    db_name).has(key, value).drop().oneOrNone()
+            traversal = self._g.V(vertex.id)
             result = await self._simple_traversal(traversal, vertex)
         return result
 
     async def _update_edge_properties(self, edge, traversal, props):
-        traversal, removals, _ = self.traversal_factory.add_properties(
-            traversal, props)
+        traversal, removals, _ = self._add_properties(traversal, props)
         for k in removals:
-            await self.g.E(edge.id).properties(k).drop().one_or_none()
+            await self._g.E(edge.id).properties(k).drop().oneOrNone()
         return await self._simple_traversal(traversal, edge)
 
     async def _add_metaprops(self, result, metaprops):
@@ -399,12 +475,35 @@ class Session(connection.AbstractConnection):
             db_name, (binding, value), metaprops = metaprop
             for key, val in metaprops.items():
                 if val:
-                    traversal = self.g.V(result.id).properties(
+                    traversal = self._g.V(result.id).properties(
                         db_name).hasValue(value).property(key, val)
-                    stream = await self.conn.submit(
-                        gremlin=repr(traversal), bindings=traversal.bindings)
-                    await stream.fetch_data()
-                    stream.close()
+                    await traversal.oneOrNone()
                 else:
                     potential_removals.append((db_name, key, value))
         return potential_removals
+
+    def _add_properties(self, traversal, props):
+        binding = 0
+        potential_removals = []
+        potential_metaprops = []
+        for card, db_name, val, metaprops in props:
+            if val:
+                key = ('k' + str(binding), db_name)
+                val = ('v' + str(binding), val)
+                if card:
+                    # Maybe use a dict here as a translator
+                    if card == cardinality.Cardinality.list:
+                        card = Cardinality.list
+                    elif card == cardinality.Cardinality.set:
+                        card = Cardinality.set
+                    else:
+                        card = Cardinality.single
+                    traversal = traversal.property(card, key, val)
+                else:
+                    traversal = traversal.property(key, val)
+                binding += 1
+                if metaprops:
+                    potential_metaprops.append((db_name, val, metaprops))
+            else:
+                potential_removals.append(db_name)
+        return traversal, potential_removals, potential_metaprops

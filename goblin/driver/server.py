@@ -70,7 +70,7 @@ class GremlinServer:
             await self._pool.close()
             self._pool = None
 
-    async def connect(self):
+    async def get_connection(self):
         """**coroutine** Acquire a connection from the pool."""
         try:
             conn = await self._pool.acquire()

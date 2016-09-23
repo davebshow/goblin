@@ -53,11 +53,16 @@ def error_handler(fn):
 
 class Response:
     """Gremlin Server response implementated as an async iterator."""
-    def __init__(self, response_queue, timeout, loop):
+    def __init__(self, response_queue, request_id, timeout, loop):
         self._response_queue = response_queue
+        self._request_id = request_id
         self._loop = loop
         self._timeout = timeout
         self._done = asyncio.Event(loop=self._loop)
+
+    @property
+    def request_id(self):
+        return self._request_id
 
     @property
     def done(self):
@@ -74,7 +79,7 @@ class Response:
     async def __anext__(self):
         msg = await self.fetch_data()
         if msg:
-            return msg
+            return msg.object
         else:
             raise StopAsyncIteration
 
@@ -147,11 +152,10 @@ class Connection(AbstractConnection):
             message_serializer = message_serializer()
         self._message_serializer = message_serializer
 
-
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None, username='',
                    password='', max_inflight=64, response_timeout=None,
-                   message_serializer=serializer.GraphSONMessageSerializer):
+                   message_serializer=serializer.GraphSON2MessageSerializer):
         """
         **coroutine** Open a connection to the Gremlin Server.
 
@@ -172,6 +176,10 @@ class Connection(AbstractConnection):
         ws = await client_session.ws_connect(url)
         return cls(url, ws, loop, client_session, username, password,
                    max_inflight, response_timeout, message_serializer)
+
+    @property
+    def message_serializer(self):
+        return self._message_serializer
 
     @property
     def closed(self):
@@ -198,6 +206,7 @@ class Connection(AbstractConnection):
                      **args):
         """
         Submit a script and bindings to the Gremlin Server
+
         :param str processor: Gremlin Server processor argument
         :param str op: Gremlin Server op argument
         :param args: Keyword arguments for Gremlin Server. Depend on processor
@@ -213,7 +222,7 @@ class Connection(AbstractConnection):
         if self._ws.closed:
             self._ws = await self.client_session.ws_connect(self.url)
         self._ws.send_bytes(message)
-        resp = Response(response_queue, self._response_timeout, self._loop)
+        resp = Response(response_queue, request_id, self._response_timeout, self._loop)
         self._loop.create_task(self._terminate_response(resp, request_id))
         return resp
 
@@ -266,9 +275,11 @@ class Connection(AbstractConnection):
                 else:
                     if data:
                         for result in data:
+                            result = self._message_serializer.deserialize_message(result)
                             message = Message(status_code, result, msg)
                             response_queue.put_nowait(message)
                     else:
+                        data = self._message_serializer.deserialize_message(data)
                         message = Message(status_code, data, msg)
                         response_queue.put_nowait(message)
                     if status_code != 206:
@@ -280,3 +291,6 @@ class Connection(AbstractConnection):
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
         self._conn = None
+
+
+DriverRemoteConnection = Connection

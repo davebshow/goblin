@@ -16,53 +16,50 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 '''
-from abc import abstractmethod
+import abc
+import six
 from aenum import Enum
-from gremlin_python import statics
+from .. import statics
 
 class Traversal(object):
     def __init__(self, graph, traversal_strategies, bytecode):
         self.graph = graph
         self.traversal_strategies = traversal_strategies
         self.bytecode = bytecode
-        self.results = None
+        self.side_effects = TraversalSideEffects()
+        self.traversers = None
         self.last_traverser = None
-        self.bindings = {}
-
     def __repr__(self):
-        return self.graph.translator.translate(self.bytecode)
-
-    def __getitem__(self, index):
-        if isinstance(index, int):
-            return self.range(index, index + 1)
-        elif isinstance(index, slice):
-            return self.range(index.start, index.stop)
-        else:
-            raise TypeError("Index must be int or slice")
-
-    def __getattr__(self, key):
-        return self.values(key)
-
+        return str(self.bytecode)
     def __iter__(self):
         return self
-
     def __next__(self):
-        if self.results is None:
+        if self.traversers is None:
             self.traversal_strategies.apply_strategies(self)
         if self.last_traverser is None:
-            self.last_traverser = next(self.results)
+            self.last_traverser = next(self.traversers)
         object = self.last_traverser.object
         self.last_traverser.bulk = self.last_traverser.bulk - 1
         if self.last_traverser.bulk <= 0:
             self.last_traverser = None
         return object
-
     def toList(self):
         return list(iter(self))
-
     def toSet(self):
         return set(iter(self))
-
+    def iterate(self):
+        while True:
+            try: self.nextTraverser()
+            except StopIteration: return self
+    def nextTraverser(self):
+        if self.traversers is None:
+            self.traversal_strategies.apply_strategies(self)
+        if self.last_traverser is None:
+            return next(self.traversers)
+        else:
+            temp = self.last_traverser
+            self.last_traverser = None
+            return temp
     def next(self, amount=None):
         if amount is None:
             return self.__next__()
@@ -76,29 +73,25 @@ class Traversal(object):
                 tempList.append(temp)
             return tempList
 
-Barrier = Enum('Barrier', 'normSack')
 
+Barrier = Enum('Barrier', 'normSack')
 statics.add_static('normSack', Barrier.normSack)
 
 Cardinality = Enum('Cardinality', 'list set single')
-
 statics.add_static('single', Cardinality.single)
 statics.add_static('list', Cardinality.list)
 statics.add_static('set', Cardinality.set)
 
 Column = Enum('Column', 'keys values')
-
 statics.add_static('keys', Column.keys)
 statics.add_static('values', Column.values)
 
 Direction = Enum('Direction', 'BOTH IN OUT')
-
 statics.add_static('OUT', Direction.OUT)
 statics.add_static('IN', Direction.IN)
 statics.add_static('BOTH', Direction.BOTH)
 
-Operator = Enum('Operator', 'addAll _and assign div max min minus mult _or sum sumLong')
-
+Operator = Enum('Operator', 'addAll and_ assign div max min minus mult or_ sum sumLong')
 statics.add_static('sum', Operator.sum)
 statics.add_static('minus', Operator.minus)
 statics.add_static('mult', Operator.mult)
@@ -106,13 +99,12 @@ statics.add_static('div', Operator.div)
 statics.add_static('min', Operator.min)
 statics.add_static('max', Operator.max)
 statics.add_static('assign', Operator.assign)
-statics.add_static('_and', Operator._and)
-statics.add_static('_or', Operator._or)
+statics.add_static('and_', Operator.and_)
+statics.add_static('or_', Operator.or_)
 statics.add_static('addAll', Operator.addAll)
 statics.add_static('sumLong', Operator.sumLong)
 
 Order = Enum('Order', 'decr incr keyDecr keyIncr shuffle valueDecr valueIncr')
-
 statics.add_static('incr', Order.incr)
 statics.add_static('decr', Order.decr)
 statics.add_static('keyIncr', Order.keyIncr)
@@ -121,19 +113,16 @@ statics.add_static('keyDecr', Order.keyDecr)
 statics.add_static('valueDecr', Order.valueDecr)
 statics.add_static('shuffle', Order.shuffle)
 
-Pop = Enum('Pop', 'all first last')
-
+Pop = Enum('Pop', 'all_ first last')
 statics.add_static('first', Pop.first)
 statics.add_static('last', Pop.last)
-statics.add_static('all', Pop.all)
+statics.add_static('all_', Pop.all_)
 
-Scope = Enum('Scope', '_global local')
-
-statics.add_static('_global', Scope._global)
+Scope = Enum('Scope', 'global_ local')
+statics.add_static('global_', Scope.global_)
 statics.add_static('local', Scope.local)
 
 T = Enum('T', 'id key label value')
-
 statics.add_static('label', T.label)
 statics.add_static('id', T.id)
 statics.add_static('key', T.key)
@@ -144,9 +133,6 @@ class P(object):
       self.operator = operator
       self.value = value
       self.other = other
-   @staticmethod
-   def _not(*args):
-      return P("not", *args)
    @staticmethod
    def between(*args):
       return P("between", *args)
@@ -172,6 +158,9 @@ class P(object):
    def neq(*args):
       return P("neq", *args)
    @staticmethod
+   def not_(*args):
+      return P("not", *args)
+   @staticmethod
    def outside(*args):
       return P("outside", *args)
    @staticmethod
@@ -184,94 +173,66 @@ class P(object):
    def without(*args):
       return P("without", *args)
    def _and(self, arg):
-      return P("_and", arg, self)
+      return P("and", arg, self)
    def _or(self, arg):
-      return P("_or", arg, self)
-
-def _not(*args):
-      return P._not(*args)
-
-statics.add_static('_not',_not)
+      return P("or", arg, self)
+   def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.operator == other.operator and self.value == other.value and self.other == other.other
+   def __repr__(self):
+      return self.operator + "(" + str(self.value) + ")" if self.other is None else self.operator + "(" + str(self.value) + "," + str(self.other) + ")"
 
 def between(*args):
       return P.between(*args)
-
 statics.add_static('between',between)
 
 def eq(*args):
       return P.eq(*args)
-
 statics.add_static('eq',eq)
 
 def gt(*args):
       return P.gt(*args)
-
 statics.add_static('gt',gt)
 
 def gte(*args):
       return P.gte(*args)
-
 statics.add_static('gte',gte)
 
 def inside(*args):
       return P.inside(*args)
-
 statics.add_static('inside',inside)
 
 def lt(*args):
       return P.lt(*args)
-
 statics.add_static('lt',lt)
 
 def lte(*args):
       return P.lte(*args)
-
 statics.add_static('lte',lte)
 
 def neq(*args):
       return P.neq(*args)
-
 statics.add_static('neq',neq)
+
+def not_(*args):
+      return P.not_(*args)
+statics.add_static('not_',not_)
 
 def outside(*args):
       return P.outside(*args)
-
 statics.add_static('outside',outside)
 
 def test(*args):
       return P.test(*args)
-
 statics.add_static('test',test)
 
 def within(*args):
       return P.within(*args)
-
 statics.add_static('within',within)
 
 def without(*args):
       return P.without(*args)
-
 statics.add_static('without',without)
 
-
-class RawExpression(object):
-   def __init__(self, *args):
-      self.bindings = dict()
-      self.parts = [self._process_arg(arg) for arg in args]
-
-   def _process_arg(self, arg):
-      if isinstance(arg, tuple) and 2 == len(arg) and isinstance(arg[0], str):
-         self.bindings[arg[0]] = arg[1]
-         return Raw(arg[0])
-      else:
-         return Raw(arg)
-
-class Raw(object):
-   def __init__(self, value):
-      self.value = value
-
-   def __str__(self):
-      return str(self.value)
 
 
 '''
@@ -279,11 +240,27 @@ TRAVERSER
 '''
 
 class Traverser(object):
-    def __init__(self, object, bulk):
+    def __init__(self, object, bulk=1):
         self.object = object
         self.bulk = bulk
     def __repr__(self):
         return str(self.object)
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.object == other.object
+
+'''
+TRAVERSAL SIDE-EFFECTS
+'''
+
+class TraversalSideEffects(object):
+    def keys(self):
+        return set()
+    def get(self, key):
+        raise KeyError(key)
+    def __getitem__(self, key):
+        return self.get(key)
+    def __repr__(self):
+        return "sideEffects[size:" + str(len(self.keys())) + "]"
 
 '''
 TRAVERSAL STRATEGIES
@@ -291,87 +268,68 @@ TRAVERSAL STRATEGIES
 
 class TraversalStrategies(object):
     global_cache = {}
-
-    def __init__(self, traversal_strategies):
-        self.traversal_strategies = traversal_strategies
-        return
-
+    def __init__(self, traversal_strategies=None):
+        self.traversal_strategies = traversal_strategies.traversal_strategies if traversal_strategies is not None else []
+    def add_strategies(self, traversal_strategies):
+        self.traversal_strategies = self.traversal_strategies + traversal_strategies
     def apply_strategies(self, traversal):
         for traversal_strategy in self.traversal_strategies:
             traversal_strategy.apply(traversal)
-        return
 
 
+@six.add_metaclass(abc.ABCMeta)
 class TraversalStrategy(object):
-    @abstractmethod
+    @abc.abstractmethod
     def apply(self, traversal):
         return
 
 '''
-BYTECODE AND TRANSLATOR
+BYTECODE
 '''
 
 class Bytecode(object):
     def __init__(self, bytecode=None):
         self.source_instructions = []
         self.step_instructions = []
+        self.bindings = {}
         if bytecode is not None:
             self.source_instructions = list(bytecode.source_instructions)
             self.step_instructions = list(bytecode.step_instructions)
-
     def add_source(self, source_name, *args):
-        newArgs = ()
+        instruction = [source_name]
         for arg in args:
-            newArgs = newArgs + (Bytecode.__convertArgument(arg),)
-        self.source_instructions.append((source_name, newArgs))
-        return
-
+            instruction.append(self._convertArgument(arg))
+        self.source_instructions.append(instruction)
     def add_step(self, step_name, *args):
-        newArgs = ()
+        instruction = [step_name]
         for arg in args:
-            newArgs = newArgs + (Bytecode.__convertArgument(arg),)
-        self.step_instructions.append((step_name, newArgs))
-        return
-
-    @staticmethod
-    def __convertArgument(arg):
+            instruction.append(self._convertArgument(arg))
+        self.step_instructions.append(instruction)
+    def _convertArgument(self,arg):
         if isinstance(arg, Traversal):
+            self.bindings.update(arg.bytecode.bindings)
             return arg.bytecode
+        elif isinstance(arg, tuple) and 2 == len(arg) and isinstance(arg[0], str):
+            self.bindings[arg[0]] = arg[1]
+            return Binding(arg[0],arg[1])
         else:
             return arg
-
-
-TO_JAVA_MAP = {"_global": "global", "_as": "as", "_in": "in", "_and": "and",
-               "_or": "or", "_is": "is", "_not": "not", "_from": "from",
-               "Cardinality": "VertexProperty.Cardinality", "Barrier": "SackFunctions.Barrier"}
-
-
-class Translator(object):
-    def __init__(self, traversal_source, anonymous_traversal, target_language):
-        self.traversal_source = traversal_source
-        self.anonymous_traversal = anonymous_traversal
-        self.target_language = target_language
-
-    @abstractmethod
-    def translate(self, bytecode):
-        return
-
-    @abstractmethod
     def __repr__(self):
-        return "translator[" + self.traversal_source + ":" + self.target_language + "]"
+        return (str(self.source_instructions) if len(self.source_instructions) > 0 else "") + \
+               (str(self.step_instructions) if len(self.step_instructions) > 0 else "")
 
 
-class SymbolHelper(object):
-    @staticmethod
-    def toJava(symbol):
-        if (symbol in TO_JAVA_MAP):
-            return TO_JAVA_MAP[symbol]
-        else:
-            return symbol
+'''
+BINDINGS
+'''
 
-    @staticmethod
-    def mapEnum(enum):
-        if (enum in enumMap):
-            return enumMap[enum]
-        else:
-            return enum
+class Bindings(object):
+    def of(self,key,value):
+        if not isinstance(key, str):
+            raise TypeError("Key must be str")
+        return (key,value)
+
+class Binding(object):
+    def __init__(self,key,value):
+        self.key = key
+        self.value = value

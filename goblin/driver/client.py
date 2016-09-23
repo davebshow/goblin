@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
+from goblin import exception
+
 
 class Client:
     """
@@ -26,8 +28,8 @@ class Client:
         client
     :param asyncio.BaseEventLoop loop:
     """
-    def __init__(self, cluster, loop, *, aliases=None,
-                 processor=None, op=None):
+    def __init__(self, cluster, loop, *, aliases=None, processor=None,
+                 op=None):
         self._cluster = cluster
         self._loop = loop
         if aliases is None:
@@ -39,6 +41,10 @@ class Client:
         if op is None:
             op = 'eval'
         self._op = op
+
+    @property
+    def message_serializer(self):
+        return self.cluster.config['message_serializer']
 
     @property
     def cluster(self):
@@ -63,11 +69,11 @@ class Client:
                      **args):
         """
         **coroutine** Submit a script and bindings to the Gremlin Server.
+
         :param str processor: Gremlin Server processor argument
         :param str op: Gremlin Server op argument
         :param args: Keyword arguments for Gremlin Server. Depend on processor
             and op.
-
         :returns: :py:class:`Response` object
         """
         processor = processor or self._processor
@@ -81,3 +87,25 @@ class Client:
             processor=processor, op=op, **args)
         self._loop.create_task(conn.release_task(resp))
         return resp
+
+
+class SessionedClient(Client):
+
+    def __init__(self, cluster, loop, session, *, aliases=None):
+        super().__init__(cluster, loop, aliases=aliases, processor='session',
+                         op='eval')
+        self._session = session
+
+    @property
+    def session(self):
+        return self._session
+
+    async def submit(self, **args):
+        if not args.get('gremlin', ''):
+            raise exception.ClientError('Session requires a gremlin string')
+        return await super().submit(processor='session', op='eval',
+                                    session=self.session,
+                                    **args)
+
+    async def close(self):
+        raise NotImplementedError

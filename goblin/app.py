@@ -40,19 +40,14 @@ class Goblin:
     :param dict config: Config parameters for application
     """
 
-    def __init__(self, cluster, *, translator=None, traversal_source=None,
-                 get_hashable_id=None, aliases=None):
+    def __init__(self, cluster, *, get_hashable_id=None, aliases=None):
         self._cluster = cluster
         self._loop = self._cluster._loop
-        self._traversal_source = traversal_source
         self._transactions = None
         self._cluster = cluster
         self._vertices = collections.defaultdict(
             lambda: element.GenericVertex)
         self._edges = collections.defaultdict(lambda: element.GenericEdge)
-        if not translator:
-            translator = process.GroovyTranslator('g')
-        self._translator = translator
         if not get_hashable_id:
             get_hashable_id = lambda x: x
         self._get_hashable_id = get_hashable_id
@@ -62,7 +57,11 @@ class Goblin:
 
     @classmethod
     async def open(cls, loop, *, get_hashable_id=None, aliases=None, **config):
-        cluster = await driver.Cluster.open(loop, aliases=aliases, **config)
+        # App currently only supports GraphSON 1
+        cluster = await driver.Cluster.open(
+            loop, aliases=aliases,
+            message_serializer=driver.GraphSONMessageSerializer,
+            **config)
         app = Goblin(cluster, get_hashable_id=get_hashable_id, aliases=aliases)
         await app.supports_transactions()
         return app
@@ -82,11 +81,6 @@ class Goblin:
         return self._edges
 
     @property
-    def translator(self):
-        """gremlin-python translator class"""
-        return self._translator
-
-    @property
     def url(self):
         """Database url"""
         return self._url
@@ -103,8 +97,27 @@ class Goblin:
             if element.__type__ == 'edge':
                 self._edges[element.__label__] = element
 
+    def config_from_file(self, filename):
+        """
+        Load configuration from from file.
+
+        :param str filename: Path to the configuration file.
+        """
+        self._cluster.config_from_file(filename)
+
+    def config_from_yaml(self, filename):
+        self._cluster.config_from_yaml(filename)
+
+    def config_from_json(self, filename):
+        """
+        Load configuration from from JSON file.
+
+        :param str filename: Path to the configuration file.
+        """
+        self._cluster.config_from_json(filename)
+
     def register_from_module(self, modulename):
-        pass
+        raise NotImplementedError
 
     async def session(self, *, use_session=False, processor='', op='eval',
                       aliases=None):
@@ -131,6 +144,7 @@ class Goblin:
                 gremlin='graph.features().graph().supportsTransactions()',
                 aliases=self._aliases)
             msg = await stream.fetch_data()
+            msg = msg.object
             stream.close()
             self._transactions = msg
         return self._transactions

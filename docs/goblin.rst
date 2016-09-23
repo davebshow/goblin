@@ -83,15 +83,6 @@ goblin.session module
     :undoc-members:
     :show-inheritance:
 
-goblin.traversal module
------------------------
-
-.. automodule:: goblin.traversal
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 Module contents
 ---------------
 

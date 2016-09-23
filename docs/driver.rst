@@ -9,7 +9,7 @@ Gremlin Server::
     >>> import asyncio
     >>> from goblin import driver
     >>> loop = asyncio.get_event_loop()
-    >>> conn = await driver.Connection.open('ws://localhost:8182', loop)
+    >>> conn = await driver.Connection.open('ws://localhost:8182/gremlin', loop)
 
 The :py:class:`Connection<goblin.driver.connection.Connection>` object can be
 used to :py:meth:`submit<goblin.driver.connection.Connection.submit>` messages
@@ -92,5 +92,5 @@ uses the following configuration:
 +-------------------+----------------------------------------------+-------------+
 |message_serializer |String denoting the class used for message    |'classpath'  |
 |                   |serialization, currently only supports        |             |
-|                   |basic GraphSONMessageSerializer               |             |
+|                   |basic GraphSON2MessageSerializer              |             |
 +-------------------+----------------------------------------------+-------------+
