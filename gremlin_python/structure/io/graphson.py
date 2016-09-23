@@ -19,10 +19,14 @@ under the License.
 
 __author__ = 'Marko A. Rodriguez (http://markorodriguez.com)'
 
-import json
 from abc import abstractmethod
 from aenum import Enum
 from types import FunctionType
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 from gremlin_python import statics
 from gremlin_python.process.traversal import Binding

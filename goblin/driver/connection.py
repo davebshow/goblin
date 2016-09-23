@@ -19,11 +19,15 @@ import abc
 import asyncio
 import collections
 import functools
-import json
 import logging
 import uuid
 
 import aiohttp
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 from goblin import exception
 from goblin.driver import serializer

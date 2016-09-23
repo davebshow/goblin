@@ -15,7 +15,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
-import json
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 from gremlin_python.process.traversal import Bytecode, Traverser
 from gremlin_python.process.translator import GroovyTranslator

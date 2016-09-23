@@ -18,8 +18,12 @@
 import asyncio
 import collections
 import configparser
-import json
 import ssl
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 import yaml
 
