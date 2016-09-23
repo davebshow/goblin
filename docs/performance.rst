@@ -8,8 +8,8 @@ software stack i.e., the websocket client, the event loop implementation, etc.
 If necessary, a few tricks can boost its performance.
 
 
-Use Cython
-----------
+Use :py:mod:`Cython`
+--------------------
 
 Before installing :py:mod:`Goblin`, install :py:mod:`Cython`::
 
