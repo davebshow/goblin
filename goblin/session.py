@@ -213,7 +213,8 @@ class Session(connection.AbstractConnection):
 
     async def _receive(self, async_iter, response_queue):
         async for result in async_iter:
-            response_queue.put_nowait(self._deserialize_result(result))
+            traverser = Traverser(self._deserialize_result(result), 1)
+            response_queue.put_nowait(traverser)
         response_queue.put_nowait(None)
 
     def _deserialize_result(self, result):
@@ -231,16 +232,15 @@ class Session(connection.AbstractConnection):
                         current.source = GenericVertex()
                         current.target = GenericVertex()
                 element = current.__mapping__.mapper_func(result, current)
-                return Traverser(element, 1)
+                return element
             else:
                 for key in result:
                     result[key] = self._deserialize_result(result[key])
-                return Traverser(result, 1)
+                return result
         elif isinstance(result, list):
-            result = [self._deserialize_result(item) for item in result]
-            return Traverser(result, 1)
+            return [self._deserialize_result(item) for item in result]
         else:
-            return Traverser(result, 1)
+            return result
 
     # Creation API
     def add(self, *elements):
