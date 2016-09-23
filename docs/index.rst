@@ -81,7 +81,7 @@ Generate and submit Gremlin traversals in native Python::
     >>> loop.run_until_complete(go(g))
     # {'properties': {'name': [{'value': 'Leif', 'id': 3}]}, 'label': 'developer', 'id': 2, 'type': 'vertex'}
 
-For more information on using the :py:class:`goblin.driver.graph.AsyncGraph<AsyncGraph>`,
+For more information on using the :py:class:`AsyncGraph<goblin.driver.graph.AsyncGraph>`,
 see the :doc:`GLV docs</glv>`
 
 
