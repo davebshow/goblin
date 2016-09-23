@@ -212,14 +212,14 @@ class Session(connection.AbstractConnection):
         return TraversalResponse(response_queue, async_iter.request_id)
 
     async def _receive(self, async_iter, response_queue):
-        while True:
-            result = await async_iter.fetch_data()
-            if result is None:
-                break
-            obj = result.object
-            if (isinstance(obj, dict) and
-                    obj.get('type', '') in ['vertex', 'edge']):
-                hashable_id = self._get_hashable_id(obj['id'])
+        async for result in async_iter:
+            response_queue.put_nowait(self._deserialize_result(result))
+        response_queue.put_nowait(None)
+
+    def _deserialize_result(self, result):
+        if isinstance(result, dict):
+            if result.get('type', '') in ['vertex', 'edge']:
+                hashable_id = self._get_hashable_id(result['id'])
                 current = self.current.get(hashable_id, None)
                 if not current:
                     element_type = obj['type']
@@ -230,12 +230,16 @@ class Session(connection.AbstractConnection):
                         current = self.app.edges[label]()
                         current.source = GenericVertex()
                         current.target = GenericVertex()
-                element = current.__mapping__.mapper_func(obj, current)
-                result.object = element
-                response_queue.put_nowait(result)
+                element = current.__mapping__.mapper_func(result, current)
+                return element
             else:
-                response_queue.put_nowait(result)
-        response_queue.put_nowait(None)
+                for key in result:
+                    result[key] = self._deserialize_result(result[key])
+                return result
+        elif isinstance(result, list):
+            return [self._deserialize_result(item) for item in result]
+        else:
+            return result
 
     # Creation API
     def add(self, *elements):

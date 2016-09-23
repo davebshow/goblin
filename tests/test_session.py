@@ -23,6 +23,8 @@ from goblin import element
 from goblin.session import bindprop
 from gremlin_python.process.translator import GroovyTranslator
 
+from gremlin_python.process.graph_traversal import __
+
 
 def test_bindprop(person_class):
     db_val, (binding, val) = bindprop(person_class, 'name', 'dave', binding='n1')
@@ -345,3 +347,21 @@ class TestTraversalApi:
         one = await session.g.V(p1.id).count().oneOrNone()
         assert one == 1
         await app.close()
+
+
+    @pytest.mark.asyncio
+    async def test_deserialize_nested_map(self, session, person_class):
+        async with session:
+            await session.g.addV('person').property(
+                person_class.name, 'leif').property('place_of_birth', 'detroit').oneOrNone()
+
+            await session.g.addV('person').property(person_class.name, 'David').property(
+                person_class.nicknames, 'davebshow').property(
+                person_class.nicknames, 'Dave').oneOrNone()
+
+            resp = await (session.g.V().hasLabel('person')._as('x').valueMap()._as('y')
+                          .select('x', 'y').fold().oneOrNone())
+
+            for item in resp:
+                assert isinstance(item['x'], person_class)
+                assert isinstance(item['y'], dict)
