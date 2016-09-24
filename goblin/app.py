@@ -67,8 +67,12 @@ class Goblin:
         return app
 
     @property
+    def cluster(self):
+        return self._cluster
+
+    @property
     def config(self):
-        return self._cluster.config
+        return self.cluster.config
 
     @property
     def vertices(self):
