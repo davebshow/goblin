@@ -18,9 +18,9 @@
 """Goblin application class and class constructor"""
 
 import collections
+import importlib
 import logging
 
-from gremlin_python import process
 from goblin import driver, element, session
 
 
@@ -120,8 +120,15 @@ class Goblin:
         """
         self._cluster.config_from_json(filename)
 
-    def register_from_module(self, modulename):
-        raise NotImplementedError
+    def register_from_module(self, module, *, package=None):
+        if isinstance(module, str):
+            module = importlib.import_module(module, package)
+        elements = list()
+        for item_name in dir(module):
+            item = getattr(module, item_name)
+            if isinstance(item, element.ElementMeta):
+                elements.append(item)
+        self.register(*elements)
 
     async def session(self, *, use_session=False, processor='', op='eval',
                       aliases=None):
