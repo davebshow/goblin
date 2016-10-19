@@ -211,7 +211,7 @@ class ConnectionPool:
         while self._acquired:
             conn = self._acquired.popleft()
             waiters.append(conn.close())
-        await asyncio.gather(*waiters)
+        await asyncio.gather(*waiters, loop=self._loop)
 
     async def _get_connection(self, username, password, max_inflight,
                               response_timeout, message_serializer):
