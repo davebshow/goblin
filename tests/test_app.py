@@ -23,7 +23,8 @@ from goblin.driver import serializer
 from gremlin_python import process
 
 
-def test_register_from_module(app):
+@pytest.mark.asyncio
+async def test_register_from_module(app):
     import register_models
     app.register_from_module(register_models)
     vertices, edges = app._vertices.values(), app._edges.values()
@@ -31,9 +32,10 @@ def test_register_from_module(app):
     assert register_models.TestRegisterVertex2 in vertices
     assert register_models.TestRegisterEdge1 in edges
     assert register_models.TestRegisterEdge2 in edges
+    await app.close()
 
-
-def test_register_from_module_string(app):
+@pytest.mark.asyncio
+async def test_register_from_module_string(app):
     app.register_from_module('register_models', package=__package__)
     vertices, edges = app._vertices.values(), app._edges.values()
 
@@ -42,6 +44,7 @@ def test_register_from_module_string(app):
     assert register_models.TestRegisterVertex2 in vertices
     assert register_models.TestRegisterEdge1 in edges
     assert register_models.TestRegisterEdge2 in edges
+    await app.close()
 
 
 @pytest.mark.asyncio
