@@ -34,11 +34,11 @@ async def test_register_from_module(app):
     assert register_models.TestRegisterEdge2 in edges
     await app.close()
 
+
 @pytest.mark.asyncio
 async def test_register_from_module_string(app):
     app.register_from_module('register_models', package=__package__)
     vertices, edges = app._vertices.values(), app._edges.values()
-
     import register_models
     assert register_models.TestRegisterVertex1 in vertices
     assert register_models.TestRegisterVertex2 in vertices
