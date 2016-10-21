@@ -194,5 +194,5 @@ class Cluster:
         while self._hosts:
             host = self._hosts.popleft()
             waiters.append(host.close())
-        await asyncio.gather(*waiters)
+        await asyncio.gather(*waiters, loop=self._loop)
         self._closed = True
