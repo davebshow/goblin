@@ -30,6 +30,8 @@ class DataType(abc.ABC):
     inherit from :py:class:`DataType`.
     """
     def __init__(self, val=None):
+        if val:
+            val = self.validate(val)
         self._val = val
 
     @abc.abstractmethod
