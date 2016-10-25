@@ -43,8 +43,10 @@ class ElementMeta(type):
             namespace['__label__'] = inflection.underscore(name)
         props = {}
         new_namespace = {}
+        prop_names = []
         for k, v in namespace.items():
             if isinstance(v, abc.BaseProperty):
+                prop_names.append(k)
                 if element_type == 'edge' and hasattr(v, 'cardinality'):
                     raise exception.MappingError(
                         'Edge property cannot have set/list cardinality')
@@ -53,6 +55,7 @@ class ElementMeta(type):
             new_namespace[k] = v
         new_namespace['__mapping__'] = mapper.create_mapping(namespace,
                                                              props)
+        new_namespace['__properties__'] = prop_names
         result = type.__new__(cls, name, bases, new_namespace)
         return result
 
