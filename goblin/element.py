@@ -31,11 +31,13 @@ class ElementMeta(type):
     :py:class:`Mapping<mapper.Mapping>` object and replacing user defined
     :py:class:`property.Property` with :py:class:`property.PropertyDescriptor`.
     """
-    def __new__(cls, name, bases, namespace, **kwds):
+    def __new__(cls, name, bases, namespace, **kwds):   
         if name == 'VertexProperty':
             element_type = name.lower()
         elif bases:
-            element_type = bases[0].__name__.lower()
+            element_type = bases[0].__type__
+            if element_type not in ['vertex', 'edge']:
+                element_type = bases[0].__name__.lower()
         else:
             element_type = name.lower()
         namespace['__type__'] = element_type

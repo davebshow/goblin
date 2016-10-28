@@ -59,6 +59,21 @@ class TestCreationApi:
         await app.close()
 
     @pytest.mark.asyncio
+    async def test_create_inherited(self, app, inherited_class):
+        session = await app.session()
+        jon = inherited_class()
+        jon.name = 'jonathan'
+        jon.age = 38
+        session.add(jon)
+        assert not hasattr(jon, 'id')
+        await session.flush()
+        assert hasattr(jon, 'id')
+        assert session.current[jon.id] is jon
+        assert jon.name == 'jonathan'
+        assert jon.age == 38
+        await app.close()
+
+    @pytest.mark.asyncio
     async def test_create_edge(self, app, person_class, place_class,
                                lives_in_class):
         session = await app.session()

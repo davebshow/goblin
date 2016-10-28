@@ -49,6 +49,10 @@ class Place(element.Vertex):
         properties.Integer, card=Cardinality.set)
 
 
+class Inherited(Person):
+    pass
+
+
 class Knows(element.Edge):
     __label__ = 'knows'
     notes = properties.Property(properties.String, default='N/A')
@@ -186,6 +190,11 @@ def historical_name_class():
 @pytest.fixture
 def person_class():
     return Person
+
+
+@pytest.fixture
+def inherited_class():
+    return Inherited
 
 
 @pytest.fixture
