@@ -90,8 +90,8 @@ class Edge(Element):
     :param Vertex target: Target (inV) vertex
     """
     def __init__(self, source=None, target=None):
-        self._source = source
-        self._target = target
+        self.source = source
+        self.target = target
 
     def getsource(self):
         return self._source
