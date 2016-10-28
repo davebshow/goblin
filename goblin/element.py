@@ -31,24 +31,26 @@ class ElementMeta(type):
     :py:class:`Mapping<mapper.Mapping>` object and replacing user defined
     :py:class:`property.Property` with :py:class:`property.PropertyDescriptor`.
     """
-    def __new__(cls, name, bases, namespace, **kwds):   
+    def __new__(cls, name, bases, namespace, **kwds):
+        props = {}
         if name == 'VertexProperty':
             element_type = name.lower()
         elif bases:
             element_type = bases[0].__type__
             if element_type not in ['vertex', 'edge']:
                 element_type = bases[0].__name__.lower()
+            for base in bases:
+                base_props = getattr(base, '__properties__', {})
+                props.update(base_props)
         else:
             element_type = name.lower()
         namespace['__type__'] = element_type
         if not namespace.get('__label__', None):
             namespace['__label__'] = inflection.underscore(name)
-        props = {}
         new_namespace = {}
-        prop_names = []
+        props.pop('id', None)
         for k, v in namespace.items():
             if isinstance(v, abc.BaseProperty):
-                prop_names.append(k)
                 if element_type == 'edge' and hasattr(v, 'cardinality'):
                     raise exception.MappingError(
                         'Edge property cannot have set/list cardinality')
@@ -57,7 +59,7 @@ class ElementMeta(type):
             new_namespace[k] = v
         new_namespace['__mapping__'] = mapper.create_mapping(namespace,
                                                              props)
-        new_namespace['__properties__'] = prop_names
+        new_namespace['__properties__'] = props
         result = type.__new__(cls, name, bases, new_namespace)
         return result
 
