@@ -17,6 +17,7 @@
 
 import abc
 import asyncio
+import base64
 import collections
 import functools
 import logging
@@ -230,14 +231,13 @@ class Connection(AbstractConnection):
         self._loop.create_task(self._terminate_response(resp, request_id))
         return resp
 
-    def _authenticate(self, username, password, session):
+    def _authenticate(self, username, password, request_id):
         auth = b''.join([b'\x00', username.encode('utf-8'),
                          b'\x00', password.encode('utf-8')])
-        request_id = str(uuid.uuid4())
-        args = {'sasl': base64.b64encode(auth).decode()}
+        args = {'sasl': base64.b64encode(auth).decode(), 'saslMechanism': 'PLAIN'}
         message = self._message_serializer.serialize_message(
             request_id, '', 'authentication', **args)
-        self._ws.send_bytes(message, binary=True)
+        self._ws.send_bytes(message)
 
     async def close(self):
         """**coroutine** Close underlying connection and mark as closed."""
@@ -264,7 +264,7 @@ class Connection(AbstractConnection):
                 if data.tp == aiohttp.MsgType.binary:
                     data = data.data.decode()
                 elif data.tp == aiohttp.MsgType.text:
-                    data = data.strip()
+                    data = data.data.strip()
                 message = json.loads(data)
                 request_id = message['requestId']
                 status_code = message['status']['code']
@@ -272,8 +272,7 @@ class Connection(AbstractConnection):
                 msg = message['status']['message']
                 response_queue = self._response_queues[request_id]
                 if status_code == 407:
-                    await self._authenticate(self._username, self._password,
-                                             self._processor)
+                    self._authenticate(self._username, self._password, request_id)
                 elif status_code == 204:
                     response_queue.put_nowait(None)
                 else:
