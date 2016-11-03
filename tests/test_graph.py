@@ -17,6 +17,7 @@
 
 import pytest
 
+from goblin import driver
 from goblin.driver import serializer
 
 from gremlin_python import process
@@ -78,3 +79,41 @@ async def test_side_effects(remote_graph, connection):
         async for msg in resp:
             side_effects.append(msg)
         assert side_effects
+
+
+@pytest.mark.asyncio
+async def test_side_effects_with_client(event_loop, remote_graph):
+    cluster = await driver.Cluster.open(event_loop)
+    client = await cluster.connect()
+
+    g = remote_graph.traversal().withRemote(client)
+    # create some nodes
+    resp = g.addV('person').property('name', 'leifur')
+    leif = await resp.next()
+    resp.traversers.close()
+    resp = g.addV('person').property('name', 'dave')
+    dave = await resp.next()
+    resp.traversers.close()
+    resp = g.addV('person').property('name', 'jon')
+    jonthan = await resp.next()
+    resp.traversers.close()
+    traversal = g.V().aggregate('a').aggregate('b')
+    async for msg in traversal:
+        pass
+    keys = []
+    resp = await traversal.side_effects.keys()
+    async for msg in resp:
+        keys.append(msg)
+    assert keys == ['a', 'b']
+    side_effects = []
+    resp = await traversal.side_effects.get('a')
+    async for msg in resp:
+        side_effects.append(msg)
+    assert side_effects
+    side_effects = []
+    resp = await traversal.side_effects.get('b')
+    async for msg in resp:
+        side_effects.append(msg)
+    assert side_effects
+
+    await cluster.close()
