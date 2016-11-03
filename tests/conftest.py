@@ -20,6 +20,8 @@ from goblin import Goblin, driver, element, properties, Cardinality
 from goblin.driver import pool, serializer
 from gremlin_python import process
 
+from goblin import mapper
+
 
 def pytest_generate_tests(metafunc):
     if 'cluster' in metafunc.fixturenames:
@@ -93,11 +95,13 @@ def cluster(request, event_loop):
     if request.param == 'c1':
         cluster = driver.Cluster(
             event_loop,
-            message_serializer=serializer.GraphSONMessageSerializer)
+            message_serializer=serializer.GraphSONMessageSerializer,
+            aliases={'g': 'testgraph.g'})
     elif request.param == 'c2':
         cluster = driver.Cluster(
             event_loop,
-            message_serializer=serializer.GraphSON2MessageSerializer)
+            message_serializer=serializer.GraphSON2MessageSerializer,
+            aliases={'g': 'testgraph.g'})
     return cluster
 
 
@@ -109,7 +113,8 @@ def remote_graph():
 @pytest.fixture
 def app(request, event_loop):
     app = event_loop.run_until_complete(
-        Goblin.open(event_loop, aliases={'g': 'g'}))
+        Goblin.open(event_loop, aliases={'g': 'testgraph.g'},
+                    get_hashable_id=mapper.dse_get_hashable_id))
 
     app.register(Person, Place, Knows, LivesIn)
     return app

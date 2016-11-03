@@ -24,6 +24,14 @@ from goblin import exception
 
 logger = logging.getLogger(__name__)
 
+import operator
+
+
+def dse_get_hashable_id(id_dict):
+    hashes = map(hash, id_dict.items())
+    id_hash = functools.reduce(operator.xor, hashes, 0)
+    return id_hash
+
 
 def map_props_to_db(element, mapping):
     """Convert OGM property names/values to DB property names/values"""
