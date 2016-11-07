@@ -22,7 +22,6 @@ import pytest
 from goblin import element
 from goblin.session import bindprop
 from gremlin_python.process.translator import GroovyTranslator
-from gremlin_python.structure.io.graphson import long
 
 from gremlin_python.process.graph_traversal import __
 
@@ -195,7 +194,7 @@ class TestCreationApi:
         lives_in = lives_in_class(jon, montreal)
         session.add(jon, montreal, lives_in)
         await session.flush()
-        result = await session.g.E(long(lives_in.id)).oneOrNone()
+        result = await session.g.E(lives_in.id).oneOrNone()
         assert result is lives_in
         rid = result.id
         await session.remove_edge(lives_in)
