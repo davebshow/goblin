@@ -28,6 +28,7 @@ from goblin.element import GenericVertex
 
 from gremlin_python.driver.remote_connection import RemoteStrategy
 from gremlin_python.process.traversal import Cardinality, Traverser
+from gremlin_python.structure.io.graphson import long
 
 
 
@@ -347,7 +348,7 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Vertex<goblin.element.Vertex>` | None
         """
-        return await self.g.V(vertex.id).oneOrNone()
+        return await self.g.V(long(vertex.id)).oneOrNone()
 
     async def get_edge(self, edge):
         """
@@ -357,7 +358,7 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Edge<goblin.element.Edge>` | None
         """
-        return await self.g.E(edge.id).oneOrNone()
+        return await self.g.E(long(edge.id)).oneOrNone()
 
     async def update_vertex(self, vertex):
         """
