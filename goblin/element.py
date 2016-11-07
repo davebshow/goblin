@@ -66,6 +66,14 @@ class ElementMeta(type):
 
 class Element(metaclass=ElementMeta):
     """Base class for classes that implement the Element property interface"""
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            if not (hasattr(self, key) and
+                    isinstance(getattr(self, key), properties.PropertyDescriptor)):
+                raise AssertionError(
+                    "No such property: {} for element {}".format(key, self.__class__.__name__))
+            setattr(self, key, value)
+
     id = properties.IdProperty(properties.Generic)
 
 
