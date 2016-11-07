@@ -23,6 +23,7 @@ from abc import abstractmethod
 from aenum import Enum
 
 from gremlin_python.process.traversal import P, Bytecode, Binding
+from gremlin_python.structure.io.graphson import long
 
 
 class RawExpression(object):
@@ -103,8 +104,10 @@ class GroovyTranslator(Translator):
             return "\"" + arg + "\""
         elif isinstance(arg, bool):
             return str(arg).lower()
-        elif isinstance(arg, int):
+        elif isinstance(arg, long):
             return str(arg) + "L"
+        elif isinstance(arg, int):
+            return str(arg)
         elif isinstance(arg, float):
             return str(arg) + "f"
         elif isinstance(arg, Enum):  # Column, Order, Direction, Scope, T, etc.

@@ -188,8 +188,10 @@ class NumberSerializer(GraphSONSerializer):
     def _dictify(self, number):
         if isinstance(number, bool):  # python thinks that 0/1 integers are booleans
             return number
-        elif isinstance(number, int):
+        elif isinstance(number, long):
             return _SymbolHelper.objectify("Int64", number)
+        elif isinstance(number, int):
+            return _SymbolHelper.objectify("Int32", number)
         elif isinstance(number, float):
             return _SymbolHelper.objectify("Float", number)
         else:
