@@ -91,7 +91,7 @@ def map_vertex_to_ogm(result, element, *, mapping=None):
             vert_prop = getattr(element, name)
             vert_prop.mapper_func(metaprop_dict, vert_prop)
     setattr(element, '__label__', result['label'])
-    setattr(element, '_id', result['id'])
+    setattr(element, 'id', result['id'])
     return element
 
 
@@ -118,7 +118,7 @@ def map_edge_to_ogm(result, element, *, mapping=None):
             value = data_type.to_ogm(value)
         setattr(element, name, value)
     setattr(element, '__label__', result['label'])
-    setattr(element, '_id', result['id'])
+    setattr(element, 'id', result['id'])
     setattr(element.source, '__label__', result['outVLabel'])
     setattr(element.target, '__label__', result['inVLabel'])
     sid = result['outV']
@@ -131,8 +131,8 @@ def map_edge_to_ogm(result, element, *, mapping=None):
     if _check_id(tid, etid):
         from goblin.element import GenericVertex
         element.target = GenericVertex()
-    setattr(element.source, '_id', sid)
-    setattr(element.target, '_id', tid)
+    setattr(element.source, 'id', sid)
+    setattr(element.target, 'id', tid)
     return element
 
 

@@ -19,7 +19,9 @@
 
 import logging
 
-from goblin import abc, cardinality, exception
+from goblin import abc, exception
+
+from gremlin_python.structure.io.graphson import long
 
 
 logger = logging.getLogger(__name__)
@@ -90,6 +92,8 @@ class IdPropertyDescriptor:
     def __init__(self, name, prop):
         assert name == 'id', 'ID properties must be named "id"'
         self._data_type = prop.data_type
+        self._name = '_' + name
+        self._serializer = prop.serializer
 
     def __get__(self, obj, objtype=None):
         if obj is None:
@@ -98,21 +102,37 @@ class IdPropertyDescriptor:
         return obj._id
 
     def __set__(self, obj, val):
-        raise exception.ElementError('ID should not be set manually')
+        if self._serializer:
+            val = self._serializer(val)
+        val = self._data_type.validate(val)
+        setattr(obj, self._name, val)
+
+
+def default_id_serializer(val):
+    if isinstance(val, int):
+        val = long(val)
+    return val
 
 
 class IdProperty(abc.BaseProperty):
 
     __descriptor__ = IdPropertyDescriptor
 
-    def __init__(self, data_type):
+    def __init__(self, data_type, *, serializer=None):
+        if not serializer:
+            serializer = default_id_serializer
         if isinstance(data_type, type):
             data_type = data_type()
         self._data_type = data_type
+        self._serializer = serializer
 
     @property
     def data_type(self):
         return self._data_type
+
+    @property
+    def serializer(self):
+        return self._serializer
 
 
 # Data types

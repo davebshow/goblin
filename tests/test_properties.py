@@ -18,6 +18,7 @@
 import pytest
 
 from goblin import element, exception, manager, properties
+from gremlin_python.structure.io.graphson import long
 
 
 def test_set_change_property(person, lives_in):
@@ -54,9 +55,9 @@ def test_setattr_validation(person):
         setattr(person, 'age', 'hello')
 
 
-def test_set_id_throws(person):
-    with pytest.raises(exception.ElementError):
-        person.id = 1
+def test_set_id_long(person):
+    person.id = 1
+    assert isinstance(person.id, long)
 
 
 def test_id_class_attr_throws(person_class):
