@@ -57,7 +57,7 @@ async def test_sessioned_client(cluster):
         except KeyError:
             assert msg['properties']['name'][0]['@value']['value'] == 'joe'
 
-    resp = await client.submit(gremlin="g.V(v.id).values('name')")
+    resp = await client.submit(gremlin="g.V(v.id()).values('name')")
 
     async for msg in resp:
         assert msg == 'joe'
