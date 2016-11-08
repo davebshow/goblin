@@ -21,16 +21,19 @@ import logging
 import functools
 
 from goblin import exception
+from goblin import properties
 
 logger = logging.getLogger(__name__)
 
 import operator
 
 
-def dse_get_hashable_id(id_dict):
-    hashes = map(hash, id_dict.items())
-    id_hash = functools.reduce(operator.xor, hashes, 0)
-    return id_hash
+def dse_get_hashable_id(val):
+    if isinstance(val, dict):
+        hashes = map(hash, val.items())
+        id_hash = functools.reduce(operator.xor, hashes, 0)
+        return id_hash
+    return val
 
 
 def map_props_to_db(element, mapping):
@@ -121,12 +124,12 @@ def map_edge_to_ogm(result, element, *, mapping=None):
     setattr(element, 'id', result['id'])
     setattr(element.source, '__label__', result['outVLabel'])
     setattr(element.target, '__label__', result['inVLabel'])
-    sid = result['outV']
+    sid = properties.dse_id_serializer(result['outV'])
     esid = getattr(element.source, 'id', None)
     if _check_id(sid, esid):
         from goblin.element import GenericVertex
         element.source = GenericVertex()
-    tid = result['inV']
+    tid = properties.dse_id_serializer(result['inV'])
     etid = getattr(element.target, 'id', None)
     if _check_id(tid, etid):
         from goblin.element import GenericVertex
@@ -138,7 +141,7 @@ def map_edge_to_ogm(result, element, *, mapping=None):
 
 def _check_id(rid, eid):
     if eid and rid != eid:
-        logger.warning('Edge vertex id has changed')
+        logger.warning('Edge vertex id has changed (expected: %s, got: %s)', eid, rid)
         return True
     return False
 

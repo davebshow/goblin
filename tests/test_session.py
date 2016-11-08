@@ -86,13 +86,18 @@ class TestCreationApi:
         session.add(jon, montreal, lives_in)
         await session.flush()
         assert hasattr(lives_in, 'id')
-        print(lives_in.id)
+        print('lives_in id: {}'.format(lives_in.id))
+        print('jon id: {}'.format(jon.id))
+        print('montreal id: {}'.format(montreal.id))
+        print('jon, montreal: {},{}'.format(jon, montreal))
+        print('lives_in.source.id {}'.format(lives_in.source.id))
         assert session.current[lives_in.id] is lives_in
         assert lives_in.source is jon
         assert lives_in.target is montreal
         assert lives_in.source.__label__ == 'person'
         assert lives_in.target.__label__ == 'place'
         await app.close()
+        assert False
 
     @pytest.mark.asyncio
     async def test_create_edge_no_source(self, app, lives_in, person):

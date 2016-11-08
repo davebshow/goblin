@@ -74,7 +74,7 @@ class Element(metaclass=ElementMeta):
                     "No such property: {} for element {}".format(key, self.__class__.__name__))
             setattr(self, key, value)
 
-    id = properties.IdProperty(properties.Generic, serializer=properties.dse_id_serializer)
+    id = properties.IdProperty(properties.Generic)
 
 
 class Vertex(Element):

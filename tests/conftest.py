@@ -26,7 +26,7 @@ from goblin import mapper
 
 
 def pytest_configure(config):
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
 
 def pytest_generate_tests(metafunc):
@@ -136,7 +136,8 @@ def remote_graph():
 @pytest.fixture
 def app(request, event_loop):
     app = event_loop.run_until_complete(
-        Goblin.open(event_loop, aliases={'g': 'testgraph.g'}))
+        Goblin.open(event_loop, aliases={'g': 'testgraph.g'},
+                    get_hashable_id=mapper.dse_get_hashable_id))
 
     app.register(Person, Place, Knows, LivesIn)
     return app

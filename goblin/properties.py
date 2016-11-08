@@ -115,8 +115,10 @@ def default_id_serializer(val):
 
 
 def dse_id_serializer(val):
-    id_items = ['{}={}'.format(k, v) for k, v in val.items()]
-    return "{%s}" % ', '.join(id_items)
+    if isinstance(val, dict) and '~type' not in val:
+        id_items = ['{}={}'.format(k, v) for k, v in val.items()]
+        return "{%s}" % ', '.join(id_items)
+    return val
 
 
 class IdProperty(abc.BaseProperty):
