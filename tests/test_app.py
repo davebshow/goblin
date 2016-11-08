@@ -72,6 +72,7 @@ async def test_transaction_discovery(app):
     await app.close()
 
 
+@pytest.mark.skip(reason="dse")
 @pytest.mark.asyncio
 async def test_aliases(app):
     session = await app.session()
