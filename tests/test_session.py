@@ -86,6 +86,7 @@ class TestCreationApi:
         session.add(jon, montreal, lives_in)
         await session.flush()
         assert hasattr(lives_in, 'id')
+        print(lives_in.id)
         assert session.current[lives_in.id] is lives_in
         assert lives_in.source is jon
         assert lives_in.target is montreal

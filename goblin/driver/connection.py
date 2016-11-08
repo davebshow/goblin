@@ -222,6 +222,7 @@ class Connection(AbstractConnection):
         request_id = str(uuid.uuid4())
         message = self._message_serializer.serialize_message(
             request_id, processor, op, **args)
+        logger.debug('sending message: %s', message)
         response_queue = asyncio.Queue(loop=self._loop)
         self._response_queues[request_id] = response_queue
         if self._ws.closed:
@@ -266,6 +267,7 @@ class Connection(AbstractConnection):
                 elif data.tp == aiohttp.MsgType.text:
                     data = data.data.strip()
                 message = json.loads(data)
+                logger.debug('received message: %s', message)
                 request_id = message['requestId']
                 status_code = message['status']['code']
                 data = message['result']['data']

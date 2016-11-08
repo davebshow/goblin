@@ -17,7 +17,9 @@
 
 import pytest
 
+from goblin import driver
 from goblin.driver import serializer
+from goblin import properties
 
 from gremlin_python import process
 
@@ -32,20 +34,27 @@ async def test_generate_traversal(remote_graph, connection):
 
 
 @pytest.mark.asyncio
-async def test_submit_traversal(remote_graph, connection):
-    async with connection:
-        g = remote_graph.traversal().withRemote(connection)
-        resp = g.addV('person').property('name', 'leifur')
-        leif = await resp.next()
-        resp.traversers.close()
-        assert leif['properties']['name'][0]['value'] == 'leifur'
-        assert leif['label'] == 'person'
-        resp = g.V(leif['id']).drop()
-        none = await resp.next()
-        assert none is None
+async def test_submit_traversal(event_loop, remote_graph, connection):
+    cluster = await driver.Cluster.open(event_loop, aliases={'g': 'testgraph.g'},
+                                        message_serializer=serializer.GraphSONMessageSerializer)
+    client = await cluster.connect()
+    # async with connection:
+    g = remote_graph.traversal().withRemote(client)
+    resp = g.addV('person').property('name', 'leifur')
+    leif = await resp.next()
+    resp.traversers.close()
+    print(leif)
+    assert leif['properties']['name'][0]['value'] == 'leifur'
+    assert leif['label'] == 'person'
+    id_ = properties.dse_id_serializer(leif['id'])
+    resp = g.V(id_).drop()
+    none = await resp.next()
+    assert none is None
+
+    await cluster.close()
 
 
-@pytest.mark.skip(reason="DSE")
+@pytest.mark.skip(reason="DSE")  # waiting on AsyncRemoteStrategy fix
 @pytest.mark.asyncio
 async def test_side_effects(remote_graph, connection):
     async with connection:

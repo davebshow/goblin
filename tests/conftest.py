@@ -15,12 +15,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 import asyncio
+import logging
+
 import pytest
 from goblin import Goblin, driver, element, properties, Cardinality
 from goblin.driver import pool, serializer
 from gremlin_python import process
 
 from goblin import mapper
+
+
+def pytest_configure(config):
+    logging.basicConfig(level=logging.DEBUG)
 
 
 def pytest_generate_tests(metafunc):
@@ -62,6 +68,23 @@ class Knows(element.Edge):
 
 class LivesIn(element.Edge):
     notes = properties.Property(properties.String)
+
+
+# @pytest.fixture(scope='session', autouse=True)
+# def server_graph():
+#     loop = asyncio.new_event_loop()
+#     loop.run_until_complete(create_test_graph(loop))
+#     loop.close()
+#
+#
+# async def create_test_graph(loop):
+#     create_gremlin = "system.graph('testgraph').option('schema_mode').set('development')" \
+#                      ".ifNotExists().create()"
+#     cluster = await driver.Cluster.open(loop, hosts=['localhost'])
+#     client = await cluster.connect()
+#     resp = await client.submit(gremlin=create_gremlin, op='eval', processor='')
+#     async for _ in resp:
+#         pass
 
 
 @pytest.fixture
@@ -113,8 +136,7 @@ def remote_graph():
 @pytest.fixture
 def app(request, event_loop):
     app = event_loop.run_until_complete(
-        Goblin.open(event_loop, aliases={'g': 'testgraph.g'},
-                    get_hashable_id=mapper.dse_get_hashable_id))
+        Goblin.open(event_loop, aliases={'g': 'testgraph.g'}))
 
     app.register(Person, Place, Knows, LivesIn)
     return app

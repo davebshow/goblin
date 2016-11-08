@@ -55,6 +55,7 @@ def test_setattr_validation(person):
         setattr(person, 'age', 'hello')
 
 
+@pytest.mark.skip(reason="DSE / not applicable")
 def test_set_id_long(person):
     person.id = 1
     assert isinstance(person.id, long)

@@ -60,7 +60,9 @@ async def test_204_empty_stream(connection):
     resp = False
     async with connection:
         stream = await connection.submit(
-            gremlin='g.V().has("unlikely", "even less likely")')
+            gremlin='g.V().has("unlikely", "even less likely")',
+            aliases={'g': 'testgraph.g'}
+        )
         async for msg in stream:
             resp = True
     assert not resp

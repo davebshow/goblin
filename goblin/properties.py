@@ -114,6 +114,11 @@ def default_id_serializer(val):
     return val
 
 
+def dse_id_serializer(val):
+    id_items = ['{}={}'.format(k, v) for k, v in val.items()]
+    return "{%s}" % ', '.join(id_items)
+
+
 class IdProperty(abc.BaseProperty):
 
     __descriptor__ = IdPropertyDescriptor
