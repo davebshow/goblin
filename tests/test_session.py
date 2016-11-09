@@ -49,11 +49,13 @@ class TestCreationApi:
         assert not hasattr(leif, 'id')
         await session.flush()
         assert hasattr(jon, 'id')
-        assert session.current[jon.id] is jon
+        hashable_jon_id = session._get_hashable_id(jon.id)
+        assert session.current[hashable_jon_id] is jon
         assert jon.name == 'jonathan'
         assert jon.age == 38
         assert hasattr(leif, 'id')
-        assert session.current[leif.id] is leif
+        hashable_leif_id = session._get_hashable_id(leif.id)
+        assert session.current[hashable_leif_id] is leif
         assert leif.name == 'leifur'
         assert leif.age == 28
         await app.close()
@@ -68,7 +70,8 @@ class TestCreationApi:
         assert not hasattr(jon, 'id')
         await session.flush()
         assert hasattr(jon, 'id')
-        assert session.current[jon.id] is jon
+        hashable_jon_id = session._get_hashable_id(jon.id)
+        assert session.current[hashable_jon_id] is jon
         assert jon.name == 'jonathan'
         assert jon.age == 38
         await app.close()
@@ -91,13 +94,13 @@ class TestCreationApi:
         print('montreal id: {}'.format(montreal.id))
         print('jon, montreal: {},{}'.format(jon, montreal))
         print('lives_in.source.id {}'.format(lives_in.source.id))
-        assert session.current[lives_in.id] is lives_in
+        hashable_lives_in_id = session._get_hashable_id(lives_in.id)
+        assert session.current[hashable_lives_in_id] is lives_in
         assert lives_in.source is jon
         assert lives_in.target is montreal
         assert lives_in.source.__label__ == 'person'
         assert lives_in.target.__label__ == 'place'
         await app.close()
-        assert False
 
     @pytest.mark.asyncio
     async def test_create_edge_no_source(self, app, lives_in, person):
@@ -180,14 +183,14 @@ class TestCreationApi:
         person.name = 'dave'
         person.age = 35
         await session.save(person)
-        result = await session.g.V(person.id).oneOrNone()
+        result = await session.g.V(('person_id', person.id)).oneOrNone()
         assert result is person
         rid = result.id
         await session.remove_vertex(person)
-        result = await session.g.V(rid).oneOrNone()
+        result = await session.g.V(('rid', rid)).oneOrNone()
         assert not result
         await app.close()
-#
+
     @pytest.mark.asyncio
     async def test_remove_edge(self, app, person_class, place_class,
                                lives_in_class):
@@ -200,11 +203,11 @@ class TestCreationApi:
         lives_in = lives_in_class(jon, montreal)
         session.add(jon, montreal, lives_in)
         await session.flush()
-        result = await session.g.E(lives_in.id).oneOrNone()
+        result = await session.g.E(('lives_in_id', lives_in.id)).oneOrNone()
         assert result is lives_in
         rid = result.id
         await session.remove_edge(lives_in)
-        result = await session.g.E(rid).oneOrNone()
+        result = await session.g.E(('rid', rid)).oneOrNone()
         assert not result
         await app.close()
 
@@ -224,6 +227,7 @@ class TestCreationApi:
         assert not result.age
         await app.close()
 
+    @pytest.mark.skip(reason="DSE")
     @pytest.mark.asyncio
     async def test_update_edge(self, app, person_class, knows):
         session = await app.session()
@@ -319,8 +323,8 @@ class TestTraversalApi:
         session = await app.session()
         p1 = await session.g.addV('person').oneOrNone()
         p2 = await session.g.addV('person').oneOrNone()
-        e1 = await session.g.V(p1.id).addE('knows').to(
-        session.g.V(p2.id)).property(
+        e1 = await session.g.V(('p1_id', p1.id)).addE('knows').to(
+        session.g.V(('p1_id', p2.id))).property(
             knows_class.notes, 'somehow').property(
             'how_long', 1).oneOrNone()
         assert isinstance(e1, knows_class)
@@ -343,8 +347,8 @@ class TestTraversalApi:
         session = await app.session()
         p1 = await session.g.addV('person').oneOrNone()
         p2 = await session.g.addV('person').oneOrNone()
-        e1 = await session.g.V(p1.id).addE('unregistered').to(
-        session.g.V(p2.id)).property('how_long', 1).oneOrNone()
+        e1 = await session.g.V(('p1_id', p1.id)).addE('unregistered').to(
+        session.g.V(('p2_id', p2.id))).property('how_long', 1).oneOrNone()
         assert isinstance(e1, element.GenericEdge)
         assert e1.how_long == 1
         assert e1.__label__ == 'unregistered'
@@ -355,7 +359,7 @@ class TestTraversalApi:
         session = await app.session()
         p1 = await session.g.addV('person').property(
         'name', 'leif').oneOrNone()
-        traversal = session.g.V(p1.id).properties('name')
+        traversal = session.g.V(('p1_id', p1.id)).properties('name')
         name = await traversal.oneOrNone()
         assert name['value'] == 'leif'
         assert name['label'] == 'name'
@@ -366,7 +370,7 @@ class TestTraversalApi:
         session = await app.session()
         p1 = await session.g.addV('person').property(
         'name', 'leif').oneOrNone()
-        one = await session.g.V(p1.id).count().oneOrNone()
+        one = await session.g.V(('p1_id', p1.id)).count().oneOrNone()
         assert one == 1
         await app.close()
 

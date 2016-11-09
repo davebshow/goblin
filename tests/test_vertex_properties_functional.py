@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
+import collections
+
 import pytest
 
 
@@ -55,6 +57,7 @@ async def test_add_update_list_card_property(app, person):
     await app.close()
 
 
+@pytest.mark.skip(reason="DSE")
 @pytest.mark.asyncio
 async def test_add_update_set_card_property(app, place):
     session = await app.session()

@@ -21,18 +21,23 @@ import logging
 import functools
 
 from goblin import exception
-from goblin import properties
 
 logger = logging.getLogger(__name__)
 
-import operator
+
+def _hash(val):
+    if isinstance(val, dict):
+        result = 0
+        for key, value in val.items():
+            result += _hash((key, _hash(value)))
+        return result
+    else:
+        return hash(val)
 
 
 def dse_get_hashable_id(val):
     if isinstance(val, dict):
-        hashes = map(hash, val.items())
-        id_hash = functools.reduce(operator.xor, hashes, 0)
-        return id_hash
+        return _hash(val)
     return val
 
 
@@ -124,12 +129,12 @@ def map_edge_to_ogm(result, element, *, mapping=None):
     setattr(element, 'id', result['id'])
     setattr(element.source, '__label__', result['outVLabel'])
     setattr(element.target, '__label__', result['inVLabel'])
-    sid = properties.dse_id_serializer(result['outV'])
+    sid = result['outV']
     esid = getattr(element.source, 'id', None)
     if _check_id(sid, esid):
         from goblin.element import GenericVertex
         element.source = GenericVertex()
-    tid = properties.dse_id_serializer(result['inV'])
+    tid = result['inV']
     etid = getattr(element.target, 'id', None)
     if _check_id(tid, etid):
         from goblin.element import GenericVertex

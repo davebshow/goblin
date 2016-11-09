@@ -46,8 +46,7 @@ async def test_submit_traversal(event_loop, remote_graph, connection):
     print(leif)
     assert leif['properties']['name'][0]['value'] == 'leifur'
     assert leif['label'] == 'person'
-    id_ = properties.dse_id_serializer(leif['id'])
-    resp = g.V(id_).drop()
+    resp = g.V(('vid', leif['id'])).drop()
     none = await resp.next()
     assert none is None
 
