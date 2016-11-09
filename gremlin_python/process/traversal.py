@@ -308,6 +308,9 @@ class Bytecode(object):
         if isinstance(arg, Traversal):
             self.bindings.update(arg.bytecode.bindings)
             return arg.bytecode
+        elif isinstance(arg, Binding):
+            self.bindings[arg.key] = arg.value
+            return arg
         elif isinstance(arg, tuple) and 2 == len(arg) and isinstance(arg[0], str):
             self.bindings[arg[0]] = arg[1]
             return Binding(arg[0],arg[1])

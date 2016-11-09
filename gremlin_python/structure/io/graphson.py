@@ -39,11 +39,9 @@ from gremlin_python.structure.graph import Property
 from gremlin_python.structure.graph import Vertex
 from gremlin_python.structure.graph import VertexProperty
 
-
-class long(int): pass
 FloatType = float
 IntType = int
-LongType = long
+LongType = statics.long
 
 
 
@@ -188,7 +186,7 @@ class NumberSerializer(GraphSONSerializer):
     def _dictify(self, number):
         if isinstance(number, bool):  # python thinks that 0/1 integers are booleans
             return number
-        elif isinstance(number, long):
+        elif isinstance(number, statics.long):
             return _SymbolHelper.objectify("Int64", number)
         elif isinstance(number, int):
             return _SymbolHelper.objectify("Int32", number)
@@ -222,7 +220,7 @@ class NumberDeserializer(GraphSONDeserializer):
         if type == "g:Int32":
             return int(value)
         elif type == "g:Int64":
-            return long(value)
+            return statics.long(value)
         else:
             return float(value)
 

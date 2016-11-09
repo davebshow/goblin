@@ -21,7 +21,7 @@ import logging
 
 from goblin import abc, exception
 
-from gremlin_python.structure.io.graphson import long
+from gremlin_python.statics import long
 
 
 logger = logging.getLogger(__name__)
