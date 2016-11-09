@@ -22,8 +22,8 @@ under the License.
 from abc import abstractmethod
 from aenum import Enum
 
+from gremlin_python.statics import long
 from gremlin_python.process.traversal import P, Bytecode, Binding
-from gremlin_python.structure.io.graphson import long
 
 
 class RawExpression(object):

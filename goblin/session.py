@@ -27,7 +27,8 @@ from goblin.driver import connection, graph
 from goblin.element import GenericVertex
 
 from gremlin_python.driver.remote_connection import RemoteStrategy
-from gremlin_python.process.traversal import Cardinality, Traverser
+from gremlin_python.process.graph_traversal import __
+from gremlin_python.process.traversal import Cardinality, Traverser, Binding
 
 
 
@@ -268,7 +269,7 @@ class Session(connection.AbstractConnection):
 
         :param goblin.element.Vertex vertex: Vertex to be removed
         """
-        traversal = self._g.V(vertex.id).drop()
+        traversal = self._g.V(Binding('vid', vertex.id)).drop()
         result = await self._simple_traversal(traversal, vertex)
         hashable_id = self._get_hashable_id(vertex.id)
         vertex = self.current.pop(hashable_id)
@@ -281,7 +282,10 @@ class Session(connection.AbstractConnection):
 
         :param goblin.element.Edge edge: Element to be removed
         """
-        traversal = self._g.E(edge.id).drop()
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
+        traversal = self._g.E(eid).drop()
         result = await self._simple_traversal(traversal, edge)
         hashable_id = self._get_hashable_id(edge.id)
         edge = self.current.pop(hashable_id)
@@ -348,7 +352,7 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Vertex<goblin.element.Vertex>` | None
         """
-        return await self.g.V(vertex.id).oneOrNone()
+        return await self.g.V(Binding('vid', vertex.id)).oneOrNone()
 
     async def get_edge(self, edge):
         """
@@ -358,7 +362,12 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Edge<goblin.element.Edge>` | None
         """
-        return await self.g.E(edge.id).oneOrNone()
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
+        return await self.g.E(eid).oneOrNone()
+
+
 
     async def update_vertex(self, vertex):
         """
@@ -369,8 +378,7 @@ class Session(connection.AbstractConnection):
         :returns: :py:class:`Vertex<goblin.element.Vertex>` object
         """
         props = mapper.map_props_to_db(vertex, vertex.__mapping__)
-        # vert_props = mapper.map_vert_props_to_db
-        traversal = self._g.V(vertex.id)
+        traversal = self._g.V(Binding('vid', vertex.id))
         return await self._update_vertex_properties(vertex, traversal, props)
 
     async def update_edge(self, edge):
@@ -382,7 +390,10 @@ class Session(connection.AbstractConnection):
         :returns: :py:class:`Edge<goblin.element.Edge>` object
         """
         props = mapper.map_props_to_db(edge, edge.__mapping__)
-        traversal = self._g.E(edge.id)
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
+        traversal = self._g.E(eid)
         return await self._update_edge_properties(edge, traversal, props)
 
     # Transaction support
@@ -430,49 +441,54 @@ class Session(connection.AbstractConnection):
         result = await self._simple_traversal(traversal, vertex)
         if metaprops:
             await self._add_metaprops(result, metaprops)
-            traversal = self._g.V(vertex.id)
+            traversal = self._g.V(Binding('vid', vertex.id))
             result = await self._simple_traversal(traversal, vertex)
         return result
 
     async def _add_edge(self, edge):
         """Convenience function for generating crud traversals."""
         props = mapper.map_props_to_db(edge, edge.__mapping__)
-        traversal = self._g.V(edge.source.id)
+        traversal = self._g.V(Binding('sid', edge.source.id))
         traversal = traversal.addE(edge.__mapping__._label)
-        traversal = traversal.to(
-            self._g.V(edge.target.id))
+        traversal = traversal.to(__.V(Binding('tid', edge.target.id)))
         traversal, _, _ = self._add_properties(
             traversal, props)
-        return await self._simple_traversal(traversal, edge)
+        result = await self._simple_traversal(traversal, edge)
+        return result
 
     async def _check_vertex(self, vertex):
         """Used to check for existence, does not update session vertex"""
-        msg = await self._g.V(vertex.id).oneOrNone()
+        msg = await self._g.V(Binding('vid', vertex.id)).oneOrNone()
         return msg
 
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
-        msg = await self._g.E(edge.id).oneOrNone()
-        return msg
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
+        return await self._g.E(eid).oneOrNone()
 
     async def _update_vertex_properties(self, vertex, traversal, props):
         traversal, removals, metaprops = self._add_properties(traversal, props)
         for k in removals:
-            await self._g.V(vertex.id).properties(k).drop().oneOrNone()
+            await self._g.V(Binding('vid', vertex.id)).properties(k).drop().oneOrNone()
         result = await self._simple_traversal(traversal, vertex)
         if metaprops:
             removals = await self._add_metaprops(result, metaprops)
             for db_name, key, value in removals:
-                await self._g.V(vertex.id).properties(
+                await self._g.V(Binding('vid', vertex.id)).properties(
                     db_name).has(key, value).drop().oneOrNone()
-            traversal = self._g.V(vertex.id)
+            traversal = self._g.V(Binding('vid', vertex.id))
             result = await self._simple_traversal(traversal, vertex)
         return result
 
     async def _update_edge_properties(self, edge, traversal, props):
         traversal, removals, _ = self._add_properties(traversal, props)
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
         for k in removals:
-            await self._g.E(edge.id).properties(k).drop().oneOrNone()
+            await self._g.E(eid).properties(k).drop().oneOrNone()
         return await self._simple_traversal(traversal, edge)
 
     async def _add_metaprops(self, result, metaprops):
@@ -481,7 +497,7 @@ class Session(connection.AbstractConnection):
             db_name, (binding, value), metaprops = metaprop
             for key, val in metaprops.items():
                 if val:
-                    traversal = self._g.V(result.id).properties(
+                    traversal = self._g.V(Binding('vid', result.id)).properties(
                         db_name).hasValue(value).property(key, val)
                     await traversal.oneOrNone()
                 else:
