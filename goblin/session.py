@@ -282,7 +282,10 @@ class Session(connection.AbstractConnection):
 
         :param goblin.element.Edge edge: Element to be removed
         """
-        traversal = self._g.E(Binding('eid', edge.id)).drop()
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
+        traversal = self._g.E(eid).drop()
         result = await self._simple_traversal(traversal, edge)
         hashable_id = self._get_hashable_id(edge.id)
         edge = self.current.pop(hashable_id)
@@ -359,9 +362,12 @@ class Session(connection.AbstractConnection):
 
         :returns: :py:class:`Edge<goblin.element.Edge>` | None
         """
-        result = await self.g.E(Binding('eid', edge.id)).oneOrNone()
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
+        return await self.g.E(eid).oneOrNone()
 
-        return result
+
 
     async def update_vertex(self, vertex):
         """
@@ -384,7 +390,10 @@ class Session(connection.AbstractConnection):
         :returns: :py:class:`Edge<goblin.element.Edge>` object
         """
         props = mapper.map_props_to_db(edge, edge.__mapping__)
-        traversal = self._g.E(Binding('eid', edge.id))
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
+        traversal = self._g.E(eid)
         return await self._update_edge_properties(edge, traversal, props)
 
     # Transaction support
@@ -454,8 +463,10 @@ class Session(connection.AbstractConnection):
 
     async def _check_edge(self, edge):
         """Used to check for existence, does not update session edge"""
-        msg = await self._g.E(Binding('eid', edge.id)).oneOrNone()
-        return msg
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
+        return await self._g.E(eid).oneOrNone()
 
     async def _update_vertex_properties(self, vertex, traversal, props):
         traversal, removals, metaprops = self._add_properties(traversal, props)
@@ -473,8 +484,11 @@ class Session(connection.AbstractConnection):
 
     async def _update_edge_properties(self, edge, traversal, props):
         traversal, removals, _ = self._add_properties(traversal, props)
+        eid = edge.id
+        if isinstance(eid, dict):
+            eid = Binding('eid', edge.id)
         for k in removals:
-            await self._g.E(Binding('eid', edge.id)).properties(k).drop().oneOrNone()
+            await self._g.E(eid).properties(k).drop().oneOrNone()
         return await self._simple_traversal(traversal, edge)
 
     async def _add_metaprops(self, result, metaprops):
