@@ -49,7 +49,7 @@ async def test_submit_traversal(remote_graph, connection):
 @pytest.mark.asyncio
 async def test_side_effects(remote_graph, connection):
     async with connection:
-        connection._message_serializer = serializer.GraphSON2MessageSerializer()
+        connection._message_serializer = serializer.GraphSON2MessageSerializer
         g = remote_graph.traversal().withRemote(connection)
         # create some nodes
         resp = g.addV('person').property('name', 'leifur')

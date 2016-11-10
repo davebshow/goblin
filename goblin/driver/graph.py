@@ -41,8 +41,7 @@ class AsyncRemoteStrategy(RemoteStrategy):
 
     async def apply(self, traversal):
         serializer = self.remote_connection.message_serializer
-        if isinstance(serializer, GraphSON2MessageSerializer) or \
-                        serializer is GraphSON2MessageSerializer:
+        if serializer is GraphSON2MessageSerializer:
             processor = 'traversal'
             op = 'bytecode'
             side_effects = AsyncRemoteTraversalSideEffects

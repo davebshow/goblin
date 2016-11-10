@@ -152,8 +152,6 @@ class Connection(AbstractConnection):
         self._receive_task = self._loop.create_task(self._receive())
         self._semaphore = asyncio.Semaphore(value=max_inflight,
                                             loop=self._loop)
-        if isinstance(message_serializer, type):
-            message_serializer = message_serializer()
         self._message_serializer = message_serializer
 
     @classmethod
