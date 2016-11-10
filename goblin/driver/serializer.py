@@ -57,37 +57,42 @@ class GraphSONMessageSerializer:
         pass
 
 
-    def get_processor(self, processor):
-        processor = getattr(self, processor, None)
+    @classmethod
+    def get_processor(cls, processor):
+        processor = getattr(cls, processor, None)
         if not processor:
             raise Exception("Unknown processor")
         return processor()
 
-    def serialize_message(self, request_id, processor, op, **args):
+    @classmethod
+    def serialize_message(cls, request_id, processor, op, **args):
         if not processor:
-            processor_obj = self.get_processor('standard')
+            processor_obj = cls.get_processor('standard')
         else:
-            processor_obj = self.get_processor(processor)
+            processor_obj = cls.get_processor(processor)
         op_method = processor_obj.get_op(op)
         args = op_method(args)
-        message = self.build_message(request_id, processor, op, args)
+        message = cls.build_message(request_id, processor, op, args)
         return message
 
-    def build_message(self, request_id, processor, op, args):
+    @classmethod
+    def build_message(cls, request_id, processor, op, args):
         message = {
             'requestId': request_id,
             'processor': processor,
             'op': op,
             'args': args
         }
-        return self.finalize_message(message,  b'\x10', b'application/json')
+        return cls.finalize_message(message, b'\x10', b'application/json')
 
-    def finalize_message(self, message, mime_len, mime_type):
+    @classmethod
+    def finalize_message(cls, message, mime_len, mime_type):
         message = json.dumps(message)
         message = b''.join([mime_len, mime_type, message.encode('utf-8')])
         return message
 
-    def deserialize_message(self, message):
+    @classmethod
+    def deserialize_message(cls, message):
         return Traverser(message)
 
 
@@ -131,17 +136,19 @@ class GraphSON2MessageSerializer(GraphSONMessageSerializer):
             args['sideEffect'] = {'@type': 'g:UUID', '@value': side_effect}
             return args
 
-    def build_message(self, request_id, processor, op, args):
+    @classmethod
+    def build_message(cls, request_id, processor, op, args):
         message = {
             'requestId': {'@type': 'g:UUID', '@value': request_id},
             'processor': processor,
             'op': op,
             'args': args
         }
-        return self.finalize_message(message, b"\x21",
+        return cls.finalize_message(message, b"\x21",
                                      b"application/vnd.gremlin-v2.0+json")
 
-    def deserialize_message(self, message):
+    @classmethod
+    def deserialize_message(cls, message):
         if isinstance(message, dict):
             if message.get('@type', '') == 'g:Traverser':
                 obj = GraphSONReader._objectify(message)
