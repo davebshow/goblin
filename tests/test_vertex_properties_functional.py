@@ -35,6 +35,7 @@ async def test_add_update_property(app, person):
     await app.close()
 
 
+@pytest.mark.skip("DSE")
 @pytest.mark.asyncio
 async def test_add_update_list_card_property(app, person):
     session = await app.session()
@@ -82,6 +83,7 @@ async def test_add_update_set_card_property(app, place):
     await app.close()
 
 
+@pytest.mark.skip("DSE")
 @pytest.mark.asyncio
 async def test_add_update_metas(app, place):
     session = await app.session()
@@ -106,6 +108,7 @@ async def test_add_update_metas(app, place):
     await app.close()
 
 
+@pytest.mark.skip("DSE")
 @pytest.mark.asyncio
 async def test_add_update_metas_list_card(app, place):
     session = await app.session()
