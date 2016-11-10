@@ -23,6 +23,9 @@ staticEnums = {}
 default_lambda_language = "gremlin-python"
 
 
+class long(int): pass
+
+
 def add_static(key, value):
     if isinstance(value, Enum):
         staticEnums[key] = value

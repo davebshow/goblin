@@ -18,7 +18,7 @@
 import pytest
 
 from goblin import element, exception, manager, properties
-from gremlin_python.structure.io.graphson import long
+from gremlin_python.statics import long
 
 
 def test_set_change_property(person, lives_in):
