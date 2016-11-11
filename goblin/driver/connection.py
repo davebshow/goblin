@@ -31,6 +31,7 @@ except ImportError:
     import json
 
 from goblin import exception
+from goblin import provider
 from goblin.driver import serializer
 
 
@@ -140,7 +141,7 @@ class Connection(AbstractConnection):
         one time on the connection
     """
     def __init__(self, url, ws, loop, client_session, username, password,
-                 max_inflight, response_timeout, message_serializer):
+                 max_inflight, response_timeout, message_serializer, provider):
         self._url = url
         self._ws = ws
         self._loop = loop
@@ -154,11 +155,13 @@ class Connection(AbstractConnection):
         self._semaphore = asyncio.Semaphore(value=max_inflight,
                                             loop=self._loop)
         self._message_serializer = message_serializer
+        self._provider = provider
 
     @classmethod
     async def open(cls, url, loop, *, ssl_context=None, username='',
                    password='', max_inflight=64, response_timeout=None,
-                   message_serializer=serializer.GraphSON2MessageSerializer):
+                   message_serializer=serializer.GraphSON2MessageSerializer,
+                   provider=provider.TinkerGraph):
         """
         **coroutine** Open a connection to the Gremlin Server.
 
@@ -178,7 +181,7 @@ class Connection(AbstractConnection):
         client_session = aiohttp.ClientSession(loop=loop, connector=connector)
         ws = await client_session.ws_connect(url)
         return cls(url, ws, loop, client_session, username, password,
-                   max_inflight, response_timeout, message_serializer)
+                   max_inflight, response_timeout, message_serializer, provider)
 
     @property
     def message_serializer(self):
@@ -219,7 +222,7 @@ class Connection(AbstractConnection):
         await self._semaphore.acquire()
         request_id = str(uuid.uuid4())
         message = self._message_serializer.serialize_message(
-            request_id, processor, op, **args)
+            self._provider, request_id, processor, op, **args)
         response_queue = asyncio.Queue(loop=self._loop)
         self._response_queues[request_id] = response_queue
         if self._ws.closed:
@@ -234,7 +237,7 @@ class Connection(AbstractConnection):
                          b'\x00', password.encode('utf-8')])
         args = {'sasl': base64.b64encode(auth).decode(), 'saslMechanism': 'PLAIN'}
         message = self._message_serializer.serialize_message(
-            request_id, '', 'authentication', **args)
+            self._provider, request_id, '', 'authentication', **args)
         self._ws.send_bytes(message)
 
     async def close(self):
@@ -268,6 +271,8 @@ class Connection(AbstractConnection):
                 status_code = message['status']['code']
                 data = message['result']['data']
                 msg = message['status']['message']
+                if request_id not in self._response_queues:
+                    continue
                 response_queue = self._response_queues[request_id]
                 if status_code == 407:
                     self._authenticate(self._username, self._password, request_id)

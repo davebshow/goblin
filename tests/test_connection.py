@@ -25,6 +25,7 @@ from aiohttp import web
 
 from goblin import driver
 from goblin import exception
+from goblin import provider
 
 
 @pytest.mark.asyncio
@@ -149,7 +150,8 @@ async def test_authenticated_connection(event_loop, unused_tcp_port):
             connection = driver.Connection(
                 url=url, ws=ws_client, loop=event_loop, client_session=session,
                 username=username, password=password, max_inflight=64, response_timeout=None,
-                message_serializer=driver.GraphSONMessageSerializer
+                message_serializer=driver.GraphSONMessageSerializer,
+                provider=provider.TinkerGraph
             )
             event_loop.create_task(connection.submit(gremlin="1+1"))
             initial_request = await authentication_request_queue.get()

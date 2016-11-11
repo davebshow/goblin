@@ -20,19 +20,33 @@ try:
 except ImportError:
     import json
 
+import functools
+
 from gremlin_python.process.traversal import Bytecode, Traverser
 from gremlin_python.process.translator import GroovyTranslator
 from gremlin_python.structure.io.graphson import GraphSONWriter, GraphSONReader
 
 
+def op_with_default_args(op, default_args):
+    @functools.wraps(op)
+    def wrapper(args):
+        args_with_defaults = default_args.copy()
+        args_with_defaults.update(args)
+        return op(args_with_defaults)
+    return wrapper
+
+
 class Processor:
     """Base class for OpProcessor serialization system."""
+    def __init__(self, default_args):
+        self._default_args = default_args
 
     def get_op(self, op):
+        op_default_args = self._default_args.get(op, dict())
         op = getattr(self, op, None)
         if not op:
             raise Exception("Processor does not support op")
-        return op
+        return op_with_default_args(op, op_default_args)
 
 
 class GraphSONMessageSerializer:
@@ -58,18 +72,19 @@ class GraphSONMessageSerializer:
 
 
     @classmethod
-    def get_processor(cls, processor):
+    def get_processor(cls, provider, processor):
+        default_args = provider.get_default_op_args(processor)
         processor = getattr(cls, processor, None)
         if not processor:
             raise Exception("Unknown processor")
-        return processor()
+        return processor(default_args)
 
     @classmethod
-    def serialize_message(cls, request_id, processor, op, **args):
+    def serialize_message(cls, provider, request_id, processor, op, **args):
         if not processor:
-            processor_obj = cls.get_processor('standard')
+            processor_obj = cls.get_processor(provider, 'standard')
         else:
-            processor_obj = cls.get_processor(processor)
+            processor_obj = cls.get_processor(provider, processor)
         op_method = processor_obj.get_op(op)
         args = op_method(args)
         message = cls.build_message(request_id, processor, op, args)
