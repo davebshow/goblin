@@ -66,11 +66,6 @@ async def test_registry_defaults(app):
     assert isinstance(edge(), element.Edge)
     await app.close()
 
-@pytest.mark.asyncio
-async def test_transaction_discovery(app):
-    assert app._transactions is not None
-    await app.close()
-
 
 @pytest.mark.asyncio
 async def test_aliases(app):
