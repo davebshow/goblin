@@ -18,7 +18,7 @@ import asyncio
 import pytest
 from goblin import Goblin, driver, element, properties, Cardinality
 from goblin.driver import pool, serializer
-from gremlin_python import process
+from goblin import provider
 
 
 def pytest_generate_tests(metafunc):
@@ -85,7 +85,7 @@ def connection(event_loop):
 def connection_pool(event_loop):
     return pool.ConnectionPool(
         "http://localhost:8182/gremlin", event_loop, None, '', '', 4, 1, 16,
-        64, None, serializer.GraphSONMessageSerializer)
+        64, None, serializer.GraphSONMessageSerializer, provider=provider.TinkerGraph)
 
 
 @pytest.fixture

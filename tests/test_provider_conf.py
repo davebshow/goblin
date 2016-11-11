@@ -125,3 +125,14 @@ async def test_conn_default_op_args(event_loop, monkeypatch, processor, key, val
 
     await conn.close()
     resp.close()
+
+
+@pytest.mark.asyncio
+async def test_cluster_conn_provider(event_loop):
+    cluster = await driver.Cluster.open(event_loop, provider=TestProvider)
+    assert cluster.config['provider'] == TestProvider
+
+    pooled_conn = await cluster.get_connection()
+    assert pooled_conn._conn._provider == TestProvider
+
+    await cluster.close()
