@@ -57,11 +57,13 @@ async def test_submit(connection):
 
 
 @pytest.mark.asyncio
-async def test_204_empty_stream(connection):
+async def test_204_empty_stream(connection, aliases):
     resp = False
     async with connection:
         stream = await connection.submit(
-            gremlin='g.V().has("unlikely", "even less likely")')
+            gremlin='g.V().has("unlikely", "even less likely")',
+            aliases=aliases
+        )
         async for msg in stream:
             resp = True
     assert not resp
