@@ -9,3 +9,6 @@ class Provider:
 
 class TinkerGraph(Provider):  # TODO
     """Default provider"""
+    @staticmethod
+    def get_hashable_id(val):
+        return val

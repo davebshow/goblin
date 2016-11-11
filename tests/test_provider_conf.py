@@ -8,6 +8,7 @@ import pytest
 import aiohttp
 from aiohttp import websocket_client
 
+import goblin
 from goblin import driver
 from goblin.driver import serializer
 from goblin import provider
@@ -51,6 +52,10 @@ class TestProvider(provider.Provider):
 
         }
     }
+
+    @staticmethod
+    def get_hashable_id(val):
+        return val
 
 
 def deserialize_json_request(request):
@@ -136,3 +141,20 @@ async def test_cluster_conn_provider(event_loop):
     assert pooled_conn._conn._provider == TestProvider
 
     await cluster.close()
+
+
+@pytest.mark.asyncio
+async def test_app_cluster_provider(event_loop):
+    app = await goblin.Goblin.open(event_loop, provider=TestProvider)
+    assert app._provider is TestProvider
+    assert app._cluster.config['provider'] is TestProvider
+
+    await app.close()
+
+
+@pytest.mark.asyncio
+async def test_app_provider_hashable_id(event_loop):
+    app = await goblin.Goblin.open(event_loop, provider=TestProvider)
+    assert app._get_hashable_id is TestProvider.get_hashable_id
+
+    await app.close()
