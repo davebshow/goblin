@@ -24,71 +24,71 @@ from goblin.driver import serializer
 
 
 @pytest.mark.asyncio
-async def test_eval(remote_graph, connection):
+async def test_eval(remote_graph, connection, aliases):
     async with connection:
         connection._message_serializer = serializer.GraphSON2MessageSerializer()
         g = remote_graph.traversal()
         traversal = "g.addV('person').property('name', 'leifur')"
         resp = await connection.submit(
-            processor='', op='eval', gremlin=traversal, scriptEvalTimeout=1)
+            processor='', op='eval', gremlin=traversal, scriptEvalTimeout=1, aliases=aliases)
 
         async for msg in resp:
             assert msg['label'] == 'person'
 
 
 @pytest.mark.asyncio
-async def test_bytecode(remote_graph, connection):
+async def test_bytecode(remote_graph, connection, aliases):
     async with connection:
         connection._message_serializer = serializer.GraphSON2MessageSerializer()
         g = remote_graph.traversal()
         traversal = g.addV('person').property('name', 'leifur')
         resp = await connection.submit(
-            processor='traversal', op='bytecode', gremlin=traversal.bytecode)
+            processor='traversal', op='bytecode', gremlin=traversal.bytecode, aliases=aliases)
         async for msg in resp:
             vid = msg.id
         traversal = g.V(vid).label()
         resp = await connection.submit(
-            processor='traversal', op='bytecode', gremlin=traversal.bytecode)
+            processor='traversal', op='bytecode', gremlin=traversal.bytecode, aliases=aliases)
         async for msg in resp:
             assert msg == 'person'
         traversal = g.V(vid).name
         resp = await connection.submit(
-            processor='traversal', op='bytecode', gremlin=traversal.bytecode)
+            processor='traversal', op='bytecode', gremlin=traversal.bytecode, aliases=aliases)
         async for msg in resp:
             assert msg == 'leifur'
 
 
 @pytest.mark.asyncio
-async def test_side_effects(remote_graph, connection):
+async def test_side_effects(remote_graph, connection, aliases):
     async with connection:
         connection._message_serializer = serializer.GraphSON2MessageSerializer()
         g = remote_graph.traversal()
         # Add some nodes
         traversal = g.addV('person').property('name', 'leifur')
         resp = await connection.submit(
-            processor='traversal', op='bytecode', gremlin=traversal.bytecode)
+            processor='traversal', op='bytecode', gremlin=traversal.bytecode, aliases=aliases)
         async for msg in resp:
             pass
         traversal = g.addV('person').property('name', 'dave')
         resp = await connection.submit(
-            processor='traversal', op='bytecode', gremlin=traversal.bytecode)
+            processor='traversal', op='bytecode', gremlin=traversal.bytecode, aliases=aliases)
         async for msg in resp:
             pass
         traversal = g.addV('person').property('name', 'jonathan')
         resp = await connection.submit(
-            processor='traversal', op='bytecode', gremlin=traversal.bytecode)
+            processor='traversal', op='bytecode', gremlin=traversal.bytecode, aliases=aliases)
         async for msg in resp:
             pass
 
         # # Make a query
         traversal = g.V().aggregate('a').aggregate('b')
         resp = await connection.submit(
-            processor='traversal', op='bytecode', gremlin=traversal.bytecode)
+            processor='traversal', op='bytecode', gremlin=traversal.bytecode, aliases=aliases)
         request_id = resp.request_id
         async for msg in resp:
             pass
         resp = await connection.submit(processor='traversal', op='keys',
-                                       sideEffect=request_id)
+                                       sideEffect=request_id, aliases=aliases)
         keys = []
         async for msg in resp:
             keys.append(msg)
@@ -96,7 +96,7 @@ async def test_side_effects(remote_graph, connection):
 
         resp = await connection.submit(processor='traversal', op='gather',
                                        sideEffect=request_id,
-                                       sideEffectKey='a')
+                                       sideEffectKey='a', aliases=aliases)
         side_effects = []
         async for msg in resp:
             side_effects.append(msg)
@@ -110,7 +110,7 @@ async def test_side_effects(remote_graph, connection):
 
 
 @pytest.mark.asyncio
-async def test_session(connection):
+async def test_session(connection, aliases):
     async with connection:
         connection._message_serializer = serializer.GraphSON2MessageSerializer()
         session = str(uuid.uuid4())
@@ -118,14 +118,16 @@ async def test_session(connection):
             gremlin="v = g.addV('person').property('name', 'unused_name').next(); v",
             processor='session',
             op='eval',
-            session=session)
+            session=session,
+            aliases=aliases)
         async for msg in resp:
             assert msg['label'] == 'person'
         resp = await connection.submit(
             gremlin="v.values('name')",
             processor='session',
             op='eval',
-            session=session)
+            session=session,
+            aliases=aliases)
         async for msg in resp:
             assert msg == 'unused_name'
         # Close isnt' implemented yet
