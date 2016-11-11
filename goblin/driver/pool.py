@@ -167,14 +167,8 @@ class ConnectionPool:
         async with self._condition:
             self._condition.notify()
 
-    async def acquire(self, username=None, password=None, max_inflight=None,
-                      response_timeout=None, message_serializer=None):
+    async def acquire(self):
         """**coroutine** Acquire a new connection from the pool."""
-        username = username or self._username
-        password = password or self._password
-        response_timeout = response_timeout or self._response_timeout
-        max_inflight = max_inflight or self._max_inflight
-        message_serializer = message_serializer or self._message_serializer
         async with self._condition:
             while True:
                 while self._available:
@@ -184,10 +178,10 @@ class ConnectionPool:
                         self._acquired.append(conn)
                         return conn
                 if len(self._acquired) < self._max_conns:
-                    conn = await self._get_connection(username, password,
-                                                      max_inflight,
-                                                      response_timeout,
-                                                      message_serializer)
+                    conn = await self._get_connection(self._username, self._password,
+                                                      self._max_inflight,
+                                                      self._response_timeout,
+                                                      self._message_serializer)
                     conn.increment_acquired()
                     self._acquired.append(conn)
                     return conn
