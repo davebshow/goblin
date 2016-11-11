@@ -20,20 +20,9 @@ try:
 except ImportError:
     import json
 
-import functools
-
 from gremlin_python.process.traversal import Bytecode, Traverser
 from gremlin_python.process.translator import GroovyTranslator
 from gremlin_python.structure.io.graphson import GraphSONWriter, GraphSONReader
-
-
-def op_with_default_args(op, default_args):
-    @functools.wraps(op)
-    def wrapper(args):
-        args_with_defaults = default_args.copy()
-        args_with_defaults.update(args)
-        return op(args_with_defaults)
-    return wrapper
 
 
 class Processor:
@@ -41,12 +30,13 @@ class Processor:
     def __init__(self, default_args):
         self._default_args = default_args
 
-    def get_op(self, op):
-        op_default_args = self._default_args.get(op, dict())
-        op = getattr(self, op, None)
-        if not op:
-            raise Exception("Processor does not support op")
-        return op_with_default_args(op, op_default_args)
+    def get_op_args(self, op, args):
+        op_method = getattr(self, op, None)
+        if not op_method:
+            raise Exception("Processor does not support op: {}".format(op))
+        args_ = self._default_args.get(op, dict()).copy()
+        args_.update(args)
+        return op_method(args_)
 
 
 class GraphSONMessageSerializer:
@@ -85,8 +75,7 @@ class GraphSONMessageSerializer:
             processor_obj = cls.get_processor(provider, 'standard')
         else:
             processor_obj = cls.get_processor(provider, processor)
-        op_method = processor_obj.get_op(op)
-        args = op_method(args)
+        args = processor_obj.get_op_args(op, args)
         message = cls.build_message(request_id, processor, op, args)
         return message
 

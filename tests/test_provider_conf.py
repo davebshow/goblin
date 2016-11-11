@@ -74,9 +74,7 @@ def message_serializer(request):
 def test_get_processor_provider_default_args(processor_name, key, value):
     processor = serializer.GraphSONMessageSerializer.get_processor(TestProvider, processor_name)
     assert processor._default_args == TestProvider.DEFAULT_OP_ARGS[processor_name]
-    eval_op_method = processor.get_op('eval')
-    eval_args = eval_op_method({'gremlin': 'g.V()'})
-    print(eval_op_method, eval_args)
+    eval_args = processor.get_op_args('eval', {'gremlin': 'g.V()'})
     assert eval_args['gremlin'] == 'g.V()'
     assert eval_args[key] == value
 
@@ -118,11 +116,12 @@ async def test_conn_default_op_args(event_loop, monkeypatch, processor, key, val
 
     resp = await conn.submit(
         gremlin='g.V().hasLabel("foo").count()', processor=processor, op='eval')
-    resp.close()
-    await conn.close()
 
     submitted_bytes = conn._ws.send_bytes.call_args[0][0]
     submitted_json = submitted_bytes[17:].decode()
     submitted_dict = json.loads(submitted_json)
 
     assert submitted_dict['args'][key] == value
+
+    await conn.close()
+    resp.close()
