@@ -103,11 +103,9 @@ class Session(connection.AbstractConnection):
 
     :param goblin.app.Goblin app:
     :param goblin.driver.connection conn:
-    :param bool use_session: Support for Gremlin Server session. Not implemented
     """
 
-    def __init__(self, app, conn, get_hashable_id, transactions, *,
-                 use_session=False):
+    def __init__(self, app, conn, get_hashable_id):
         self._app = app
         self._conn = conn
         self._loop = self._app._loop
@@ -395,21 +393,6 @@ class Session(connection.AbstractConnection):
             eid = Binding('eid', edge.id)
         traversal = self._g.E(eid)
         return await self._update_edge_properties(edge, traversal, props)
-
-    # Transaction support
-    def tx(self):
-        """Not implemented"""
-        raise NotImplementedError
-
-    async def commit(self):
-        """Not implemented"""
-        await self.flush()
-        if self.transactions and self._use_session():
-            await self.tx()
-        raise NotImplementedError
-
-    async def rollback(self):
-        raise NotImplementedError
 
     # *metodos especiales privados for creation API
     async def _simple_traversal(self, traversal, element):
