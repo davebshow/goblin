@@ -120,6 +120,9 @@ class Goblin:
         """
         self._cluster.config_from_json(filename)
 
+    def config_from_module(self, module):
+        self._cluster.config_from_module(module)
+
     def register_from_module(self, module, *, package=None):
         if isinstance(module, str):
             module = importlib.import_module(module, package)
