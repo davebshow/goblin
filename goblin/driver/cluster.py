@@ -27,7 +27,7 @@ except ImportError:
 
 import yaml
 
-from goblin import driver, exception
+from goblin import driver, exception, provider
 
 
 def my_import(name):
@@ -60,7 +60,8 @@ class Cluster:
         'min_conns': 1,
         'max_times_acquired': 16,
         'max_inflight': 64,
-        'message_serializer': 'goblin.driver.GraphSON2MessageSerializer'
+        'message_serializer': 'goblin.driver.GraphSON2MessageSerializer',
+        'provider': provider.TinkerGraph
     }
 
     def __init__(self, loop, aliases=None, **config):

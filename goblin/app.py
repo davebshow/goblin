@@ -21,7 +21,7 @@ import collections
 import importlib
 import logging
 
-from goblin import driver, element, session
+from goblin import driver, element, provider, session
 
 
 logger = logging.getLogger(__name__)
@@ -40,28 +40,30 @@ class Goblin:
     :param dict config: Config parameters for application
     """
 
-    def __init__(self, cluster, *, get_hashable_id=None, aliases=None):
+    def __init__(self, cluster, *, provider=provider.TinkerGraph, get_hashable_id=None, aliases=None):
         self._cluster = cluster
         self._loop = self._cluster._loop
         self._cluster = cluster
         self._vertices = collections.defaultdict(
             lambda: element.GenericVertex)
         self._edges = collections.defaultdict(lambda: element.GenericEdge)
+        self._provider = provider
         if not get_hashable_id:
-            get_hashable_id = lambda x: x
+            get_hashable_id = self._provider.get_hashable_id
         self._get_hashable_id = get_hashable_id
         if aliases is None:
             aliases = {}
         self._aliases = aliases
 
     @classmethod
-    async def open(cls, loop, *, get_hashable_id=None, aliases=None, **config):
+    async def open(cls, loop, *, provider=provider.TinkerGraph, get_hashable_id=None, aliases=None, **config):
         # App currently only supports GraphSON 1
         cluster = await driver.Cluster.open(
             loop, aliases=aliases,
             message_serializer=driver.GraphSONMessageSerializer,
+            provider=provider,
             **config)
-        app = Goblin(cluster, get_hashable_id=get_hashable_id, aliases=aliases)
+        app = Goblin(cluster, provider=provider, get_hashable_id=get_hashable_id, aliases=aliases)
         return app
 
     @property

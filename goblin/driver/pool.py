@@ -113,7 +113,7 @@ class ConnectionPool:
 
     def __init__(self, url, loop, ssl_context, username, password, max_conns,
                  min_conns, max_times_acquired, max_inflight, response_timeout,
-                 message_serializer):
+                 message_serializer, provider):
         self._url = url
         self._loop = loop
         self._ssl_context = ssl_context
@@ -128,6 +128,7 @@ class ConnectionPool:
         self._condition = asyncio.Condition(loop=self._loop)
         self._available = collections.deque()
         self._acquired = collections.deque()
+        self._provider = provider
 
     @property
     def url(self):
@@ -145,7 +146,8 @@ class ConnectionPool:
                                               self._password,
                                               self._max_inflight,
                                               self._response_timeout,
-                                              self._message_serializer)
+                                              self._message_serializer,
+                                              self._provider)
             self._available.append(conn)
 
     def release(self, conn):
@@ -181,7 +183,8 @@ class ConnectionPool:
                     conn = await self._get_connection(self._username, self._password,
                                                       self._max_inflight,
                                                       self._response_timeout,
-                                                      self._message_serializer)
+                                                      self._message_serializer,
+                                                      self._provider)
                     conn.increment_acquired()
                     self._acquired.append(conn)
                     return conn
@@ -208,11 +211,11 @@ class ConnectionPool:
         await asyncio.gather(*waiters, loop=self._loop)
 
     async def _get_connection(self, username, password, max_inflight,
-                              response_timeout, message_serializer):
+                              response_timeout, message_serializer, provider):
         conn = await connection.Connection.open(
             self._url, self._loop, ssl_context=self._ssl_context,
             username=username, password=password,
             response_timeout=response_timeout,
-            message_serializer=message_serializer)
+            message_serializer=message_serializer, provider=provider)
         conn = PooledConnection(conn, self)
         return conn

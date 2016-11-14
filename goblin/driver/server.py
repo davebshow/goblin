@@ -38,6 +38,7 @@ class GremlinServer:
         self._min_conns = config['min_conns']
         self._max_inflight = config['max_inflight']
         self._message_serializer = config['message_serializer']
+        self._provider = config['provider']
         scheme = config['scheme']
         if scheme in ['https', 'wss']:
             certfile = config['ssl_certfile']
@@ -83,7 +84,7 @@ class GremlinServer:
             self._url, self._loop, self._ssl_context, self._username,
             self._password, self._max_conns, self._min_conns,
             self._max_times_acquired, self._max_inflight,
-            self._response_timeout, self._message_serializer)
+            self._response_timeout, self._message_serializer, self._provider)
         await conn_pool.init_pool()
         self._pool = conn_pool
 
