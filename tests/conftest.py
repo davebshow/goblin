@@ -29,6 +29,8 @@ def pytest_generate_tests(metafunc):
 def pytest_addoption(parser):
     parser.addoption('--provider', default='tinkergraph',
                      choices=('tinkergraph', 'dse',))
+    parser.addoption('--gremlin-host', default='localhost')
+    parser.addoption('--gremlin-port', default='8182')
 
 
 class HistoricalName(element.VertexProperty):
@@ -101,10 +103,25 @@ def unused_server_url(unused_tcp_port):
 
 
 @pytest.fixture
-def connection(event_loop, provider):
+def gremlin_host(request):
+    return request.config.getoption('gremlin_host')
+
+
+@pytest.fixture
+def gremlin_port(request):
+    return request.config.getoption('gremlin_port')
+
+
+@pytest.fixture
+def gremlin_url(gremlin_host, gremlin_port):
+    return "http://{}:{}/gremlin".format(gremlin_host, gremlin_port)
+
+
+@pytest.fixture
+def connection(gremlin_url, event_loop, provider):
     conn = event_loop.run_until_complete(
         driver.Connection.open(
-            "http://localhost:8182/gremlin", event_loop,
+            gremlin_url, event_loop,
             message_serializer=serializer.GraphSONMessageSerializer,
             provider=provider
         ))
@@ -112,17 +129,19 @@ def connection(event_loop, provider):
 
 
 @pytest.fixture
-def connection_pool(event_loop, provider):
+def connection_pool(gremlin_url, event_loop, provider):
     return pool.ConnectionPool(
-        "http://localhost:8182/gremlin", event_loop, None, '', '', 4, 1, 16,
+        gremlin_url, event_loop, None, '', '', 4, 1, 16,
         64, None, serializer.GraphSONMessageSerializer, provider=provider)
 
 
 @pytest.fixture
-def cluster(request, event_loop, provider, aliases):
+def cluster(request, gremlin_host, gremlin_port, event_loop, provider, aliases):
     if request.param == 'c1':
         cluster = driver.Cluster(
             event_loop,
+            hosts=[gremlin_host],
+            port=gremlin_port,
             aliases=aliases,
             message_serializer=serializer.GraphSONMessageSerializer,
             provider=provider
@@ -130,6 +149,8 @@ def cluster(request, event_loop, provider, aliases):
     elif request.param == 'c2':
         cluster = driver.Cluster(
             event_loop,
+            hosts=[gremlin_host],
+            port=gremlin_port,
             aliases=aliases,
             message_serializer=serializer.GraphSON2MessageSerializer,
             provider=provider
@@ -143,9 +164,10 @@ def remote_graph():
 
 
 @pytest.fixture
-def app(request, event_loop, provider, aliases):
+def app(gremlin_host, gremlin_port, event_loop, provider, aliases):
     app = event_loop.run_until_complete(
-        Goblin.open(event_loop, provider=provider, aliases=aliases))
+        Goblin.open(event_loop, provider=provider, aliases=aliases, hosts=[gremlin_host],
+                    port=gremlin_port))
 
     app.register(Person, Place, Knows, LivesIn)
     return app
