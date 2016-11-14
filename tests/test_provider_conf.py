@@ -133,8 +133,9 @@ async def test_conn_default_op_args(event_loop, monkeypatch, processor, key, val
 
 
 @pytest.mark.asyncio
-async def test_cluster_conn_provider(event_loop):
-    cluster = await driver.Cluster.open(event_loop, provider=TestProvider)
+async def test_cluster_conn_provider(event_loop, gremlin_host, gremlin_port):
+    cluster = await driver.Cluster.open(
+        event_loop, provider=TestProvider, hosts=[gremlin_host], port=gremlin_port)
     assert cluster.config['provider'] == TestProvider
 
     pooled_conn = await cluster.get_connection()

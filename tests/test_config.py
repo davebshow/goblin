@@ -18,13 +18,15 @@ import os
 
 import pytest
 
+import goblin
 from goblin import driver, exception
 
 
 dirname = os.path.dirname(os.path.dirname(__file__))
 
 
-def test_cluster_default_config(cluster):
+def test_cluster_default_config(event_loop):
+    cluster = driver.Cluster(event_loop)
     assert cluster.config['scheme'] == 'ws'
     assert cluster.config['hosts'] == ['localhost']
     assert cluster.config['port'] == 8182
@@ -36,7 +38,9 @@ def test_cluster_default_config(cluster):
 
 
 @pytest.mark.asyncio
-async def test_app_default_config(app):
+async def test_app_default_config(event_loop):
+    cluster = driver.Cluster(event_loop)
+    app = goblin.Goblin(cluster)
     assert app.config['scheme'] == 'ws'
     assert app.config['hosts'] == ['localhost']
     assert app.config['port'] == 8182

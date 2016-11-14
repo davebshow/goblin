@@ -34,9 +34,10 @@ async def test_generate_traversal(remote_graph, connection):
 
 
 @pytest.mark.asyncio
-async def test_submit_traversal(event_loop, remote_graph, aliases):
-    cluster = await driver.Cluster.open(event_loop, aliases=aliases,
-                                        message_serializer=serializer.GraphSONMessageSerializer)
+async def test_submit_traversal(event_loop, remote_graph, aliases, gremlin_host, gremlin_port):
+    cluster = await driver.Cluster.open(
+        event_loop, aliases=aliases, hosts=[gremlin_host], port=gremlin_port,
+        message_serializer=serializer.GraphSONMessageSerializer)
     client = await cluster.connect()
 
     g = remote_graph.traversal().withRemote(client)
@@ -89,8 +90,9 @@ async def test_side_effects(remote_graph, connection):
 
 
 @pytest.mark.asyncio
-async def test_side_effects_with_client(event_loop, remote_graph, aliases):
-    cluster = await driver.Cluster.open(event_loop)
+async def test_side_effects_with_client(event_loop, remote_graph, aliases, gremlin_host,
+                                        gremlin_port):
+    cluster = await driver.Cluster.open(event_loop, hosts=[gremlin_host], port=gremlin_port)
     client = await cluster.connect(aliases=aliases)
 
     g = remote_graph.traversal().withRemote(client)
