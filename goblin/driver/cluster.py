@@ -18,6 +18,7 @@
 import asyncio
 import collections
 import configparser
+import importlib
 import ssl
 
 try:
@@ -31,11 +32,9 @@ from goblin import driver, exception, provider
 
 
 def my_import(name):
-    components = name.split('.')
-    mod = __import__(components[0])
-    for comp in components[1:]:
-        mod = getattr(mod, comp)
-    return mod
+    module_name, class_name = name.rsplit('.', maxsplit=1)
+    module = importlib.import_module(module_name)
+    return getattr(module, class_name)
 
 
 class Cluster:
@@ -66,7 +65,7 @@ class Cluster:
 
     def __init__(self, loop, aliases=None, **config):
         self._loop = loop
-        self._config = self._get_message_serializer(dict(self.DEFAULT_CONFIG))
+        self._config = self._process_config_imports(dict(self.DEFAULT_CONFIG))
         self._config.update(config)
         self._hosts = collections.deque()
         self._closed = False
@@ -146,7 +145,7 @@ class Cluster:
     def config_from_yaml(self, filename):
         with open(filename, 'r') as f:
             config = yaml.load(f)
-        config = self._get_message_serializer(config)
+        config = self._process_config_imports(config)
         self._config.update(config)
 
     def config_from_json(self, filename):
@@ -157,13 +156,16 @@ class Cluster:
         """
         with open(filename, 'r') as f:
             config = json.load(f)
-        config = self._get_message_serializer(config)
+        config = self._process_config_imports(config)
         self.config.update(config)
 
-    def _get_message_serializer(self, config):
+    def _process_config_imports(self, config):
         message_serializer = config.get('message_serializer', '')
-        if message_serializer:
+        provider = config.get('provider')
+        if message_serializer and isinstance(message_serializer, str):
             config['message_serializer'] = my_import(message_serializer)
+        if provider and isinstance(provider, str):
+            config['provider'] = my_import(provider)
         return config
 
     def config_from_module(self, filename):
