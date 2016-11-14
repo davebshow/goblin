@@ -160,11 +160,11 @@ class Cluster:
         self.config.update(config)
 
     def _process_config_imports(self, config):
-        message_serializer = config.get('message_serializer', '')
+        message_serializer = config.get('message_serializer')
         provider = config.get('provider')
-        if message_serializer and isinstance(message_serializer, str):
+        if isinstance(message_serializer, str):
             config['message_serializer'] = my_import(message_serializer)
-        if provider and isinstance(provider, str):
+        if isinstance(provider, str):
             config['provider'] = my_import(provider)
         return config
 
