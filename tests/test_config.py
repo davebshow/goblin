@@ -20,8 +20,18 @@ import pytest
 
 from goblin import driver, exception
 
+import config_module
+
 
 dirname = os.path.dirname(os.path.dirname(__file__))
+
+
+@pytest.fixture(params=[0, 1])
+def conf_module(request):
+    if request.param:
+        return 'config_module'
+    else:
+        return config_module
 
 
 def test_cluster_default_config(cluster):
@@ -95,6 +105,15 @@ def test_cluster_config_from_yaml(event_loop, cluster_class):
     assert issubclass(cluster.config['message_serializer'],
                       driver.GraphSONMessageSerializer)
 
+
+def test_cluster_config_from_module(event_loop, cluster_class, conf_module):
+    cluster = cluster_class(event_loop)
+    cluster.config_from_module(conf_module)
+    assert cluster.config['scheme'] == 'wss'
+    assert cluster.config['hosts'] == ['localhost']
+    assert cluster.config['port'] == 8183
+    assert cluster.config['message_serializer'] is driver.GraphSON2MessageSerializer
+
 @pytest.mark.asyncio
 async def test_app_config_from_json(app):
     app.config_from_file(dirname + '/tests/config/config.json')
@@ -126,3 +145,12 @@ async def test_app_config_from_yaml(app):
     assert issubclass(app.config['message_serializer'],
                       driver.GraphSONMessageSerializer)
     await app.close()
+
+
+@pytest.mark.asyncio
+async def test_app_config_from_module(app, conf_module):
+    app.config_from_module(conf_module)
+    assert app.config['scheme'] == 'wss'
+    assert app.config['hosts'] == ['localhost']
+    assert app.config['port'] == 8183
+    assert app.config['message_serializer'] is driver.GraphSON2MessageSerializer

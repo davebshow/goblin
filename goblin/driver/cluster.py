@@ -18,6 +18,7 @@
 import asyncio
 import collections
 import configparser
+import importlib
 import ssl
 
 try:
@@ -165,8 +166,15 @@ class Cluster:
             config['message_serializer'] = my_import(message_serializer)
         return config
 
-    def config_from_module(self, filename):
-        raise NotImplementedError
+    def config_from_module(self, module):
+        if isinstance(module, str):
+            module = importlib.import_module(module)
+        config = dict()
+        for item in dir(module):
+            if not item.startswith('_') and item.lower() in self.DEFAULT_CONFIG:
+                config[item.lower()] = getattr(module, item)
+        config = self._get_message_serializer(config)
+        self.config.update(config)
 
     async def connect(self, processor=None, op=None, aliases=None,
                       session=None):
