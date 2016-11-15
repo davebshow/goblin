@@ -32,8 +32,15 @@ from goblin import driver, exception, provider
 
 
 def my_import(name):
-    module_name, class_name = name.rsplit('.', maxsplit=1)
-    module = importlib.import_module(module_name)
+    names = name.rsplit('.', maxsplit=1)
+    if len(names) != 2:
+        raise exception.ConfigError("not a valid absolute python path to a class: {}".format(name))
+    module_name, class_name = names
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError:
+        raise exception.ConfigError(
+                "Error processing cluster configuration: could not import {}".format(name))
     return getattr(module, class_name)
 
 
