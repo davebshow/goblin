@@ -188,5 +188,5 @@ Indices and tables
 .. _Gremlin Server: http://tinkerpop.apache.org/docs/3.1.1-incubating/reference/#gremlin-server
 .. _`Asyncio`: https://docs.python.org/3/library/asyncio.html
 .. _`aiohttp`: http://aiohttp.readthedocs.org/en/stable/
-.. _Github: https://github.com/ZEROFAIL/goblin/issues
+.. _Github: https://github.com/davebshow/goblin/issues
 .. _PEP 492: https://www.python.org/dev/peps/pep-0492/

@@ -140,7 +140,7 @@ html_theme_options = {
     # 'logo': 'logo.png',
     'description': 'Async Python toolkit for the TP3 Gremlin Server',
     'logo_text_align': 'left',
-    'github_user': 'ZEROFAIL',
+    'github_user': 'davebshow',
     'github_repo': 'goblin',
     'github_button': True,
     'github_banner': True,

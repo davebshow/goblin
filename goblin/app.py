@@ -1,4 +1,4 @@
-# Copyright 2016 ZEROFAIL
+# Copyright 2016 David M. Brown
 #
 # This file is part of Goblin.
 #
