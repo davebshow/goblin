@@ -155,10 +155,14 @@ async def test_authenticated_connection(event_loop, unused_tcp_port):
                 message_serializer=driver.GraphSONMessageSerializer,
                 provider=provider.TinkerGraph
             )
-            event_loop.create_task(connection.submit(gremlin="1+1"))
+            task = event_loop.create_task(connection.submit(gremlin="1+1"))
             initial_request = await authentication_request_queue.get()
             auth_request = await authentication_request_queue.get()
             print(auth_request)
             auth_str = auth_request['args']['sasl']
             assert base64.b64decode(auth_str).decode().split('\x00')[1:] == [username, password]
             assert auth_request['requestId'] == initial_request['requestId']
+            resp = await task
+            resp.close()
+
+            await connection.close()

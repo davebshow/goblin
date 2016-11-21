@@ -28,7 +28,7 @@ except ImportError:
 
 import yaml
 
-from goblin import driver, exception, provider
+from goblin import driver, exception
 
 
 def my_import(name):
@@ -67,13 +67,14 @@ class Cluster:
         'max_times_acquired': 16,
         'max_inflight': 64,
         'message_serializer': 'goblin.driver.GraphSON2MessageSerializer',
-        'provider': provider.TinkerGraph
+        'provider': 'goblin.provider.TinkerGraph'
     }
 
     def __init__(self, loop, aliases=None, **config):
         self._loop = loop
-        self._config = self._process_config_imports(dict(self.DEFAULT_CONFIG))
-        self._config.update(config)
+        default_config = dict(self.DEFAULT_CONFIG)
+        default_config.update(config)
+        self._config = self._process_config_imports(default_config)
         self._hosts = collections.deque()
         self._closed = False
         if aliases is None:
