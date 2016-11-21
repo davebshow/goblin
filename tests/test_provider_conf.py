@@ -6,7 +6,7 @@ import json
 import pytest
 
 import aiohttp
-from aiohttp import websocket_client
+from aiohttp import client_ws
 
 import goblin
 from goblin import driver
@@ -31,7 +31,7 @@ async def mock_receive():
 
 
 async def mock_ws_connect(*args, **kwargs):
-    mock_client = mock.Mock(spec=websocket_client.ClientWebSocketResponse)
+    mock_client = mock.Mock(spec=client_ws.ClientWebSocketResponse)
     mock_client.closed = False
     mock_client.receive = mock.Mock(wraps=mock_receive)
     mock_client.close = get_mock_coro(None)

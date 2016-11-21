@@ -186,22 +186,24 @@ class TestCreationApi:
     @pytest.mark.asyncio
     async def test_remove_edge(self, app, person_class, place_class,
                                lives_in_class):
-        session = await app.session()
-        jon = person_class()
-        jon.name = 'jonathan'
-        jon.age = 38
-        montreal = place_class()
-        montreal.name = 'Montreal'
-        lives_in = lives_in_class(jon, montreal)
-        session.add(jon, montreal, lives_in)
-        await session.flush()
-        result = await session.g.E(Binding('eid', lives_in.id)).oneOrNone()
-        assert result is lives_in
-        rid = result.id
-        await session.remove_edge(lives_in)
-        result = await session.g.E(Binding('rid', rid)).oneOrNone()
-        assert not result
-        await app.close()
+        try:
+            session = await app.session()
+            jon = person_class()
+            jon.name = 'jonathan'
+            jon.age = 38
+            montreal = place_class()
+            montreal.name = 'Montreal'
+            lives_in = lives_in_class(jon, montreal)
+            session.add(jon, montreal, lives_in)
+            await session.flush()
+            result = await session.g.E(Binding('eid', lives_in.id)).oneOrNone()
+            assert result is lives_in
+            rid = result.id
+            await session.remove_edge(lives_in)
+            result = await session.g.E(Binding('rid', rid)).oneOrNone()
+            assert not result
+        finally:
+            await app.close()
 
     @pytest.mark.asyncio
     async def test_update_vertex(self, app, person):
