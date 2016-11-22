@@ -16,6 +16,10 @@
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
 
+class ConfigError(Exception):
+    pass
+
+
 class ClientError(Exception):
     pass
 

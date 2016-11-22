@@ -18,12 +18,19 @@ import asyncio
 import pytest
 from goblin import Goblin, driver, element, properties, Cardinality
 from goblin.driver import pool, serializer
-from goblin import provider
+from goblin.provider import TinkerGraph
 
 
 def pytest_generate_tests(metafunc):
     if 'cluster' in metafunc.fixturenames:
         metafunc.parametrize("cluster", ['c1', 'c2'], indirect=True)
+
+
+def pytest_addoption(parser):
+    parser.addoption('--provider', default='tinkergraph',
+                     choices=('tinkergraph', 'dse',))
+    parser.addoption('--gremlin-host', default='localhost')
+    parser.addoption('--gremlin-port', default='8182')
 
 
 class HistoricalName(element.VertexProperty):
@@ -63,6 +70,29 @@ class LivesIn(element.Edge):
 
 
 @pytest.fixture
+def provider(request):
+    provider = request.config.getoption('provider')
+    if provider == 'tinkergraph':
+        return TinkerGraph
+    elif provider == 'dse':
+        try:
+            import goblin_dse
+        except ImportError:
+            raise RuntimeError("Couldn't run tests with DSEGraph provider: the goblin_dse package "
+                               "must be installed")
+        else:
+            return goblin_dse.DSEGraph
+
+
+@pytest.fixture
+def aliases(request):
+    if request.config.getoption('provider') == 'tinkergraph':
+        return {'g': 'g'}
+    elif request.config.getoption('provider') == 'dse':
+        return {'g': 'testgraph.g'}
+
+
+@pytest.fixture
 def gremlin_server():
     return driver.GremlinServer
 
@@ -73,31 +103,58 @@ def unused_server_url(unused_tcp_port):
 
 
 @pytest.fixture
-def connection(event_loop):
+def gremlin_host(request):
+    return request.config.getoption('gremlin_host')
+
+
+@pytest.fixture
+def gremlin_port(request):
+    return request.config.getoption('gremlin_port')
+
+
+@pytest.fixture
+def gremlin_url(gremlin_host, gremlin_port):
+    return "http://{}:{}/gremlin".format(gremlin_host, gremlin_port)
+
+
+@pytest.fixture
+def connection(gremlin_url, event_loop, provider):
     conn = event_loop.run_until_complete(
         driver.Connection.open(
-            "http://localhost:8182/gremlin", event_loop,
-            message_serializer=serializer.GraphSONMessageSerializer))
+            gremlin_url, event_loop,
+            message_serializer=serializer.GraphSONMessageSerializer,
+            provider=provider
+        ))
     return conn
 
 
 @pytest.fixture
-def connection_pool(event_loop):
+def connection_pool(gremlin_url, event_loop, provider):
     return pool.ConnectionPool(
-        "http://localhost:8182/gremlin", event_loop, None, '', '', 4, 1, 16,
-        64, None, serializer.GraphSONMessageSerializer, provider=provider.TinkerGraph)
+        gremlin_url, event_loop, None, '', '', 4, 1, 16,
+        64, None, serializer.GraphSONMessageSerializer, provider=provider)
 
 
 @pytest.fixture
-def cluster(request, event_loop):
+def cluster(request, gremlin_host, gremlin_port, event_loop, provider, aliases):
     if request.param == 'c1':
         cluster = driver.Cluster(
             event_loop,
-            message_serializer=serializer.GraphSONMessageSerializer)
+            hosts=[gremlin_host],
+            port=gremlin_port,
+            aliases=aliases,
+            message_serializer=serializer.GraphSONMessageSerializer,
+            provider=provider
+        )
     elif request.param == 'c2':
         cluster = driver.Cluster(
             event_loop,
-            message_serializer=serializer.GraphSON2MessageSerializer)
+            hosts=[gremlin_host],
+            port=gremlin_port,
+            aliases=aliases,
+            message_serializer=serializer.GraphSON2MessageSerializer,
+            provider=provider
+        )
     return cluster
 
 
@@ -107,9 +164,10 @@ def remote_graph():
 
 
 @pytest.fixture
-def app(request, event_loop):
+def app(gremlin_host, gremlin_port, event_loop, provider, aliases):
     app = event_loop.run_until_complete(
-        Goblin.open(event_loop, aliases={'g': 'g'}))
+        Goblin.open(event_loop, provider=provider, aliases=aliases, hosts=[gremlin_host],
+                    port=gremlin_port))
 
     app.register(Person, Place, Knows, LivesIn)
     return app

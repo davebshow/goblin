@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="goblin",
-    version="1.0.0b1",
+    version="1.0.0b2",
     url="",
     license="AGPL",
     author="davebshow",
@@ -15,7 +15,7 @@ setup(
               "tests"],
     install_requires=[
         "aenum==1.4.5",
-        "aiohttp==0.22.1",
+        "aiohttp==1.1.5",
         "inflection==0.3.1",
         "PyYAML==3.12"
     ],

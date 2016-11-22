@@ -28,15 +28,20 @@ except ImportError:
 
 import yaml
 
-from goblin import driver, exception, provider
+from goblin import driver, exception
 
 
 def my_import(name):
-    components = name.split('.')
-    mod = __import__(components[0])
-    for comp in components[1:]:
-        mod = getattr(mod, comp)
-    return mod
+    names = name.rsplit('.', maxsplit=1)
+    if len(names) != 2:
+        raise exception.ConfigError("not a valid absolute python path to a class: {}".format(name))
+    module_name, class_name = names
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError:
+        raise exception.ConfigError(
+                "Error processing cluster configuration: could not import {}".format(name))
+    return getattr(module, class_name)
 
 
 class Cluster:
@@ -62,13 +67,14 @@ class Cluster:
         'max_times_acquired': 16,
         'max_inflight': 64,
         'message_serializer': 'goblin.driver.GraphSON2MessageSerializer',
-        'provider': provider.TinkerGraph
+        'provider': 'goblin.provider.TinkerGraph'
     }
 
     def __init__(self, loop, aliases=None, **config):
         self._loop = loop
-        self._config = self._get_message_serializer(dict(self.DEFAULT_CONFIG))
-        self._config.update(config)
+        default_config = dict(self.DEFAULT_CONFIG)
+        default_config.update(config)
+        self._config = self._process_config_imports(default_config)
         self._hosts = collections.deque()
         self._closed = False
         if aliases is None:
@@ -147,7 +153,7 @@ class Cluster:
     def config_from_yaml(self, filename):
         with open(filename, 'r') as f:
             config = yaml.load(f)
-        config = self._get_message_serializer(config)
+        config = self._process_config_imports(config)
         self._config.update(config)
 
     def config_from_json(self, filename):
@@ -158,13 +164,16 @@ class Cluster:
         """
         with open(filename, 'r') as f:
             config = json.load(f)
-        config = self._get_message_serializer(config)
+        config = self._process_config_imports(config)
         self.config.update(config)
 
-    def _get_message_serializer(self, config):
-        message_serializer = config.get('message_serializer', '')
-        if message_serializer:
+    def _process_config_imports(self, config):
+        message_serializer = config.get('message_serializer')
+        provider = config.get('provider')
+        if isinstance(message_serializer, str):
             config['message_serializer'] = my_import(message_serializer)
+        if isinstance(provider, str):
+            config['provider'] = my_import(provider)
         return config
 
     def config_from_module(self, module):
@@ -174,7 +183,7 @@ class Cluster:
         for item in dir(module):
             if not item.startswith('_') and item.lower() in self.DEFAULT_CONFIG:
                 config[item.lower()] = getattr(module, item)
-        config = self._get_message_serializer(config)
+        config = self._process_config_imports(config)
         self.config.update(config)
 
     async def connect(self, processor=None, op=None, aliases=None,

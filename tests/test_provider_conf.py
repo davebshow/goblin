@@ -6,7 +6,7 @@ import json
 import pytest
 
 import aiohttp
-from aiohttp import websocket_client
+from aiohttp import client_ws
 
 import goblin
 from goblin import driver
@@ -31,7 +31,7 @@ async def mock_receive():
 
 
 async def mock_ws_connect(*args, **kwargs):
-    mock_client = mock.Mock(spec=websocket_client.ClientWebSocketResponse)
+    mock_client = mock.Mock(spec=client_ws.ClientWebSocketResponse)
     mock_client.closed = False
     mock_client.receive = mock.Mock(wraps=mock_receive)
     mock_client.close = get_mock_coro(None)
@@ -133,8 +133,9 @@ async def test_conn_default_op_args(event_loop, monkeypatch, processor, key, val
 
 
 @pytest.mark.asyncio
-async def test_cluster_conn_provider(event_loop):
-    cluster = await driver.Cluster.open(event_loop, provider=TestProvider)
+async def test_cluster_conn_provider(event_loop, gremlin_host, gremlin_port):
+    cluster = await driver.Cluster.open(
+        event_loop, provider=TestProvider, hosts=[gremlin_host], port=gremlin_port)
     assert cluster.config['provider'] == TestProvider
 
     pooled_conn = await cluster.get_connection()

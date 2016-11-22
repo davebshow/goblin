@@ -68,7 +68,7 @@ async def test_registry_defaults(app):
 
 
 @pytest.mark.asyncio
-async def test_aliases(app):
+async def test_aliases(app, aliases):
     session = await app.session()
-    assert session._conn._aliases == {'g': 'g'}
+    assert session._conn._aliases == aliases
     await app.close()

@@ -57,11 +57,13 @@ async def test_submit(connection):
 
 
 @pytest.mark.asyncio
-async def test_204_empty_stream(connection):
+async def test_204_empty_stream(connection, aliases):
     resp = False
     async with connection:
         stream = await connection.submit(
-            gremlin='g.V().has("unlikely", "even less likely")')
+            gremlin='g.V().has("unlikely", "even less likely")',
+            aliases=aliases
+        )
         async for msg in stream:
             resp = True
     assert not resp
@@ -153,10 +155,14 @@ async def test_authenticated_connection(event_loop, unused_tcp_port):
                 message_serializer=driver.GraphSONMessageSerializer,
                 provider=provider.TinkerGraph
             )
-            event_loop.create_task(connection.submit(gremlin="1+1"))
+            task = event_loop.create_task(connection.submit(gremlin="1+1"))
             initial_request = await authentication_request_queue.get()
             auth_request = await authentication_request_queue.get()
             print(auth_request)
             auth_str = auth_request['args']['sasl']
             assert base64.b64decode(auth_str).decode().split('\x00')[1:] == [username, password]
             assert auth_request['requestId'] == initial_request['requestId']
+            resp = await task
+            resp.close()
+
+            await connection.close()
