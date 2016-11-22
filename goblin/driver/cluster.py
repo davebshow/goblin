@@ -183,7 +183,7 @@ class Cluster:
         for item in dir(module):
             if not item.startswith('_') and item.lower() in self.DEFAULT_CONFIG:
                 config[item.lower()] = getattr(module, item)
-        config = self._get_message_serializer(config)
+        config = self._process_config_imports(config)
         self.config.update(config)
 
     async def connect(self, processor=None, op=None, aliases=None,
