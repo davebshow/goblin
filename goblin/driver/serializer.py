@@ -48,7 +48,6 @@ class GraphSONMessageSerializer:
             return args
 
         def eval(self, args):
-            # import ipdb;ipdb.set_trace()
             gremlin = args['gremlin']
             if isinstance(gremlin, Bytecode):
                 translator = GroovyTranslator('g')
