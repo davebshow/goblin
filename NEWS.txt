@@ -1,0 +1,8 @@
+News
+====
+
+1.0.0b2
+-------
+- added a NEWS.txt (changelog)
+- lot's of fixes!
+- better HEADLINES for the next release
