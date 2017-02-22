@@ -67,8 +67,7 @@ class GraphSONWriter(object):
 
     @staticmethod
     def writeObject(objectData):
-        return json.dumps(GraphSONWriter._dictify(objectData), separators=(',', ':'))
-
+        return json.dumps(GraphSONWriter._dictify(objectData))
 
 class GraphSONReader(object):
     @staticmethod
