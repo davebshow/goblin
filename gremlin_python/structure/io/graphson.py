@@ -25,10 +25,8 @@ from types import FunctionType
 
 try:
     import ujson as json
-    use_separators = False
 except ImportError:
     import json
-    use_separators = True
 
 from gremlin_python import statics
 from gremlin_python.process.traversal import Binding
@@ -69,10 +67,7 @@ class GraphSONWriter(object):
 
     @staticmethod
     def writeObject(objectData):
-        if use_separators:
-            return json.dumps(GraphSONWriter._dictify(objectData), separators=(',', ':'))
-        else:
-            return json.dumps(GraphSONWriter._dictify(objectData))
+        return json.dumps(GraphSONWriter._dictify(objectData))
 
 class GraphSONReader(object):
     @staticmethod
