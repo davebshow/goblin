@@ -1,28 +1,6 @@
 Using the Driver
 ================
 
-At the its simplest, the driver provides the
-:py:meth:`open<goblin.driver.connection.Connection.open>` coroutine classmethod,
-which returns a :py:class:`Connection<goblin.driver.connection.Connection>` to the
-Gremlin Server::
-
-    >>> import asyncio
-    >>> from goblin import driver
-    >>> loop = asyncio.get_event_loop()
-    >>> conn = await driver.Connection.open('ws://localhost:8182/gremlin', loop)
-
-The :py:class:`Connection<goblin.driver.connection.Connection>` object can be
-used to :py:meth:`submit<goblin.driver.connection.Connection.submit>` messages
-to the Gremlin Server.
-:py:meth:`submit<goblin.driver.connection.Connection.submit>` returns a
-:py:class:`Response<goblin.driver.connection.Response>` object that implements
-the PEP 492 asynchronous iterator protocol::
-
-    >>> resp = await conn.submit(gremlin='1 + 1')
-    >>> async for msg in resp:
-    ...     print(msg)
-    >>> await conn.close()  # conn also implements async context manager interface
-
 Connecting to a :py:class:`Cluster<goblin.driver.cluster.Cluster>`
 ------------------------------------------------------------------
 

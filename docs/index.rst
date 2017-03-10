@@ -9,80 +9,102 @@ Goblin - Async Python toolkit for the TinkerPop 3 Gremlin Server
 :py:mod:`Goblin` is an asynchronous Python toolkit for the `TinkerPop 3`_
 `Gremlin Server`_. In order to leverage Python's support for asynchronous
 programming paradigms, :py:mod:`Goblin<goblin>` is implemented using the async/await
-syntax introduced in Python 3.5, and does not support earlier Python versions.
+syntax introduced in Python 3.5, and does not support earlier Python versions. Goblin
+is built on top of `aiogremlin`_ and provides full compatibility with the `aiogremlin`_
+GLV and driver.
 
 **Main features**:
 
-- Integration with the *official gremlin-python Gremlin Language Variant* (GLV)
+- High level asynchronous *Object Graph Mapper* (OGM)
+
+- Integration with the *official gremlin-python Gremlin Language Variant* (GLV) - now
+  provided by `aiogremlin`_
 
 - Native Python support for asynchronous programing including *coroutines*,
   *iterators*, and *context managers* as specified in `PEP 492`_
 
-- *Asynchronous Python driver* for the `Gremlin Server`_
+- *Asynchronous Python driver* for the `Gremlin Server`_ - now
+  provided by `aiogremlin`_
 
-- :py:class:`AsyncRemoteGraph<goblin.driver.graph.AsyncRemoteGraph>`
-  implementation that produces *native Python GLV traversals*
+- :py:class:`Graph<goblin.driver.Graph>`
+  implementation that produces *native Python GLV traversals* - now
+  provided by `aiogremlin`_
 
-- High level asynchronous *Object Graph Mapper* (OGM)
+Releases
+========
+The latest release of :py:mod:`goblin` is **2.0.0b1**.
 
-The Basics
-----------
 
+Requirements
+============
+
+- Python 3.5+
+- TinkerPop 3.2.4
+
+
+Dependencies
+============
+- aiogremlin 3.2.4
+- inflection 0.3.1
+
+Installation
+============
 Install using pip::
 
     $ pip install goblin
+
+
+The Basics
+----------
 
 **Driver**
 
 Submit scripts and bindings to the `Gremlin Server`_::
 
     >>> import asyncio
-    >>> from goblin import driver
-
+    >>> from goblin import Cluster  # alias for aiogremlin.Cluster
 
     >>> loop = asyncio.get_event_loop()
 
-
     >>> async def go(loop):
-    ...     script = "g.addV('developer').property(k1, v1)"
-    ...     bindings = {'k1': 'name', 'v1': 'Leif'}
-    ...     conn = await driver.Connection.open(
-    ...         'ws://localhost:8182/gremlin', loop)
-    ...     async with conn:
-    ...         resp = await conn.submit(gremlin=script, bindings=bindings)
+    ...     cluster = await Cluster.open('ws://localhost:8182/gremlin', loop)
+    ...     client = await cluster.connect()
+    ...     resp = await client.submit(
+    ...         "g.addV('developer').property(k1, v1)",
+    ...         bindings={'k1': 'name', 'v1': 'Leif'})
     ...         async for msg in resp:
     ...             print(msg)
-
+    ...      await cluster.close()
 
     >>> loop.run_until_complete(go(loop))
-    # {'type': 'vertex', 'id': 0, 'label': 'developer', 'properties': {'name': [{'id': 1, 'value': 'Leif'}]}}
 
-For more information on using the driver, see the :doc:`Driver docs</driver>`
+For more information on using the driver, see the `aiogremlin`_ documentation or the :doc:`Driver docs</driver>`
 
-**AsyncGraph**
+**Graph**
 
 Generate and submit Gremlin traversals in native Python::
 
+    >>> from goblin import DriverRemoteConnection  # alias for aiogremlin.DriverRemoteConnection
+    >>> from goblin import Graph  # alias for aiogremlin.Graph
 
-    >>> remote_conn = loop.run_until_complete(
-    ...     driver.Connection.open(
-    ...         "http://localhost:8182/gremlin", loop))
-    >>> graph = driver.AsyncGraph()
-    >>> g = graph.traversal().withRemote(remote_conn)
+    >>> async def go(loop):
+    ...    remote_connection = await DriverRemoteConnection.open(
+    ...        'ws://localhost:8182/gremlin', 'g')
+    ...    g = Graph().traversal().withRemote(remote_connection)
+    ...    vertices = await g.V().toList()
+    ...    await remote_connection.close()
+    ...    return vertices
 
-
-    >>> async def go(g):
-    ...     traversal = g.addV('developer').property('name', 'Leif')
-    ...     async for msg in traversal:
-    ...         print(msg)
-    ...     await remote_conn.close()
+    >>> results = loop.run_until_complete(go(loop))
+    >>> results
+    # [v[1], v[2], v[3], v[4], v[5], v[6]]
 
 
     >>> loop.run_until_complete(go(g))
     # {'properties': {'name': [{'value': 'Leif', 'id': 3}]}, 'label': 'developer', 'id': 2, 'type': 'vertex'}
 
-For more information on using the :py:class:`AsyncGraph<goblin.driver.graph.AsyncGraph>`,
-see the :doc:`GLV docs</glv>`
+For more information on using the :py:class:`Graph<aiogremlin.gremlin_python.structure.graph.Graph>`,
+see the `aiogremlin`_ documentation or the :doc:`GLV docs</glv>`
 
 
 **OGM**
@@ -106,7 +128,6 @@ Define custom vertex/edge classes using the provided base :py:mod:`classes<gobli
 Create a :py:class:`Goblin App<goblin.app.Goblin>` and register the element classes::
 
     >>> from goblin import Goblin
-
 
     >>> app = loop.run_until_complete(
     ...     Goblin.open(loop))
@@ -133,7 +154,6 @@ database::
     ...     async for person in people:
     ...         print(person)
 
-
     >>> loop.run_until_complete(go(app))
     # <__main__.Person object at 0x7fba0b7fa6a0>
     # <__main__.Person object at 0x7fba0b7fae48>
@@ -144,23 +164,6 @@ results of a traversal executed against the session result in different property
 for an element, that element will be updated to reflect these changes.
 
 For more information on using the OGM, see the :doc:`OGM docs</ogm>`
-
-
-A note about GraphSON message serialization
--------------------------------------------
-
-The :py:mod:`goblin.driver` provides support for both GraphSON and GraphSON1
-out of the box. By default, it uses the
-:py:class:`GraphSONMessageSerializer<goblin.driver.serializer.GraphSONMessageSerializer>`.
-Since GraphSON was only recently included in the TinkerPop 3.2.2 release,
-:py:mod:`goblin.driver` also ships with
-:py:class:`GraphSONMessageSerializer<goblin.driver.serializer.GraphSONMessageSerializer>`
-for backwards compatibility. In the near future (when projects like Titan and
-DSE support the 3.2 Gremlin Server line), support for GraphsSON1 will be dropped.
-
-The :py:mod:`goblin<Goblin>` OGM still uses GraphSON1 by default and will do so
-until :py:mod:`goblin.driver` support is dropped. It will then be updated to
-use GraphSON.
 
 
 Contents:
@@ -190,3 +193,4 @@ Indices and tables
 .. _`aiohttp`: http://aiohttp.readthedocs.org/en/stable/
 .. _Github: https://github.com/davebshow/goblin/issues
 .. _PEP 492: https://www.python.org/dev/peps/pep-0492/
+.. _aiogremlin: http://aiogremlin.readthedocs.io/en/latest/

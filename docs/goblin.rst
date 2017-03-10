@@ -27,14 +27,6 @@ goblin.app module
     :undoc-members:
     :show-inheritance:
 
-goblin.cardinality module
--------------------------
-
-.. automodule:: goblin.cardinality
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 goblin.element module
 ---------------------
 

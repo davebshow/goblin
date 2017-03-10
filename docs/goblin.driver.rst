@@ -1,70 +1,13 @@
 goblin.driver package
 =====================
 
-Submodules
-----------
+Contains aliases to classes from :py:mod:`aiogremlin`:
 
-goblin.driver.client module
----------------------------
-
-.. automodule:: goblin.driver.client
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-goblin.driver.cluster module
-----------------------------
-
-.. automodule:: goblin.driver.cluster
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-goblin.driver.connection module
--------------------------------
-
-.. automodule:: goblin.driver.connection
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-goblin.driver.graph module
---------------------------
-
-.. automodule:: goblin.driver.graph
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-goblin.driver.pool module
--------------------------
-
-.. automodule:: goblin.driver.pool
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-goblin.driver.serializer module
--------------------------------
-
-.. automodule:: goblin.driver.serializer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-goblin.driver.server module
----------------------------
-
-.. automodule:: goblin.driver.server
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: goblin.driver
-    :members:
-    :undoc-members:
-    :show-inheritance:
+- :py:class:`Cluster<aiogremlin.driver.cluster.Cluster>`
+- :py:class:`Graph<aiogremlin.gremlin_python.structure.graph.Graph>`
+- :py:class:`DriverRemoteConnection<aiogremlin.remote.driver_remote_connection.DriverRemoteConnection>`
+- :py:class:`Client<aiogremlin.driver.client.Client>`
+- :py:class:`Connection<aiogremlin.driver.connection.Connection>`
+- :py:class:`ConnectionPool<aiogremlin.driver.pool.ConnectionPool>`
+- :py:class:`GremlinServer<aiogremlin.driver.server.GremlinServer>`
+- :py:class:`GraphSONMessageSerializer<aiogremlin.gremlin_python.driver.serializer.GraphSONMessageSerializer>`

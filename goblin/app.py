@@ -143,7 +143,7 @@ class Goblin:
         :returns: :py:class:`Session<goblin.session.Session>` object
         """
         remote_connection = await aiogremlin.DriverRemoteConnection.using(
-                self._cluster, loop=self._loop, aliases=self._aliases)
+                self._cluster, aliases=self._aliases)
         return session.Session(self,
                                remote_connection,
                                self._get_hashable_id)

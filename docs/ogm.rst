@@ -21,6 +21,7 @@ modeling data, simply create *model* element classes that inherit from the
 :py:mod:`goblin.element` classes. For example::
 
     import goblin
+    from aiogremlin.gremlin_python import Cardinality
 
 
     class Person(goblin.Vertex):
@@ -138,7 +139,7 @@ to create multi-cardinality properties::
     class Person(goblin.Vertex):
         name = goblin.Property(goblin.String)
         nicknames = goblin.VertexProperty(
-            goblin.String, card=goblin.Cardinality.list)
+            goblin.String, card=Cardinality.list)
 
 
     >>> david = Person()
@@ -149,7 +150,7 @@ to create multi-cardinality properties::
 Notice that the cardinality of the
 :py:class:`VertexProperty<goblin.element.VertexProperty>` must be explicitly
 set using the `card` kwarg and the
-:py:class:`Cardinality<goblin.cardinality.Cardinality>` enumerator.
+:py:class:`Cardinality<aiogremlin.gremlin_python.Cardinality>` enumerator.
 
 :py:class:`VertexProperty<goblin.element.VertexProperty>` provides a different
 interface than the simple, key/value style
@@ -210,7 +211,7 @@ vertex class, using any cardinality::
         name = goblin.Property(goblin.String)
         population = goblin.Property(goblin.Integer)
         historical_name = HistoricalName(
-            goblin.String, card=goblin.Cardinality.list)
+            goblin.String, card=Cardinality.list)
 
 Now, meta-properties can be set on the :py:class:`VertexProperty<goblin.element.VertexProperty>`
 using the descriptor protocol::

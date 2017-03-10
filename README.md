@@ -12,13 +12,13 @@ So, we decided to rewrite Goblin from scratch...
 
 ## Features
 
-- Integration with the *official gremlin-python Gremlin Language Variant* (GLV)
+- High level asynchronous *Object Graph Mapper* (OGM)
+
+- Integration with the *official gremlin-python Gremlin Language Variant* (GLV) - now provided by [aiogremlin](http://aiogremlin.readthedocs.io/en/latest/)
 
 - Native Python support for asynchronous programing including *coroutines*,
   *iterators*, and *context managers* as specified in [PEP 492](https://www.python.org/dev/peps/pep-0492/)
 
-- *Asynchronous Python driver* for the Gremlin Server
+- *Asynchronous Python driver* for the Gremlin Server - now provided by [aiogremlin](http://aiogremlin.readthedocs.io/en/latest/)
 
-- `AsyncRemoteGraph` implementation that produces *native Python GLV traversals*
-
-- High level asynchronous *Object Graph Mapper* (OGM)
+- Async `Graph` implementation that produces *native Python GLV traversals* - now provided by [aiogremlin](http://aiogremlin.readthedocs.io/en/latest/)

@@ -3,19 +3,16 @@ from setuptools import setup
 
 setup(
     name="goblin",
-    version="1.0.0b2",
+    version="2.0.0b1",
     url="",
     license="AGPL",
     author="davebshow",
     author_email="davebshow@gmail.com",
     description="Python toolkit for TP3 Gremlin Server",
-    packages=["goblin", "goblin.driver", "gremlin_python",
-              "gremlin_python.process", "gremlin_python.driver",
-              "gremlin_python.structure", "gremlin_python.structure.io"],
+    packages=["goblin", "goblin.driver"],
     install_requires=[
-        "aiohttp==1.3.3",
+        "aiogremlin==3.2.4b1",
         "inflection==0.3.1",
-        "PyYAML==3.12"
     ],
     test_suite="tests",
     setup_requires=['pytest-runner'],
