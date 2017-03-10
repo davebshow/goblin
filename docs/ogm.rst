@@ -333,12 +333,12 @@ them as such will cause a traversal to be sent on the wire:
 
 Furthermore, :py:mod:`Goblin` provides several convenience methods that
 submit a traversal as well as process the results :py:meth:`toList`,
-:py:meth:`toSet` and :py:meth:`oneOrNone`. These methods both submit a script
+:py:meth:`toSet` and :py:meth:`next`. These methods both submit a script
 to the server and iterate over the results. Remember to `await` the traversal
 when calling these methods::
 
     >>> traversal = session.traversal(Person)
     >>> leif = await traversal.has(
-    ...     bindprop(Person, 'name', 'Leifur', binding='v1')).oneOrNone()
+    ...     bindprop(Person, 'name', 'Leifur', binding='v1')).next()
 
 And that is pretty much it. We hope you enjoy the :py:mod:`Goblin` OGM.

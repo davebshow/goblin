@@ -26,10 +26,6 @@ GLV and driver.
 - *Asynchronous Python driver* for the `Gremlin Server`_ - now
   provided by `aiogremlin`_
 
-- :py:class:`Graph<goblin.driver.Graph>`
-  implementation that produces *native Python GLV traversals* - now
-  provided by `aiogremlin`_
-
 Releases
 ========
 The latest release of :py:mod:`goblin` is **2.0.0b1**.
@@ -56,56 +52,6 @@ Install using pip::
 
 The Basics
 ----------
-
-**Driver**
-
-Submit scripts and bindings to the `Gremlin Server`_::
-
-    >>> import asyncio
-    >>> from goblin import Cluster  # alias for aiogremlin.Cluster
-
-    >>> loop = asyncio.get_event_loop()
-
-    >>> async def go(loop):
-    ...     cluster = await Cluster.open('ws://localhost:8182/gremlin', loop)
-    ...     client = await cluster.connect()
-    ...     resp = await client.submit(
-    ...         "g.addV('developer').property(k1, v1)",
-    ...         bindings={'k1': 'name', 'v1': 'Leif'})
-    ...         async for msg in resp:
-    ...             print(msg)
-    ...      await cluster.close()
-
-    >>> loop.run_until_complete(go(loop))
-
-For more information on using the driver, see the `aiogremlin`_ documentation or the :doc:`Driver docs</driver>`
-
-**Graph**
-
-Generate and submit Gremlin traversals in native Python::
-
-    >>> from goblin import DriverRemoteConnection  # alias for aiogremlin.DriverRemoteConnection
-    >>> from goblin import Graph  # alias for aiogremlin.Graph
-
-    >>> async def go(loop):
-    ...    remote_connection = await DriverRemoteConnection.open(
-    ...        'ws://localhost:8182/gremlin', 'g')
-    ...    g = Graph().traversal().withRemote(remote_connection)
-    ...    vertices = await g.V().toList()
-    ...    await remote_connection.close()
-    ...    return vertices
-
-    >>> results = loop.run_until_complete(go(loop))
-    >>> results
-    # [v[1], v[2], v[3], v[4], v[5], v[6]]
-
-
-    >>> loop.run_until_complete(go(g))
-    # {'properties': {'name': [{'value': 'Leif', 'id': 3}]}, 'label': 'developer', 'id': 2, 'type': 'vertex'}
-
-For more information on using the :py:class:`Graph<aiogremlin.gremlin_python.structure.graph.Graph>`,
-see the `aiogremlin`_ documentation or the :doc:`GLV docs</glv>`
-
 
 **OGM**
 
@@ -148,7 +94,7 @@ database::
     ...     works_with = Knows(leif, jon)
     ...     session.add(leif, jon, works_with)
     ...     await session.flush()
-    ...     result = await session.g.E(works_with.id).oneOrNone()
+    ...     result = await session.g.E(works_with.id).next()
     ...     assert result is works_with
     ...     people = session.traversal(Person)  # element class based traversal source
     ...     async for person in people:
@@ -164,6 +110,57 @@ results of a traversal executed against the session result in different property
 for an element, that element will be updated to reflect these changes.
 
 For more information on using the OGM, see the :doc:`OGM docs</ogm>`
+
+**Gremlin Language Variant**
+
+Generate and submit Gremlin traversals in native Python::
+
+    >>> from goblin import DriverRemoteConnection  # alias for aiogremlin.DriverRemoteConnection
+    >>> from goblin import Graph  # alias for aiogremlin.Graph
+
+    >>> async def go(loop):
+    ...    remote_connection = await DriverRemoteConnection.open(
+    ...        'ws://localhost:8182/gremlin', 'g')
+    ...    g = Graph().traversal().withRemote(remote_connection)
+    ...    vertices = await g.V().toList()
+    ...    await remote_connection.close()
+    ...    return vertices
+
+    >>> results = loop.run_until_complete(go(loop))
+    >>> results
+    # [v[1], v[2], v[3], v[4], v[5], v[6]]
+
+
+    >>> loop.run_until_complete(go(g))
+    # {'properties': {'name': [{'value': 'Leif', 'id': 3}]}, 'label': 'developer', 'id': 2, 'type': 'vertex'}
+
+For more information on using the :py:class:`Graph<aiogremlin.gremlin_python.structure.graph.Graph>`,
+see the `aiogremlin`_ documentation or the :doc:`GLV docs</glv>`
+
+
+
+**Driver**
+
+Submit scripts and bindings to the `Gremlin Server`_::
+
+    >>> import asyncio
+    >>> from goblin import Cluster  # alias for aiogremlin.Cluster
+
+    >>> loop = asyncio.get_event_loop()
+
+    >>> async def go(loop):
+    ...     cluster = await Cluster.open('ws://localhost:8182/gremlin', loop)
+    ...     client = await cluster.connect()
+    ...     resp = await client.submit(
+    ...         "g.addV('developer').property(k1, v1)",
+    ...         bindings={'k1': 'name', 'v1': 'Leif'})
+    ...         async for msg in resp:
+    ...             print(msg)
+    ...      await cluster.close()
+
+    >>> loop.run_until_complete(go(loop))
+
+For more information on using the driver, see the `aiogremlin`_ documentation or the :doc:`Driver docs</driver>`
 
 
 Contents:
