@@ -16,8 +16,10 @@
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 import asyncio
 import pytest
-from goblin import Goblin, driver, element, properties, Cardinality
-from goblin.driver import pool, serializer
+from aiogremlin.gremlin_python.process.traversal import Cardinality
+from goblin import Goblin, driver, element, properties
+from goblin.driver import (
+    Connection, DriverRemoteConnection, GraphSONMessageSerializer)
 from goblin.provider import TinkerGraph
 
 
@@ -45,15 +47,15 @@ class Person(element.Vertex):
                               db_name='custom__person__age')
     birthplace = element.VertexProperty(properties.String)
     nicknames = element.VertexProperty(
-        properties.String, card=Cardinality.list)
+        properties.String, card=Cardinality.list_)
 
 
 class Place(element.Vertex):
     name = properties.Property(properties.String)
     zipcode = properties.Property(properties.Integer)
-    historical_name = HistoricalName(properties.String, card=Cardinality.list)
+    historical_name = HistoricalName(properties.String, card=Cardinality.list_)
     important_numbers = element.VertexProperty(
-        properties.Integer, card=Cardinality.set)
+        properties.Integer, card=Cardinality.set_)
 
 
 class Inherited(Person):
@@ -118,24 +120,6 @@ def gremlin_url(gremlin_host, gremlin_port):
 
 
 @pytest.fixture
-def connection(gremlin_url, event_loop, provider):
-    conn = event_loop.run_until_complete(
-        driver.Connection.open(
-            gremlin_url, event_loop,
-            message_serializer=serializer.GraphSONMessageSerializer,
-            provider=provider
-        ))
-    return conn
-
-
-@pytest.fixture
-def connection_pool(gremlin_url, event_loop, provider):
-    return pool.ConnectionPool(
-        gremlin_url, event_loop, None, '', '', 4, 1, 16,
-        64, None, serializer.GraphSONMessageSerializer, provider=provider)
-
-
-@pytest.fixture
 def cluster(request, gremlin_host, gremlin_port, event_loop, provider, aliases):
     if request.param == 'c1':
         cluster = driver.Cluster(
@@ -143,7 +127,6 @@ def cluster(request, gremlin_host, gremlin_port, event_loop, provider, aliases):
             hosts=[gremlin_host],
             port=gremlin_port,
             aliases=aliases,
-            message_serializer=serializer.GraphSONMessageSerializer,
             provider=provider
         )
     elif request.param == 'c2':
@@ -152,15 +135,46 @@ def cluster(request, gremlin_host, gremlin_port, event_loop, provider, aliases):
             hosts=[gremlin_host],
             port=gremlin_port,
             aliases=aliases,
-            message_serializer=serializer.GraphSON2MessageSerializer,
             provider=provider
         )
     return cluster
 
 
 @pytest.fixture
+def connection(gremlin_url, event_loop, provider):
+    try:
+        conn = event_loop.run_until_complete(
+            driver.Connection.open(
+                gremlin_url, event_loop,
+                message_serializer=GraphSONMessageSerializer,
+                provider=provider
+            ))
+    except OSError:
+        pytest.skip('Gremlin Server is not running')
+    return conn
+
+
+@pytest.fixture
+def remote_connection(event_loop, gremlin_url):
+    try:
+        remote_conn = event_loop.run_until_complete(
+            DriverRemoteConnection.open(gremlin_url, 'g'))
+    except OSError:
+        pytest.skip('Gremlin Server is not running')
+    else:
+        return remote_conn
+
+
+@pytest.fixture
+def connection_pool(gremlin_url, event_loop, provider):
+    return driver.ConnectionPool(
+        gremlin_url, event_loop, None, '', '', 4, 1, 16,
+        64, None, driver.GraphSONMessageSerializer, provider=provider)
+
+
+@pytest.fixture
 def remote_graph():
-     return driver.AsyncGraph()
+     return driver.Graph()
 
 
 @pytest.fixture

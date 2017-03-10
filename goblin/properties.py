@@ -19,9 +19,9 @@
 
 import logging
 
-from goblin import abc, exception
+from aiogremlin.gremlin_python.statics import long
 
-from gremlin_python.statics import long
+from goblin import abc, exception
 
 
 logger = logging.getLogger(__name__)

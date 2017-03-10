@@ -20,13 +20,13 @@ import uuid
 
 import pytest
 
-from goblin.driver.server import GremlinServer
+from goblin.driver import GremlinServer
 
 
 @pytest.mark.asyncio
 async def test_client_auto_release(cluster):
     client = await cluster.connect()
-    resp = await client.submit(gremlin="1 + 1")
+    resp = await client.submit("1 + 1")
     async for msg in resp:
         pass
     await asyncio.sleep(0)
@@ -45,20 +45,20 @@ async def test_alias(cluster):
     await cluster.close()
 
 
-@pytest.mark.asyncio
-async def test_sessioned_client(cluster):
-    session = str(uuid.uuid4())
-    client = await cluster.connect(session=session)
-    assert isinstance(client.cluster, GremlinServer)
-    resp = await client.submit(gremlin="v = g.addV('person').property('name', 'joe').next(); v")
-    async for msg in resp:
-        try:
-            assert msg['properties']['name'][0]['value'] == 'joe'
-        except KeyError:
-            assert msg['properties']['name'][0]['@value']['value'] == 'joe'
-
-    resp = await client.submit(gremlin="g.V(v.id()).values('name')")
-
-    async for msg in resp:
-        assert msg == 'joe'
-    await cluster.close()
+# @pytest.mark.asyncio
+# async def test_sessioned_client(cluster):
+#     session = str(uuid.uuid4())
+#     client = await cluster.connect(session=session)
+#     assert isinstance(client.cluster, GremlinServer)
+#     resp = await client.submit("v = g.addV('person').property('name', 'joe').next(); v")
+#     async for msg in resp:
+#         try:
+#             assert msg['properties']['name'][0]['value'] == 'joe'
+#         except KeyError:
+#             assert msg['properties']['name'][0]['@value']['value'] == 'joe'
+#
+#     resp = await client.submit("g.V(v.id()).values('name')")
+#
+#     async for msg in resp:
+#         assert msg == 'joe'
+#     await cluster.close()

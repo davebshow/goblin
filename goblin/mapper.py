@@ -58,23 +58,34 @@ def get_metaprops(vertex_property, mapping):
     return metaprops
 
 
-def map_vertex_to_ogm(result, element, *, mapping=None):
+def map_vertex_to_ogm(result, props, element, *, mapping=None):
     """Map a vertex returned by DB to OGM vertex"""
-    for db_name, value in result['properties'].items():
+    props.pop('id')
+    label = props.pop('label')
+    for db_name, value in props.items():
         metaprop_dict = {}
         if len(value) > 1:
             values = []
             for v in value:
-                values.append(v['value'])
-                metaprops = v.get('properties', None)
-                if metaprops:
-                    metaprop_dict[v['value']] = metaprops
+                if isinstance(v, dict):
+                    val = v.pop('value')
+                    v.pop('key')
+                    v.pop('id')
+                    if v:
+                        metaprop_dict[val] = v
+                    values.append(val)
+                else:
+                    values.append(v)
             value = values
         else:
-            metaprops = value[0].get('properties', None)
-            value = value[0]['value']
-            if metaprops:
-                metaprop_dict[value] = metaprops
+            value = value[0]
+            if isinstance(value, dict):
+                val = value.pop('value')
+                value.pop('key')
+                value.pop('id')
+                if value:
+                    metaprop_dict[val] = value
+                value = val
         name, data_type = mapping.db_properties.get(db_name, (db_name, None))
         if data_type:
             value = data_type.to_ogm(value)
@@ -82,8 +93,8 @@ def map_vertex_to_ogm(result, element, *, mapping=None):
         if metaprop_dict:
             vert_prop = getattr(element, name)
             vert_prop.mapper_func(metaprop_dict, vert_prop)
-    setattr(element, '__label__', result['label'])
-    setattr(element, 'id', result['id'])
+    setattr(element, '__label__', label)
+    setattr(element, 'id', result.id)
     return element
 
 
@@ -102,23 +113,26 @@ def map_vertex_property_to_ogm(result, element, *, mapping=None):
             setattr(current, name, value)
 
 
-def map_edge_to_ogm(result, element, *, mapping=None):
+def map_edge_to_ogm(result, props, element, *, mapping=None):
     """Map an edge returned by DB to OGM edge"""
-    for db_name, value in result.get('properties', {}).items():
+    props.pop('id')
+    label = props.pop('label')
+    for db_name, value in props.items():
         name, data_type = mapping.db_properties.get(db_name, (db_name, None))
         if data_type:
             value = data_type.to_ogm(value)
         setattr(element, name, value)
-    setattr(element, '__label__', result['label'])
-    setattr(element, 'id', result['id'])
-    setattr(element.source, '__label__', result['outVLabel'])
-    setattr(element.target, '__label__', result['inVLabel'])
-    sid = result['outV']
+    setattr(element, '__label__', label)
+    setattr(element, 'id', result.id)
+    # Currently not included in graphson
+    # setattr(element.source, '__label__', result.outV.label)
+    # setattr(element.target, '__label__', result.inV.label)
+    sid = result.outV.id
     esid = getattr(element.source, 'id', None)
     if _check_id(sid, esid):
         from goblin.element import GenericVertex
         element.source = GenericVertex()
-    tid = result['inV']
+    tid = result.inV.id
     etid = getattr(element.target, 'id', None)
     if _check_id(tid, etid):
         from goblin.element import GenericVertex

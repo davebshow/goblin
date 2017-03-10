@@ -35,7 +35,7 @@ Contents of `config.yml`::
     min_conns: 1
     max_times_acquired: 16
     max_inflight: 64
-    message_serializer: 'goblin.driver.GraphSON2MessageSerializer'
+    message_serializer: 'goblin.driver.GraphSONMessageSerializer'
 
 Special :py:mod:`Goblin` App Configuration
 --------------------------------------------------------------

@@ -19,8 +19,7 @@ import pytest
 
 import goblin
 from goblin import element
-from goblin.driver import serializer
-from gremlin_python import process
+from aiogremlin.gremlin_python import process
 
 
 @pytest.mark.asyncio
@@ -70,5 +69,5 @@ async def test_registry_defaults(app):
 @pytest.mark.asyncio
 async def test_aliases(app, aliases):
     session = await app.session()
-    assert session._conn._aliases == aliases
+    assert session._remote_connection._client.aliases == aliases
     await app.close()

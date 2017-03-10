@@ -15,10 +15,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
-from goblin.driver.cluster import Cluster
-from goblin.driver.client import Client, SessionedClient
-from goblin.driver.connection import AbstractConnection, Connection
-from goblin.driver.graph import AsyncGraph
-from goblin.driver.serializer import (
-    GraphSONMessageSerializer, GraphSON2MessageSerializer)
-from goblin.driver.server import GremlinServer
+from aiogremlin import Cluster, Graph, DriverRemoteConnection
+from aiogremlin.driver.client import Client
+from aiogremlin.driver.connection import Connection
+from aiogremlin.driver.pool import ConnectionPool
+from aiogremlin.driver.server import GremlinServer
+from aiogremlin.gremlin_python.driver.serializer import (
+    GraphSONMessageSerializer)
+
+
+AsyncGraph = Graph

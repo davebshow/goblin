@@ -51,7 +51,7 @@ The Side Effect Interface
 -------------------------
 
 When using TinkerPop 3.2.2+ with the default
-:py:class:`GraphSON2MessageSerializer<goblin.driver.serializer.GraphSON2MessageSerializer>`,
+:py:class:`GraphSONMessageSerializer<goblin.driver.serializer.GraphSONMessageSerializer>`,
 :py:mod:`Goblin` provides an asynchronous side effects interface using the
 :py:class:`AsyncRemoteTraversalSideEffects<goblin.driver.graph.AsyncRemoteTraversalSideEffects>`
 class. This allows side effects to be retrieved after executing the traversal::

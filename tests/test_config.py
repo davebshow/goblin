@@ -116,7 +116,7 @@ def test_cluster_config_from_module(event_loop, cluster_class, conf_module):
     assert cluster.config['scheme'] == 'wss'
     assert cluster.config['hosts'] == ['localhost']
     assert cluster.config['port'] == 8183
-    assert cluster.config['message_serializer'] is driver.GraphSON2MessageSerializer
+    assert cluster.config['message_serializer'] is driver.GraphSONMessageSerializer
 
 @pytest.mark.asyncio
 async def test_app_config_from_json(app):
@@ -157,4 +157,5 @@ async def test_app_config_from_module(app, conf_module):
     assert app.config['scheme'] == 'wss'
     assert app.config['hosts'] == ['localhost']
     assert app.config['port'] == 8183
-    assert app.config['message_serializer'] is driver.GraphSON2MessageSerializer
+    assert app.config['message_serializer'] is driver.GraphSONMessageSerializer
+    await app.close()

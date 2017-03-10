@@ -92,7 +92,7 @@ uses the following configuration:
 +-------------------+----------------------------------------------+-------------+
 |message_serializer |String denoting the class used for message    |'classpath'  |
 |                   |serialization, currently only supports        |             |
-|                   |basic GraphSON2MessageSerializer              |             |
+|                   |basic GraphSONMessageSerializer              |             |
 +-------------------+----------------------------------------------+-------------+
 
 

@@ -19,7 +19,9 @@ import logging
 
 import inflection
 
-from goblin import abc, cardinality, exception, mapper, properties
+from aiogremlin.gremlin_python.process.traversal import Cardinality
+
+from goblin import abc, exception, mapper, properties
 
 
 logger = logging.getLogger(__name__)
@@ -177,7 +179,7 @@ class VertexProperty(Vertex, abc.BaseProperty):
         self._default = default
         self._db_name = db_name
         if card is None:
-            card = cardinality.Cardinality.single
+            card = Cardinality.single
         self._cardinality = card
 
     @property

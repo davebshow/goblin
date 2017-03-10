@@ -21,7 +21,8 @@ import collections
 import importlib
 import logging
 
-from goblin import driver, element, provider, session
+import aiogremlin
+from goblin import element, provider, session
 
 
 logger = logging.getLogger(__name__)
@@ -56,14 +57,15 @@ class Goblin:
         self._aliases = aliases
 
     @classmethod
-    async def open(cls, loop, *, provider=provider.TinkerGraph, get_hashable_id=None, aliases=None, **config):
+    async def open(cls, loop, *, provider=provider.TinkerGraph,
+                   get_hashable_id=None, aliases=None, **config):
         # App currently only supports GraphSON 1
-        cluster = await driver.Cluster.open(
+        # aiogremlin does not yet support providers
+        cluster = await aiogremlin.Cluster.open(
             loop, aliases=aliases,
-            message_serializer=driver.GraphSONMessageSerializer,
-            provider=provider,
             **config)
-        app = Goblin(cluster, provider=provider, get_hashable_id=get_hashable_id, aliases=aliases)
+        app = Goblin(cluster, provider=provider,
+                     get_hashable_id=get_hashable_id, aliases=aliases)
         return app
 
     @property
@@ -140,10 +142,10 @@ class Goblin:
 
         :returns: :py:class:`Session<goblin.session.Session>` object
         """
-        conn = await self._cluster.connect(processor=processor, op=op,
-                                           aliases=aliases)
+        remote_connection = await aiogremlin.DriverRemoteConnection.using(
+                self._cluster, loop=self._loop, aliases=self._aliases)
         return session.Session(self,
-                               conn,
+                               remote_connection,
                                self._get_hashable_id)
 
     async def close(self):
