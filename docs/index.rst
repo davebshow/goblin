@@ -28,7 +28,7 @@ GLV and driver.
 
 Releases
 ========
-The latest release of :py:mod:`goblin` is **2.0.0b1**.
+The latest release of :py:mod:`goblin` is **2.0.0**.
 
 
 Requirements
