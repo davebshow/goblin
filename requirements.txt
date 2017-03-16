@@ -1,2 +1,2 @@
-aiogremlin==3.2.4b1
+aiogremlin==3.2.4
 inflection==0.3.1

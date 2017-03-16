@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="goblin",
-    version="2.0.0b1",
+    version="2.0.0",
     url="",
     license="AGPL",
     author="davebshow",
@@ -11,7 +11,7 @@ setup(
     description="Python toolkit for TP3 Gremlin Server",
     packages=["goblin", "goblin.driver"],
     install_requires=[
-        "aiogremlin==3.2.4b1",
+        "aiogremlin==3.2.4",
         "inflection==0.3.1",
     ],
     test_suite="tests",
