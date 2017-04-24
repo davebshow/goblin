@@ -178,6 +178,7 @@ class VertexProperty(Vertex, abc.BaseProperty):
         self._data_type = data_type
         self._default = default
         self._db_name = db_name
+        self._val = None
         if card is None:
             card = Cardinality.single
         self._cardinality = card
