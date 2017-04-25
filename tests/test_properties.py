@@ -76,6 +76,12 @@ def test_set_change_vertex_property(person):
     person.birthplace = 'U of I Hospital'
     assert person.birthplace.value == 'U of I Hospital'
 
+def test_vertex_property_default():
+    """Makes sure that a brand new VertexProperty (i.e., with no value set) is
+    still representable. Addresses issue #52.
+    """
+    vp = element.VertexProperty(int)
+    assert repr(vp) == "<VertexProperty(type=0, value=None)"
 
 def test_validate_vertex_prop(person):
     assert not person.birthplace
