@@ -139,7 +139,7 @@ to create multi-cardinality properties::
     class Person(goblin.Vertex):
         name = goblin.Property(goblin.String)
         nicknames = goblin.VertexProperty(
-            goblin.String, card=Cardinality.list)
+            goblin.String, card=Cardinality.list_)
 
 
     >>> david = Person()
@@ -211,7 +211,7 @@ vertex class, using any cardinality::
         name = goblin.Property(goblin.String)
         population = goblin.Property(goblin.Integer)
         historical_name = HistoricalName(
-            goblin.String, card=Cardinality.list)
+            goblin.String, card=Cardinality.list_)
 
 Now, meta-properties can be set on the :py:class:`VertexProperty<goblin.element.VertexProperty>`
 using the descriptor protocol::
