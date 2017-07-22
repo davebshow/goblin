@@ -57,6 +57,7 @@ class DataType(abc.ABC):
         return val
 
     def validate_vertex_prop(self, val, card, vertex_prop, data_type):
+        from .element import VertexProperty
         if card == Cardinality.list_:
             if isinstance(val, list):
                 val = val
@@ -80,8 +81,11 @@ class DataType(abc.ABC):
                 val = set([val])
             vertex_props = set([])
             for v in val:
-                vp = vertex_prop(data_type, card=card)
-                vp.value = self.validate(v)
+                if not isinstance(v, VertexProperty):
+                    vp = vertex_prop(data_type, card=card)
+                    vp.value = self.validate(v)
+                else:
+                    vp = v
                 vertex_props.add(vp)
             val = manager.SetVertexPropertyManager(
                 data_type, vertex_prop, card, vertex_props)
