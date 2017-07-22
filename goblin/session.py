@@ -59,29 +59,6 @@ def bindprop(element_class, ogm_name, val, *, binding=None):
     return db_name, val
 
 
-class TraversalResponse:
-    """Asynchronous iterator that encapsulates a traversal response queue"""
-    def __init__(self, response_queue):
-        self._queue = response_queue
-        self._done = False
-
-    async def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        if self._done:
-            return
-        msg = await self.fetch_data()
-        if msg:
-            return msg
-        else:
-            self._done = True
-            raise StopAsyncIteration
-
-    async def fetch_data(self):
-        return await self._queue.get()
-
-
 class Session:
     """
     Provides the main API for interacting with the database. Does not
@@ -227,6 +204,7 @@ class Session:
                         current.target = GenericVertex()
                 element = current.__mapping__.mapper_func(
                     obj, props, current)
+                self.current[hashable_id] = element
                 return Traverser(element, bulk)
             else:
                 return result
