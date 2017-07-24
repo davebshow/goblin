@@ -141,7 +141,10 @@ def test_set_change_set_card_vertex_property(place):
     with pytest.raises(exception.ValidationError):
         place.important_numbers.add('dude')
 
-
+def test_set_card_union(place):
+    place.important_numbers = set([1, 2, 3])
+    place.important_numbers = place.important_numbers.union({3, 4, 5})
+        
 def test_set_card_validation_vertex_property(place):
     with pytest.raises(exception.ValidationError):
         place.important_numbers = set(['hello', 2, 3])
