@@ -147,7 +147,7 @@ def test_set_card_union(place):
 
 def test_set_card_64bit_integer(place):
     place.important_numbers = set([long(1), long(2), long(3)])
-    assert all(isinstance(i, long) for i in place.important_numbers)
+    assert all(isinstance(i.value, long) for i in place.important_numbers)
         
 def test_set_card_validation_vertex_property(place):
     with pytest.raises(exception.ValidationError):
