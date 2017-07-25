@@ -172,6 +172,8 @@ class Integer(abc.DataType):
     def validate(self, val):
         if val is not None:
             try:
+                if isinstance(val, long):
+                    return long(val)
                 return int(val)
             except (ValueError, TypeError) as e:
                 raise exception.ValidationError(
