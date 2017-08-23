@@ -160,7 +160,7 @@ class VertexPropertyDescriptor:
         return getattr(obj, self._name, default)
 
     def __set__(self, obj, val):
-        if val:
+        if val is not None:
             val = self._data_type.validate_vertex_prop(
                 val, self._cardinality, self._vertex_property, self._data_type)
         setattr(obj, self._name, val)
