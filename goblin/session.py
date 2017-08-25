@@ -482,7 +482,7 @@ class Session:
         potential_removals = []
         potential_metaprops = []
         for card, db_name, val, metaprops in props:
-            if val:
+            if val is not None:
                 key = ('k' + str(binding), db_name)
                 val = ('v' + str(binding), val)
                 if card:
