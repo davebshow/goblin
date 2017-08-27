@@ -75,7 +75,7 @@ class Session:
         self._loop = self._app._loop
         self._use_session = False
         self._pending = collections.deque()
-        self._current = weakref.WeakValueDictionary()
+        self._current = dict()
         self._get_hashable_id = get_hashable_id
         self._graph = aiogremlin.Graph()
 
