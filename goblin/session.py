@@ -32,7 +32,7 @@ from aiogremlin.gremlin_python.process.traversal import (
 from aiogremlin.gremlin_python.structure.graph import Vertex, Edge
 
 from goblin import exception, mapper
-from goblin.element import GenericVertex, GenericEdge
+from goblin.element import GenericVertex, GenericEdge, VertexProperty
 from goblin.manager import VertexPropertyManager
 
 
@@ -193,6 +193,7 @@ class Session:
                     if not current:
                         current = self.app.vertices.get(
                             props.get('label'), GenericVertex)()
+                        props = await self._get_vertex_properties(current, props)
                     else:
                         props = await self._get_vertex_properties(current, props)
                 if isinstance(obj, Edge):
@@ -220,9 +221,11 @@ class Session:
     async def _get_vertex_properties(self, element, props):
         new_props = {}
         for key, val in props.items():
-            if isinstance(getattr(element, key, None), VertexPropertyManager):
-                vert_prop = await self._g.V(
-                    props['id']).properties(key).valueMap(True).toList()
+
+            if isinstance(element.__properties__.get(key), VertexProperty):
+                trav = self._g.V(
+                    props['id']).properties(key).valueMap(True)
+                vert_prop = await trav.toList()
                 new_props[key] = vert_prop
             else:
                 new_props[key] = val
@@ -304,7 +307,7 @@ class Session:
         result = await self._save_element(
             vertex, self._check_vertex,
             self._add_vertex,
-            self.update_vertex)
+            self._update_vertex)
         hashable_id = self._get_hashable_id(result.id)
         self.current[hashable_id] = result
         return result
@@ -323,7 +326,7 @@ class Session:
         result = await self._save_element(
             edge, self._check_edge,
             self._add_edge,
-            self.update_edge)
+            self._update_edge)
         hashable_id = self._get_hashable_id(result.id)
         self.current[hashable_id] = result
         return result
@@ -351,7 +354,7 @@ class Session:
             eid = Binding('eid', edge.id)
         return await self.g.E(eid).next()
 
-    async def update_vertex(self, vertex):
+    async def _update_vertex(self, vertex):
         """
         Update a vertex, generally to change/remove property values.
 
@@ -363,7 +366,7 @@ class Session:
         traversal = self._g.V(Binding('vid', vertex.id))
         return await self._update_vertex_properties(vertex, traversal, props)
 
-    async def update_edge(self, edge):
+    async def _update_edge(self, edge):
         """
         Update an edge, generally to change/remove property values.
 
@@ -413,7 +416,7 @@ class Session:
         traversal, _, metaprops = self._add_properties(traversal, props)
         result = await self._simple_traversal(traversal, vertex)
         if metaprops:
-            await self._add_metaprops(result, metaprops)
+            await self._add_metaprops(result, metaprops, vertex)
             traversal = self._g.V(Binding('vid', vertex.id))
             result = await self._simple_traversal(traversal, vertex)
         return result
@@ -424,8 +427,7 @@ class Session:
         traversal = self._g.V(Binding('sid', edge.source.id))
         traversal = traversal.addE(edge.__mapping__._label)
         traversal = traversal.to(__.V(Binding('tid', edge.target.id)))
-        traversal, _, _ = self._add_properties(
-            traversal, props)
+        traversal, _, _ = self._add_properties(traversal, props)
         result = await self._simple_traversal(traversal, edge)
         return result
 
@@ -442,12 +444,11 @@ class Session:
         return await self._g.E(eid).next()
 
     async def _update_vertex_properties(self, vertex, traversal, props):
+        await self._g.V(vertex.id).properties().drop().iterate()
         traversal, removals, metaprops = self._add_properties(traversal, props)
-        for k in removals:
-            await self._g.V(Binding('vid', vertex.id)).properties(k).drop().next()
         result = await self._simple_traversal(traversal, vertex)
         if metaprops:
-            removals = await self._add_metaprops(result, metaprops)
+            removals = await self._add_metaprops(result, metaprops, vertex)
             for db_name, key, value in removals:
                 await self._g.V(Binding('vid', vertex.id)).properties(
                     db_name).has(key, value).drop().next()
@@ -464,15 +465,21 @@ class Session:
             await self._g.E(eid).properties(k).drop().next()
         return await self._simple_traversal(traversal, edge)
 
-    async def _add_metaprops(self, result, metaprops):
+    async def _add_metaprops(self, result, metaprops, vertex):
         potential_removals = []
         for metaprop in metaprops:
             db_name, (binding, value), metaprops = metaprop
             for key, val in metaprops.items():
                 if val:
-                    traversal = self._g.V(Binding('vid', result.id)).properties(
-                        db_name).hasValue(value).property(key, val)
-                    await traversal.next()
+                    prop_name = vertex.__mapping__.db_properties[db_name][0]
+                    vp = vertex.__properties__[prop_name]
+                    if vp.cardinality == Cardinality.single:
+                        traversal = self._g.V(Binding('vid', result.id)).properties(
+                            db_name).property(key, val)
+                    else:
+                        traversal = self._g.V(Binding('vid', result.id)).properties(
+                            db_name).hasValue(value).property(key, val)
+                    await traversal.iterate()
                 else:
                     potential_removals.append((db_name, key, value))
         return potential_removals

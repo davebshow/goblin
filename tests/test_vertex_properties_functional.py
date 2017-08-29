@@ -16,6 +16,8 @@
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
+from aiogremlin import Graph
+from aiogremlin.gremlin_python.process.traversal import Cardinality
 
 
 @pytest.mark.asyncio
@@ -81,6 +83,36 @@ async def test_add_update_set_card_property(app, place):
     await app.close()
 
 
+@pytest.mark.asyncio
+async def test_metas(app, place, remote_connection):
+    g = Graph().traversal().withRemote(remote_connection)
+    # Property API
+    v = await g.addV('person').property('name', 'dave').next()
+    props = await g.V(v.id).properties().toList()
+    meta = await g.V(v.id).properties('name').property('nickname', 'davebshow').next()
+    nickname = await g.V(v.id).properties('name').valueMap(True).next()
+    # List card
+    v2 = await g.addV('person').property(Cardinality.list_, 'name', 'dave').property(Cardinality.list_, 'name', 'dave brown').next()
+    props2 = await g.V(v2.id).properties().toList()
+    meta2 = await g.V(v2.id).properties('name').hasValue('dave').property('nickname', 'davebshow').next()
+    nickname2 = await g.V(v2.id).properties('name').valueMap(True).next()
+
+    session = await app.session()
+    place.historical_name = ['Detroit']
+    place.historical_name('Detroit').notes = 'rock city'
+    place.historical_name('Detroit').year = 1900
+    detroit = await session.save(place)
+    dprops = await g.V(detroit.id).properties().toList()
+    trav = g.V(detroit.id).properties('historical_name').valueMap(True)
+    dmetas = await trav.next()
+
+    new_session = await app.session()
+    new_detroit = await new_session.g.V(detroit.id).next()
+
+    await remote_connection.close()
+    await app.close()
+
+
 @pytest.mark.xfail(pytest.config.getoption('provider') == 'dse', reason='temporary')
 @pytest.mark.asyncio
 async def test_add_update_metas(app, place):
@@ -95,6 +127,11 @@ async def test_add_update_metas(app, place):
     place.historical_name('Detroit').notes = 'comeback city'
     place.historical_name('Detroit').year = 2016
     result = await session.save(place)
+    assert result.historical_name('Detroit').notes == 'comeback city'
+    assert result.historical_name('Detroit').year == 2016
+
+    new_session = await app.session()
+    result = await new_session.g.V(place.id).next()
     assert result.historical_name('Detroit').notes == 'comeback city'
     assert result.historical_name('Detroit').year == 2016
 

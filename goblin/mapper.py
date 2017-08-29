@@ -60,6 +60,7 @@ def get_metaprops(vertex_property, mapping):
 
 def map_vertex_to_ogm(result, props, element, *, mapping=None):
     """Map a vertex returned by DB to OGM vertex"""
+
     props.pop('id')
     label = props.pop('label')
     for db_name, value in props.items():
@@ -92,7 +93,7 @@ def map_vertex_to_ogm(result, props, element, *, mapping=None):
         setattr(element, name, value)
         if metaprop_dict:
             vert_prop = getattr(element, name)
-            vert_prop.mapper_func(metaprop_dict, vert_prop)
+            vert_prop.__mapping__.mapper_func(metaprop_dict, vert_prop)
     setattr(element, '__label__', label)
     setattr(element, 'id', result.id)
     return element
