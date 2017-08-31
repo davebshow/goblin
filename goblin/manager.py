@@ -47,6 +47,11 @@ class ListVertexPropertyManager(list, VertexPropertyManager):
     def __init__(self, data_type, vertex_prop, card, obj):
         VertexPropertyManager.__init__(self, data_type, vertex_prop, card)
         list.__init__(self, obj)
+        self._vp_map = {}
+
+    @property
+    def vp_map(self):
+        return self._vp_map
 
     def append(self, val):
         vp = self._vertex_prop(self._data_type, card=self._card)

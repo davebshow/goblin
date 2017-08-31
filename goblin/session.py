@@ -449,6 +449,7 @@ class Session:
         result = await self._simple_traversal(traversal, vertex)
         if metaprops:
             removals = await self._add_metaprops(result, metaprops, vertex)
+            # This can be tested for/removed
             for db_name, key, value in removals:
                 await self._g.V(Binding('vid', vertex.id)).properties(
                     db_name).has(key, value).drop().next()
@@ -468,18 +469,22 @@ class Session:
     async def _add_metaprops(self, result, metaprops, vertex):
         potential_removals = []
         for metaprop in metaprops:
+            # Make sure to get vp ids here.
             db_name, (binding, value), metaprops = metaprop
+            # Make sure to get vp ids here.
             for key, val in metaprops.items():
                 if val:
-                    prop_name = vertex.__mapping__.db_properties[db_name][0]
-                    vp = vertex.__properties__[prop_name]
-                    if vp.cardinality == Cardinality.single:
-                        traversal = self._g.V(Binding('vid', result.id)).properties(
-                            db_name).property(key, val)
-                    else:
-                        traversal = self._g.V(Binding('vid', result.id)).properties(
-                            db_name).hasValue(value).property(key, val)
-                    await traversal.iterate()
+                #     prop_name = vertex.__mapping__.db_properties[db_name][0]
+                #     vp = vertex.__properties__[prop_name]
+                #     # Select and add by id here if possible
+                #     if vp.cardinality == Cardinality.single:
+                #         traversal = self._g.V(Binding('vid', result.id)).properties(
+                #             db_name).property(key, val)
+                #     else:
+                #         traversal = self._g.V(Binding('vid', result.id)).properties(
+                #             db_name).hasValue(value).property(key, val)
+                #     await traversal.iterate()
+                    pass
                 else:
                     potential_removals.append((db_name, key, value))
         return potential_removals
@@ -489,6 +494,8 @@ class Session:
         potential_removals = []
         potential_metaprops = []
         for card, db_name, val, metaprops in props:
+            if not metaprops:
+                metaprops = {}
             if val is not None:
                 key = ('k' + str(binding), db_name)
                 val = ('v' + str(binding), val)
@@ -500,9 +507,13 @@ class Session:
                         card = Cardinality.set_
                     else:
                         card = Cardinality.single
-                    traversal = traversal.property(card, key, val)
+                    metas = [j for i in zip(
+                        metaprops.keys(), metaprops.values()) for j in i]
+                    traversal = traversal.property(card, key, val, *metas)
                 else:
-                    traversal = traversal.property(key, val)
+                    metas = [j for i in zip(
+                        metaprops.keys(), metaprops.values()) for j in i]
+                    traversal = traversal.property(key, val, *metas)
                 binding += 1
                 if metaprops:
                     potential_metaprops.append((db_name, val, metaprops))

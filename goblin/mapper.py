@@ -60,20 +60,20 @@ def get_metaprops(vertex_property, mapping):
 
 def map_vertex_to_ogm(result, props, element, *, mapping=None):
     """Map a vertex returned by DB to OGM vertex"""
-
     props.pop('id')
     label = props.pop('label')
     for db_name, value in props.items():
-        metaprop_dict = {}
+        metaprops = []
         if len(value) > 1:
             values = []
             for v in value:
                 if isinstance(v, dict):
                     val = v.pop('value')
                     v.pop('key')
-                    v.pop('id')
+                    vid = v.pop('id')
                     if v:
-                        metaprop_dict[val] = v
+                        v['id'] = vid
+                        metaprops.append((val, v))
                     values.append(val)
                 else:
                     values.append(v)
@@ -83,21 +83,22 @@ def map_vertex_to_ogm(result, props, element, *, mapping=None):
             if isinstance(value, dict):
                 val = value.pop('value')
                 value.pop('key')
-                value.pop('id')
+                vid = value.pop('id')
                 if value:
-                    metaprop_dict[val] = value
+                    value['id'] = vid
+                    metaprops.append((val, value))
                 value = val
         name, data_type = mapping.db_properties.get(db_name, (db_name, None))
         if data_type:
             value = data_type.to_ogm(value)
         setattr(element, name, value)
-        if metaprop_dict:
+        if metaprops:
             vert_prop = getattr(element, name)
             if hasattr(vert_prop, 'mapper_func'):
                 # Temporary hack for managers
-                vert_prop.mapper_func(metaprop_dict, vert_prop)
+                vert_prop.mapper_func(metaprops, vert_prop)
             else:
-                vert_prop.__mapping__.mapper_func(metaprop_dict, vert_prop)
+                vert_prop.__mapping__.mapper_func(metaprops, vert_prop)
     setattr(element, '__label__', label)
     setattr(element, 'id', result.id)
     return element
@@ -105,8 +106,19 @@ def map_vertex_to_ogm(result, props, element, *, mapping=None):
 
 def map_vertex_property_to_ogm(result, element, *, mapping=None):
     """Map a vertex returned by DB to OGM vertex"""
-    for val, metaprops in result.items():
-        if isinstance(element, (list, set)):
+    for (val, metaprops) in result:
+        if isinstance(element, list):
+            current = element.vp_map.get(metaprops['id'])
+            # This whole system needs to be reevaluated
+            if not current:
+                current = element(val)
+                if isinstance(current, list):
+                    for vp in current:
+                        if not hasattr(vp, '_id'):
+                            element.vp_map[metaprops['id']] = vp
+                            current = vp
+                            break
+        elif isinstance(element, set):
             current = element(val)
         else:
             current = element
