@@ -180,30 +180,73 @@ class TestCreationApi:
         await session.remove_vertex(person)
         result = await session.g.V(Binding('rid', rid)).next()
         assert not result
+        assert rid not in session.current
         await app.close()
 
-    @pytest.mark.xfail(pytest.config.getoption('provider') == 'tinkergraph', reason='edge id bound variable bug')
+    @pytest.mark.asyncio
+    async def test_remove_vertex_foreign_session(self, app, person):
+        session1 = await app.session()
+        session2 = await app.session()
+        person.name = 'dave'
+        person.age = 35
+        await session1.save(person)
+        result = await session1.g.V(Binding('vid', person.id)).next()
+        assert result is person
+        rid = result.id
+        await session2.remove_vertex(person)
+        result = await session2.g.V(Binding('rid', rid)).next()
+        assert not result
+        result = await session1.g.V(Binding('vid', person.id)).next()
+        assert result is None
+        # This is why we warn
+        assert rid in session1.current
+        assert person is session1.current[rid]
+        await app.close()
+
+
     @pytest.mark.asyncio
     async def test_remove_edge(self, app, person_class, place_class,
                                lives_in_class):
-        try:
-            session = await app.session()
-            jon = person_class()
-            jon.name = 'jonathan'
-            jon.age = 38
-            montreal = place_class()
-            montreal.name = 'Montreal'
-            lives_in = lives_in_class(jon, montreal)
-            session.add(jon, montreal, lives_in)
-            await session.flush()
-            result = await session.g.E(Binding('eid', lives_in.id)).next()
-            assert result is lives_in
-            rid = result.id
-            await session.remove_edge(lives_in)
-            result = await session.g.E(Binding('rid', rid)).next()
-            assert not result
-        finally:
-            await app.close()
+        session = await app.session()
+        jon = person_class()
+        jon.name = 'jonathan'
+        jon.age = 38
+        montreal = place_class()
+        montreal.name = 'Montreal'
+        lives_in = lives_in_class(jon, montreal)
+        session.add(jon, montreal, lives_in)
+        await session.flush()
+        result = await session.g.E(Binding('eid', lives_in.id)).next()
+        assert result is lives_in
+        rid = result.id
+        await session.remove_edge(lives_in)
+        result = await session.g.E(Binding('rid', rid)).next()
+        assert not result
+        await app.close()
+
+    @pytest.mark.asyncio
+    async def test_remove_edge_foreign_session(self, app, person_class,
+                                              place_class, lives_in_class):
+        session1 = await app.session()
+        session2 = await app.session()
+        jon = person_class()
+        jon.name = 'jonathan'
+        jon.age = 38
+        montreal = place_class()
+        montreal.name = 'Montreal'
+        lives_in = lives_in_class(jon, montreal)
+        session1.add(jon, montreal, lives_in)
+        await session1.flush()
+        result = await session1.g.E(Binding('eid', lives_in.id)).next()
+        assert result is lives_in
+        rid = result.id
+        await session2.remove_edge(lives_in)
+        result = await session2.g.E(Binding('rid', rid)).next()
+        assert not result
+        # This is why whe warm
+        assert rid in session1.current
+        assert lives_in is session1.current[rid]
+        await app.close()
 
     @pytest.mark.asyncio
     async def test_update_vertex(self, app, person):

@@ -260,7 +260,12 @@ class Session:
         traversal = self._g.V(Binding('vid', vertex.id)).drop()
         result = await self._simple_traversal(traversal, vertex)
         hashable_id = self._get_hashable_id(vertex.id)
-        vertex = self.current.pop(hashable_id)
+        if hashable_id in self.current:
+            vertex = self.current.pop(hashable_id)
+        else:
+            msg = 'Vertex {} does not belong to this session obj {}'.format(
+                vertex, self)
+            logger.warning(msg)
         del vertex
         return result
 
@@ -276,7 +281,12 @@ class Session:
         traversal = self._g.E(eid).drop()
         result = await self._simple_traversal(traversal, edge)
         hashable_id = self._get_hashable_id(edge.id)
-        edge = self.current.pop(hashable_id)
+        if hashable_id in self.current:
+            edge = self.current.pop(hashable_id)
+        else:
+            msg = 'Edge {} does not belong to this session obj {}'.format(
+                edge, self)
+            logger.warning(msg)
         del edge
         return result
 
