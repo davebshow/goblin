@@ -241,7 +241,7 @@ class TestCreationApi:
         assert result is lives_in
         rid = result.id
         await session2.remove_edge(lives_in)
-        result = await session2.g.E(Binding('rid', rid)).next()
+        result = await session1.g.E(Binding('rid', rid)).next()
         assert not result
         # This is why whe warm
         assert rid in session1.current
