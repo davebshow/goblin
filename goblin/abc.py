@@ -20,7 +20,7 @@ import logging
 
 from aiogremlin.gremlin_python.process.traversal import Cardinality
 
-from goblin import manager, exception
+from goblin import manager, element, exception
 
 
 logger = logging.getLogger(__name__)
@@ -80,8 +80,11 @@ class DataType(abc.ABC):
                 val = set([val])
             vertex_props = set([])
             for v in val:
-                vp = vertex_prop(data_type, card=card)
-                vp.value = self.validate(v)
+                if not isinstance(v, element.VertexProperty):
+                    vp = vertex_prop(data_type, card=card)
+                    vp.value = self.validate(v)
+                else:
+                    vp = v
                 vertex_props.add(vp)
             val = manager.SetVertexPropertyManager(
                 data_type, vertex_prop, card, vertex_props)
