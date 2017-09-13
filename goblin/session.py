@@ -221,7 +221,8 @@ class Session:
     async def _get_vertex_properties(self, element, props):
         new_props = {}
         for key, val in props.items():
-
+            if key in element.__mapping__.db_properties:
+                key, _ = element.__mapping__.db_properties[key]
             if isinstance(element.__properties__.get(key), VertexProperty):
                 trav = self._g.V(
                     props['id']).properties(key).valueMap(True)
