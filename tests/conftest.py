@@ -56,6 +56,7 @@ class Place(element.Vertex):
     historical_name = HistoricalName(properties.String, card=Cardinality.list_)
     important_numbers = element.VertexProperty(
         properties.Integer, card=Cardinality.set_)
+    incorporated = element.VertexProperty(properties.Boolean, default=False)
 
 
 class Inherited(Person):

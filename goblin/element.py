@@ -153,7 +153,8 @@ class VertexPropertyDescriptor:
         if obj is None:
             return getattr(objtype.__mapping__, self._prop_name)
         default = self._default
-        if default:
+        if default is not None :
+
             default = self._data_type.validate_vertex_prop(
                 default, self._cardinality, self._vertex_property,
                 self._data_type)
@@ -185,7 +186,7 @@ class VertexProperty(Vertex, abc.BaseProperty):
 
     @property
     def default(self):
-        self._default
+        return self._default
 
     @property
     def data_type(self):

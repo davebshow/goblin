@@ -43,6 +43,8 @@ def test_property_default(knows):
     knows.notes = 'notable'
     assert knows.notes == 'notable'
 
+def test_false_bool_default(place):
+    assert place.incorporated.value is False
 
 def test_validation(person):
     person.age = 10
