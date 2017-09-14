@@ -19,7 +19,6 @@ import pytest
 
 import goblin
 from goblin import element
-from aiogremlin.gremlin_python import process
 
 
 @pytest.mark.asyncio

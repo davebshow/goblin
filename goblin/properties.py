@@ -19,7 +19,7 @@
 
 import logging
 
-from aiogremlin.gremlin_python.statics import long
+from gremlin_python.statics import long
 
 from goblin import abc, exception
 

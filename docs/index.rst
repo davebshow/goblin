@@ -134,7 +134,7 @@ Generate and submit Gremlin traversals in native Python::
     >>> loop.run_until_complete(go(g))
     # {'properties': {'name': [{'value': 'Leif', 'id': 3}]}, 'label': 'developer', 'id': 2, 'type': 'vertex'}
 
-For more information on using the :py:class:`Graph<aiogremlin.gremlin_python.structure.graph.Graph>`,
+For more information on using the :py:class:`Graph<aiogremlin.structure.graph.Graph>`,
 see the `aiogremlin`_ documentation or the :doc:`GLV docs</glv>`
 
 

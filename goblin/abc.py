@@ -18,7 +18,7 @@
 import abc
 import logging
 
-from aiogremlin.gremlin_python.process.traversal import Cardinality
+from gremlin_python.process.traversal import Cardinality
 
 from goblin import manager, element, exception
 

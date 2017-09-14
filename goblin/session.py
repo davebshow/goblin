@@ -230,6 +230,9 @@ class Session:
                 new_props[key] = vert_prop
             else:
                 new_props[key] = val
+        print("id", props['id'])
+        # new_props = await self._g.V(props['id']).properties().project('id', 'key', 'value', 'meta').by(__.id()).by(__.key()).by(__.value()).by(__.valueMap()).toList()
+        print(new_props)
         return new_props
 
     # Creation API

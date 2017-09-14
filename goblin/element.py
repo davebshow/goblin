@@ -19,7 +19,7 @@ import logging
 
 import inflection
 
-from aiogremlin.gremlin_python.process.traversal import Cardinality
+from gremlin_python.process.traversal import Cardinality
 
 from goblin import abc, exception, mapper, properties
 

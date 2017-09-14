@@ -21,7 +21,7 @@ modeling data, simply create *model* element classes that inherit from the
 :py:mod:`goblin.element` classes. For example::
 
     import goblin
-    from aiogremlin.gremlin_python import Cardinality
+    from gremlin_python import Cardinality
 
 
     class Person(goblin.Vertex):
@@ -150,7 +150,7 @@ to create multi-cardinality properties::
 Notice that the cardinality of the
 :py:class:`VertexProperty<goblin.element.VertexProperty>` must be explicitly
 set using the `card` kwarg and the
-:py:class:`Cardinality<aiogremlin.gremlin_python.Cardinality>` enumerator.
+:py:class:`Cardinality<gremlin_python.Cardinality>` enumerator.
 
 :py:class:`VertexProperty<goblin.element.VertexProperty>` provides a different
 interface than the simple, key/value style

@@ -16,7 +16,7 @@
 # along with Goblin.  If not, see <http://www.gnu.org/licenses/>.
 import asyncio
 import pytest
-from aiogremlin.gremlin_python.process.traversal import Cardinality
+from gremlin_python.process.traversal import Cardinality
 from goblin import Goblin, driver, element, properties
 from goblin.driver import (
     Connection, DriverRemoteConnection, GraphSONMessageSerializer)

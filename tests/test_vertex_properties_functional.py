@@ -17,7 +17,7 @@
 
 import pytest
 from aiogremlin import Graph
-from aiogremlin.gremlin_python.process.traversal import Cardinality
+from gremlin_python.process.traversal import Cardinality
 
 
 @pytest.mark.asyncio
@@ -98,6 +98,7 @@ async def test_metas(app, place, remote_connection):
     nickname2 = await g.V(v2.id).properties('name').valueMap(True).next()
 
     session = await app.session()
+    place.zipcode = 98402
     place.historical_name = ['Detroit']
     place.historical_name('Detroit').notes = 'rock city'
     place.historical_name('Detroit').year = 1900
