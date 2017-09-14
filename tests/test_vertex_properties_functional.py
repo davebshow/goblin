@@ -97,7 +97,7 @@ async def test_metas(app, place, remote_connection):
     detroit = await session.save(place)
 
     dprops = await g.V(detroit.id).properties().toList()
-    assert len(dprops) == 3
+    assert len(dprops) == 4
     trav = g.V(detroit.id).properties('historical_name').valueMap(True)
     dmetas = await trav.toList()
     assert dmetas[0]['value'] == 'Detroit'
