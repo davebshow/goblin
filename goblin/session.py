@@ -189,13 +189,11 @@ class Session:
                 hashable_id = self._get_hashable_id(obj.id)
                 current = self.current.get(hashable_id, None)
                 if isinstance(obj, Vertex):
-                    props = await self._g.V(obj.id).valueMap(True).next()
+                    # why doesn't this come in on the vertex?
+                    label = await self._g.V(obj.id).label().next()
                     if not current:
-                        current = self.app.vertices.get(
-                            props.get('label'), GenericVertex)()
-                        props = await self._get_vertex_properties(current, props)
-                    else:
-                        props = await self._get_vertex_properties(current, props)
+                        current = self.app.vertices.get(label, GenericVertex)()
+                    props = await self._get_vertex_properties(obj.id, label)
                 if isinstance(obj, Edge):
                     props = await self._g.E(obj.id).valueMap(True).next()
                     if not current:
@@ -218,21 +216,26 @@ class Session:
         else:
             return result
 
-    async def _get_vertex_properties(self, element, props):
-        new_props = {}
-        for key, val in props.items():
-            if key in element.__mapping__.db_properties:
-                key, _ = element.__mapping__.db_properties[key]
-            if isinstance(element.__properties__.get(key), VertexProperty):
-                trav = self._g.V(
-                    props['id']).properties(key).valueMap(True)
-                vert_prop = await trav.toList()
-                new_props[key] = vert_prop
-            else:
-                new_props[key] = val
-        print("id", props['id'])
-        # new_props = await self._g.V(props['id']).properties().project('id', 'key', 'value', 'meta').by(__.id()).by(__.key()).by(__.value()).by(__.valueMap()).toList()
-        print(new_props)
+    async def _get_vertex_properties(self, vid, label):
+        projection = self._g.V(vid).properties() \
+                            .project('id', 'key', 'value', 'meta') \
+                            .by(__.id()).by(__.key()).by(__.value()) \
+                            .by(__.valueMap())
+        props = await projection.toList()
+        new_props = {'label': label, 'id': vid}
+        for prop in props:
+            key = prop['key']
+            val = prop['value']
+            # print('val_type', type(val))
+            meta = prop['meta']
+            new_props.setdefault(key, [])
+            if meta:
+                meta['key'] = key
+                meta['value'] = val
+                meta['id'] = prop['id']
+                val = meta
+
+            new_props[key].append(val)
         return new_props
 
     # Creation API
@@ -396,12 +399,14 @@ class Session:
         return await self._update_edge_properties(edge, traversal, props)
 
     # *metodos especiales privados for creation API
+
     async def _simple_traversal(self, traversal, element):
         elem = await traversal.next()
         if elem:
             if element.__type__ == 'vertex':
-                props = await self._g.V(elem.id).valueMap(True).next()
-                props = await self._get_vertex_properties(element, props)
+                # Look into this
+                label = await self._g.V(elem.id).label().next()
+                props = await self._get_vertex_properties(elem.id, label)
             elif element.__type__ == 'edge':
                 props = await self._g.E(elem.id).valueMap(True).next()
             elem = element.__mapping__.mapper_func(
@@ -488,17 +493,17 @@ class Session:
             # Make sure to get vp ids here.
             for key, val in metaprops.items():
                 if val:
-                #     prop_name = vertex.__mapping__.db_properties[db_name][0]
-                #     vp = vertex.__properties__[prop_name]
-                #     # Select and add by id here if possible
-                #     if vp.cardinality == Cardinality.single:
-                #         traversal = self._g.V(Binding('vid', result.id)).properties(
-                #             db_name).property(key, val)
-                #     else:
-                #         traversal = self._g.V(Binding('vid', result.id)).properties(
-                #             db_name).hasValue(value).property(key, val)
-                #     await traversal.iterate()
-                    pass
+                    prop_name = vertex.__mapping__.db_properties[db_name][0]
+                    vp = vertex.__properties__[prop_name]
+                    # Select and add by id here if possible
+                    if vp.cardinality == Cardinality.single:
+                        traversal = self._g.V(Binding('vid', result.id)).properties(
+                            db_name).property(key, val)
+                    else:
+                        traversal = self._g.V(Binding('vid', result.id)).properties(
+                            db_name).hasValue(value).property(key, val)
+                    await traversal.iterate()
+                    # pass
                 else:
                     potential_removals.append((db_name, key, value))
         return potential_removals

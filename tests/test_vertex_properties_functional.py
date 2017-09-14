@@ -86,30 +86,35 @@ async def test_add_update_set_card_property(app, place):
 @pytest.mark.asyncio
 async def test_metas(app, place, remote_connection):
     g = Graph().traversal().withRemote(remote_connection)
-    # Property API
-    v = await g.addV('person').property('name', 'dave').next()
-    props = await g.V(v.id).properties().toList()
-    meta = await g.V(v.id).properties('name').property('nickname', 'davebshow').next()
-    nickname = await g.V(v.id).properties('name').valueMap(True).next()
-    # List card
-    v2 = await g.addV('person').property(Cardinality.list_, 'name', 'dave').property(Cardinality.list_, 'name', 'dave brown').next()
-    props2 = await g.V(v2.id).properties().toList()
-    meta2 = await g.V(v2.id).properties('name').hasValue('dave').property('nickname', 'davebshow').next()
-    nickname2 = await g.V(v2.id).properties('name').valueMap(True).next()
-
     session = await app.session()
     place.zipcode = 98402
     place.historical_name = ['Detroit']
     place.historical_name('Detroit').notes = 'rock city'
     place.historical_name('Detroit').year = 1900
+    place.historical_name.append('Other')
+    place.historical_name[-1].notes = 'unknown'
+    place.historical_name[-1].year = 1700
     detroit = await session.save(place)
-    dprops = await g.V(detroit.id).properties().toList()
-    trav = g.V(detroit.id).properties('historical_name').valueMap(True)
-    dmetas = await trav.next()
 
+    dprops = await g.V(detroit.id).properties().toList()
+    assert len(dprops) == 3
+    trav = g.V(detroit.id).properties('historical_name').valueMap(True)
+    dmetas = await trav.toList()
+    assert dmetas[0]['value'] == 'Detroit'
+    assert dmetas[0]['notes'] == 'rock city'
+    assert dmetas[0]['year'] == 1900
+    assert dmetas[1]['value'] == 'Other'
+    assert dmetas[1]['notes'] == 'unknown'
+    assert dmetas[1]['year'] == 1700
     new_session = await app.session()
     new_detroit = await new_session.g.V(detroit.id).next()
-
+    assert new_detroit.zipcode == detroit.zipcode
+    assert new_detroit.historical_name[-1].value == detroit.historical_name[-1].value
+    assert new_detroit.historical_name[-1].notes == detroit.historical_name[-1].notes
+    assert new_detroit.historical_name[-1].year == detroit.historical_name[-1].year
+    assert new_detroit.historical_name[0].value == detroit.historical_name[0].value
+    assert new_detroit.historical_name[0].notes == detroit.historical_name[0].notes
+    assert new_detroit.historical_name[0].year == detroit.historical_name[0].year
     await remote_connection.close()
     await app.close()
 
