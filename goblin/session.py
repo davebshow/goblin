@@ -25,11 +25,11 @@ import weakref
 import aiogremlin
 from aiogremlin.driver.protocol import Message
 from aiogremlin.driver.resultset import ResultSet
-from aiogremlin.gremlin_python.driver.remote_connection import RemoteTraversal
-from aiogremlin.gremlin_python.process.graph_traversal import __
-from aiogremlin.gremlin_python.process.traversal import (
+from gremlin_python.driver.remote_connection import RemoteTraversal
+from aiogremlin.process.graph_traversal import __
+from gremlin_python.process.traversal import (
     Cardinality, Traverser, Binding, Traverser)
-from aiogremlin.gremlin_python.structure.graph import Vertex, Edge
+from gremlin_python.structure.graph import Vertex, Edge
 
 from goblin import exception, mapper
 from goblin.element import GenericVertex, GenericEdge, VertexProperty
