@@ -23,7 +23,7 @@ import pytest
 import aiohttp
 from aiohttp import web
 
-from aiogremlin.gremlin_python.driver import request
+from gremlin_python.driver import request
 
 from goblin import driver
 from aiogremlin import exception

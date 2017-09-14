@@ -22,7 +22,7 @@ import pytest
 from goblin import element
 from goblin.session import bindprop
 
-from aiogremlin.gremlin_python.process.traversal import Binding
+from gremlin_python.process.traversal import Binding
 
 
 def test_bindprop(person_class):

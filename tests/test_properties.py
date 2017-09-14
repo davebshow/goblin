@@ -17,7 +17,7 @@
 
 import pytest
 
-from aiogremlin.gremlin_python.statics import long
+from gremlin_python.statics import long
 
 from goblin import element, exception, manager, properties
 
@@ -148,7 +148,7 @@ def test_set_card_union(place):
 def test_set_card_64bit_integer(place):
     place.important_numbers = set([long(1), long(2), long(3)])
     assert all(isinstance(i.value, long) for i in place.important_numbers)
-        
+
 def test_set_card_validation_vertex_property(place):
     with pytest.raises(exception.ValidationError):
         place.important_numbers = set(['hello', 2, 3])
