@@ -432,13 +432,7 @@ class Session:
         """Convenience function for generating crud traversals."""
         props = mapper.map_props_to_db(vertex, vertex.__mapping__)
         traversal = self._g.addV(vertex.__mapping__.label)
-        traversal, _, metaprops = self._add_properties(traversal, props)
-        result = await self._simple_traversal(traversal, vertex)
-        if metaprops:
-            await self._add_metaprops(result, metaprops, vertex)
-            traversal = self._g.V(Binding('vid', vertex.id))
-            result = await self._simple_traversal(traversal, vertex)
-        return result
+        return await self._add_properties(traversal, props, vertex)
 
     async def _add_edge(self, edge):
         """Convenience function for generating crud traversals."""
@@ -446,9 +440,7 @@ class Session:
         traversal = self._g.V(Binding('sid', edge.source.id))
         traversal = traversal.addE(edge.__mapping__._label)
         traversal = traversal.to(__.V(Binding('tid', edge.target.id)))
-        traversal, _, _ = self._add_properties(traversal, props)
-        result = await self._simple_traversal(traversal, edge)
-        return result
+        return await self._add_properties(traversal, props, edge)
 
     async def _check_vertex(self, vertex):
         """Used to check for existence, does not update session vertex"""
@@ -464,54 +456,14 @@ class Session:
 
     async def _update_vertex_properties(self, vertex, traversal, props):
         await self._g.V(vertex.id).properties().drop().iterate()
-        traversal, removals, metaprops = self._add_properties(traversal, props)
-        result = await self._simple_traversal(traversal, vertex)
-        if metaprops:
-            removals = await self._add_metaprops(result, metaprops, vertex)
-            # This can be tested for/removed
-            for db_name, key, value in removals:
-                await self._g.V(Binding('vid', vertex.id)).properties(
-                    db_name).has(key, value).drop().next()
-            traversal = self._g.V(Binding('vid', vertex.id))
-            result = await self._simple_traversal(traversal, vertex)
-        return result
+        return await self._add_properties(traversal, props, vertex)
 
     async def _update_edge_properties(self, edge, traversal, props):
-        traversal, removals, _ = self._add_properties(traversal, props)
-        eid = edge.id
-        if isinstance(eid, dict):
-            eid = Binding('eid', edge.id)
-        for k in removals:
-            await self._g.E(eid).properties(k).drop().next()
-        return await self._simple_traversal(traversal, edge)
+        await self._g.E(edge.id).properties().drop().iterate()
+        return await self._add_properties(traversal, props, edge)
 
-    async def _add_metaprops(self, result, metaprops, vertex):
-        potential_removals = []
-        for metaprop in metaprops:
-            # Make sure to get vp ids here.
-            db_name, (binding, value), metaprops = metaprop
-            # Make sure to get vp ids here.
-            for key, val in metaprops.items():
-                if val:
-                    prop_name = vertex.__mapping__.db_properties[db_name][0]
-                    vp = vertex.__properties__[prop_name]
-                    # Select and add by id here if possible
-                    if vp.cardinality == Cardinality.single:
-                        traversal = self._g.V(Binding('vid', result.id)).properties(
-                            db_name).property(key, val)
-                    else:
-                        traversal = self._g.V(Binding('vid', result.id)).properties(
-                            db_name).hasValue(value).property(key, val)
-                    await traversal.iterate()
-                    # pass
-                else:
-                    potential_removals.append((db_name, key, value))
-        return potential_removals
-
-    def _add_properties(self, traversal, props):
+    async def _add_properties(self, traversal, props, elem):
         binding = 0
-        potential_removals = []
-        potential_metaprops = []
         for card, db_name, val, metaprops in props:
             if not metaprops:
                 metaprops = {}
@@ -534,8 +486,4 @@ class Session:
                         metaprops.keys(), metaprops.values()) for j in i]
                     traversal = traversal.property(key, val, *metas)
                 binding += 1
-                if metaprops:
-                    potential_metaprops.append((db_name, val, metaprops))
-            else:
-                potential_removals.append(db_name)
-        return traversal, potential_removals, potential_metaprops
+        return await self._simple_traversal(traversal, elem)
