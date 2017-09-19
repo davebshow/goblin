@@ -67,9 +67,13 @@ class Property(abc.BaseProperty):
 
     __descriptor__ = PropertyDescriptor
 
-    def __init__(self, data_type, *, db_name=None, default=None):
+    def __init__(self, data_type, *, db_name=None, default=None,
+                 db_name_factory=None):
+        if not db_name_factory:
+            db_name_factory = lambda x, y: None  # noop
         if isinstance(data_type, type):
             data_type = data_type()
+        self._db_name_factory = db_name_factory
         self._data_type = data_type
         self._db_name = db_name
         self._default = default
@@ -78,9 +82,17 @@ class Property(abc.BaseProperty):
     def data_type(self):
         return self._data_type
 
-    @property
-    def db_name(self):
+    def getdb_name(self):
         return self._db_name
+
+    def setgetdb_name(self, val):
+        self._db_name = val
+
+    db_name = property(getdb_name, setgetdb_name)
+
+    @property
+    def db_name_factory(self):
+        return self._db_name_factory
 
     @property
     def default(self):

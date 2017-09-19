@@ -57,6 +57,9 @@ class ElementMeta(type):
                     raise exception.MappingError(
                         'Edge property cannot have set/list cardinality')
                 props[k] = v
+                if k != 'id':
+                    if not v.db_name:
+                        v.db_name = v.db_name_factory(k, namespace['__label__'])
                 v = v.__descriptor__(k, v)
             new_namespace[k] = v
         new_namespace['__mapping__'] = mapper.create_mapping(namespace,
@@ -173,9 +176,12 @@ class VertexProperty(Vertex, abc.BaseProperty):
     __descriptor__ = VertexPropertyDescriptor
 
     def __init__(self, data_type, *, default=None, db_name=None,
-                 card=None):
+                 card=None, db_name_factory=None):
+        if not db_name_factory:
+            db_name_factory = lambda x, y: None  # noop
         if isinstance(data_type, type):
             data_type = data_type()
+        self._db_name_factory = db_name_factory
         self._data_type = data_type
         self._default = default
         self._db_name = db_name
@@ -192,6 +198,10 @@ class VertexProperty(Vertex, abc.BaseProperty):
     def data_type(self):
         return self._data_type
 
+    @property
+    def db_name_factory(self):
+        return self._db_name_factory
+
     def getvalue(self):
         return self._val
 
@@ -200,9 +210,13 @@ class VertexProperty(Vertex, abc.BaseProperty):
 
     value = property(getvalue, setvalue)
 
-    @property
-    def db_name(self):
+    def getdb_name(self):
         return self._db_name
+
+    def setgetdb_name(self, val):
+        self._db_name = val
+
+    db_name = property(getdb_name, setgetdb_name)
 
     @property
     def cardinality(self):

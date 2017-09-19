@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="goblin",
-    version="2.1.0rc1",
+    version="2.1.0rc2",
     url="",
     license="AGPL",
     author="davebshow",

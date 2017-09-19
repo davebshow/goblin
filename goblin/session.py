@@ -207,6 +207,7 @@ class Session:
                 return Traverser(element, bulk)
             else:
                 return result
+        # Recursive serialization is broken in goblin
         elif isinstance(result, dict):
             for key in result:
                 result[key] = self._deserialize_result(result[key])

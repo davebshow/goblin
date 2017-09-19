@@ -412,6 +412,7 @@ class TestTraversalApi:
             'x').valueMap().as_('y').select('x', 'y').fold()
         resp = await traversal.next()
         for item in resp:
+            #BROKEN
             # assert isinstance(item['x'], person_class)
             assert isinstance(item['y'], dict)
         await app.close()

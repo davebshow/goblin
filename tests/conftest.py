@@ -35,6 +35,8 @@ def pytest_addoption(parser):
     parser.addoption('--gremlin-port', default='8182')
 
 
+db_name_factory = lambda x,y: "{}__{}".format(y, x)
+
 class HistoricalName(element.VertexProperty):
     notes = properties.Property(properties.String)
     year = properties.Property(properties.Integer)  # this is dumb but handy
@@ -47,12 +49,13 @@ class Person(element.Vertex):
                               db_name='custom__person__age')
     birthplace = element.VertexProperty(properties.String)
     nicknames = element.VertexProperty(
-        properties.String, card=Cardinality.list_)
+        properties.String, card=Cardinality.list_,
+        db_name_factory=db_name_factory)
 
 
 class Place(element.Vertex):
     name = properties.Property(properties.String)
-    zipcode = properties.Property(properties.Integer)
+    zipcode = properties.Property(properties.Integer, db_name_factory=db_name_factory)
     historical_name = HistoricalName(properties.String, card=Cardinality.list_)
     important_numbers = element.VertexProperty(
         properties.Integer, card=Cardinality.set_)

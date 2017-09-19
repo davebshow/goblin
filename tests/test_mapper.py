@@ -76,3 +76,8 @@ def test_getattr_getdbname(person, lives_in):
 def test_getattr_doesnt_exist(person):
     with pytest.raises(exception.MappingError):
         db_name = person.__mapping__.doesnt_exits
+
+
+def test_db_name_factory(person, place):
+    assert person.__mapping__.nicknames == 'person__nicknames'
+    assert place.__mapping__.zipcode == 'place__zipcode'

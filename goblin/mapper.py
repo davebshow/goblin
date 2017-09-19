@@ -103,19 +103,27 @@ def map_vertex_to_ogm(result, props, element, *, mapping=None):
     setattr(element, 'id', result.id)
     return element
 
+# temp hack
+def get_hashable_id(val):
+    #Use the value "as-is" by default.
+    if isinstance(val, dict) and "@type" in val and "@value" in val:
+        if val["@type"] == "janusgraph:RelationIdentifier":
+            val = val["@value"]["value"]
+    return val
+
 
 def map_vertex_property_to_ogm(result, element, *, mapping=None):
     """Map a vertex returned by DB to OGM vertex"""
     for (val, metaprops) in result:
         if isinstance(element, list):
-            current = element.vp_map.get(metaprops['id'])
+            current = element.vp_map.get(get_hashable_id(metaprops['id']))
             # This whole system needs to be reevaluated
             if not current:
                 current = element(val)
                 if isinstance(current, list):
                     for vp in current:
                         if not hasattr(vp, '_id'):
-                            element.vp_map[metaprops['id']] = vp
+                            element.vp_map[get_hashable_id(metaprops['id'])] = vp
                             current = vp
                             break
         elif isinstance(element, set):
