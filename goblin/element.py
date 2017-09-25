@@ -151,9 +151,6 @@ class VertexPropertyDescriptor:
         self._data_type = vertex_property.data_type
         self._default = vertex_property.default
         self._cardinality = vertex_property._cardinality
-        self._data_type.validate_vertex_prop(
-            None, self._cardinality, self._vertex_property,
-            self._data_type)
 
     def __get__(self, obj, objtype):
         if obj is None:
