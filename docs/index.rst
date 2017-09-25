@@ -73,8 +73,10 @@ Define custom vertex/edge classes using the provided base :py:mod:`classes<gobli
 
 Create a :py:class:`Goblin App<goblin.app.Goblin>` and register the element classes::
 
+    >>> import asyncio
     >>> from goblin import Goblin
 
+    >>> loop = asyncio.get_event_loop()
     >>> app = loop.run_until_complete(
     ...     Goblin.open(loop))
     >>> app.register(Person, Knows)
@@ -98,7 +100,7 @@ database::
     ...     assert result is works_with
     ...     people = session.traversal(Person)  # element class based traversal source
     ...     async for person in people:
-    ...         print(person)
+    ...         await print(person)
 
     >>> loop.run_until_complete(go(app))
     # <__main__.Person object at 0x7fba0b7fa6a0>
