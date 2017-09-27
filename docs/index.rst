@@ -73,8 +73,10 @@ Define custom vertex/edge classes using the provided base :py:mod:`classes<gobli
 
 Create a :py:class:`Goblin App<goblin.app.Goblin>` and register the element classes::
 
+    >>> import asyncio
     >>> from goblin import Goblin
 
+    >>> loop = asyncio.get_event_loop()
     >>> app = loop.run_until_complete(
     ...     Goblin.open(loop))
     >>> app.register(Person, Knows)
