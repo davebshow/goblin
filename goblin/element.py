@@ -82,61 +82,6 @@ class Element(metaclass=ElementMeta):
     id = properties.IdProperty(properties.Generic)
 
 
-class Vertex(Element):
-    """Base class for user defined Vertex classes"""
-    pass
-
-
-class GenericVertex(Vertex):
-    """
-    Class used to build vertices when user defined vertex class is not
-    available. Generally not instantiated by end user.
-    """
-    pass
-
-
-class Edge(Element):
-    """
-    Base class for user defined Edge classes.
-
-    :param Vertex source: Source (outV) vertex
-    :param Vertex target: Target (inV) vertex
-    """
-    def __init__(self, source=None, target=None):
-        self.source = source
-        self.target = target
-
-    def getsource(self):
-        return self._source
-
-    def setsource(self, vertex):
-        assert isinstance(vertex, Vertex) or vertex is None
-        self._source = vertex
-
-    def delsource(self):
-        del self._source
-
-    source = property(getsource, setsource, delsource)
-
-    def gettarget(self):
-        return self._target
-
-    def settarget(self, vertex):
-        assert isinstance(vertex, Vertex) or vertex is None
-        self._target = vertex
-
-    def deltarget(self):
-        del self._target
-
-    target = property(gettarget, settarget, deltarget)
-
-
-class GenericEdge(Edge):
-    """
-    Class used to build edges when user defined edges class is not available.
-    Generally not instantiated by end user.
-    """
-    pass
 
 class VertexPropertyDescriptor:
     """
@@ -170,7 +115,7 @@ class VertexPropertyDescriptor:
         setattr(obj, self._name, val)
 
 
-class VertexProperty(Vertex, abc.BaseProperty):
+class VertexProperty(Element, abc.BaseProperty):
     """Base class for user defined vertex properties."""
 
     __descriptor__ = VertexPropertyDescriptor
@@ -189,6 +134,20 @@ class VertexProperty(Vertex, abc.BaseProperty):
         if card is None:
             card = Cardinality.single
         self._cardinality = card
+
+    def to_dict(self):
+        result = {'__label__': self.__label__, '__type__': self.__type__, '__value__': self._val}
+        for key, value in self.__properties__.items():
+            prop = getattr(self, key, None)
+            result[key] = prop
+        return result
+
+    def from_dict(self, d):
+        d.pop('__label__')
+        d.pop('__type__')
+        d.pop('__value__')
+        for key, value in d.items():
+            setattr(self, key, value)
 
     @property
     def default(self):
@@ -225,3 +184,124 @@ class VertexProperty(Vertex, abc.BaseProperty):
     def __repr__(self):
         return '<{}(type={}, value={})'.format(self.__class__.__name__,
                                                self._data_type, self.value)
+
+
+class Vertex(Element):
+    """Base class for user defined Vertex classes"""
+
+    def to_dict(self):
+        result = {'__label__': self.__label__, '__type__': self.__type__}
+        for key, value in self.__properties__.items():
+            vert_prop = getattr(self, key, None)
+            if isinstance(vert_prop, (list, set)):
+                vert_prop = [vp.to_dict() for vp in vert_prop]
+            elif isinstance(vert_prop, VertexProperty):
+                vert_prop = vert_prop.to_dict()
+            result[key] = vert_prop
+        return result
+
+    @classmethod
+    def from_dict(cls, d):
+        elem = cls()
+        d.pop('__label__')
+        d.pop('__type__')
+        for key, value in d.items():
+            if isinstance(value, list):
+                first_prop = value[0]
+                setattr(elem, key, first_prop['__value__'])
+                if isinstance(getattr(elem, key), list):
+                    getattr(elem, key)[0].from_dict(first_prop)
+                    for prop in value[1:]:
+                        getattr(elem, key).append(prop['__value__'])
+                        getattr(elem, key)[-1].from_dict(prop)
+
+                elif isinstance(getattr(elem, key), set):
+                    getattr(elem, key)(first_prop['__value__']).from_dict(first_prop)
+                    for prop in value[1:]:
+                        val = prop['__value__']
+                        getattr(elem, key).add(val)
+                        getattr(elem, key)(val).from_dict(prop)
+                else:
+                    raise Exception("not a list or set property")
+            elif isinstance(value, dict):
+                setattr(elem, key, value['__value__'])
+                getattr(elem, key).from_dict(value)
+            else:
+                setattr(elem, key, value)
+        return elem
+
+
+
+class GenericVertex(Vertex):
+    """
+    Class used to build vertices when user defined vertex class is not
+    available. Generally not instantiated by end user.
+    """
+    pass
+
+
+class Edge(Element):
+    """
+    Base class for user defined Edge classes.
+
+    :param Vertex source: Source (outV) vertex
+    :param Vertex target: Target (inV) vertex
+    """
+    def __init__(self, source=None, target=None):
+        self.source = source
+        self.target = target
+
+    def to_dict(self, source=None, target=None):
+        if not source:
+            source = self.source.to_dict()
+        if not target:
+            target = self.target.to_dict()
+        result = {'__label__': self.__label__, '__type__': self.__type__, 'source': source,
+                  'target': target}
+        for key, value in self.__properties__.items():
+            prop = getattr(self, key, None)
+            result[key] = prop
+        return result
+
+    @classmethod
+    def from_dict(cls, d):
+        elem = cls()
+        d.pop('__label__')
+        d.pop('__type__')
+        for key, value in d.items():
+            setattr(elem, key, value)
+        return elem
+
+    def getsource(self):
+        return self._source
+
+    def setsource(self, vertex):
+        assert isinstance(vertex, Vertex) or vertex is None
+        self._source = vertex
+
+    def delsource(self):
+        del self._source
+
+    source = property(getsource, setsource, delsource)
+
+    def gettarget(self):
+        return self._target
+
+    def settarget(self, vertex):
+        assert isinstance(vertex, Vertex) or vertex is None
+        self._target = vertex
+
+    def deltarget(self):
+        del self._target
+
+
+    target = property(gettarget, settarget, deltarget)
+
+
+class GenericEdge(Edge):
+    """
+    Class used to build edges when user defined edges class is not available.
+    Generally not instantiated by end user.
+    """
+    pass
+

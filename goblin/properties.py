@@ -27,6 +27,10 @@ from goblin import abc, exception
 logger = logging.getLogger(__name__)
 
 
+def noop_factory(x, y):
+    return None
+
+
 class PropertyDescriptor:
     """
     Descriptor that validates user property input and gets/sets properties
@@ -70,7 +74,7 @@ class Property(abc.BaseProperty):
     def __init__(self, data_type, *, db_name=None, default=None,
                  db_name_factory=None):
         if not db_name_factory:
-            db_name_factory = lambda x, y: None  # noop
+            db_name_factory = noop_factory  # noop
         if isinstance(data_type, type):
             data_type = data_type()
         self._db_name_factory = db_name_factory
