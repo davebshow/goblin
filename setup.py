@@ -20,7 +20,7 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU Affero General Public License v3',
+        'License :: OSI Approved :: Apache License, Version 2.0,
         'Operating System :: OS Independent'
     ]
 )
