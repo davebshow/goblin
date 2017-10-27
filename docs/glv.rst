@@ -1,7 +1,7 @@
 Using Graph (GLV)
 =================
 
-:py:mod:`Goblin` provides access to the underlying :py:mod:`aiogremlin`
+:py:mod:`~goblin.app.Goblin` provides access to the underlying :py:mod:`aiogremlin`
 asynchronous version of the Gremlin-Python Gremlin Language Variant (GLV) that
 is bundled with Apache TinkerPop beginning with the 3.2.2 release. Traversals are
 generated using the class

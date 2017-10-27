@@ -18,11 +18,11 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 
-import alabaster
-import sys
 import os
 import shlex
+import sys
 
+import alabaster
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -39,7 +39,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
-    'alabaster'
+    'alabaster',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

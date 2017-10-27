@@ -1,13 +1,13 @@
 Using the Driver
 ================
 
-Connecting to a :py:class:`Cluster<goblin.driver.cluster.Cluster>`
-------------------------------------------------------------------
+Connecting to a :py:class:`Cluster<goblin.driver.Cluster>`
+----------------------------------------------------------
 
 To take advantage of the higher level features of the
-:py:mod:`driver<goblin.driver>`, :py:mod:`Goblin` provides the
-:py:class:`Cluster<goblin.driver.cluster.Cluster>` object.
-:py:class:`Cluster<goblin.driver.cluster.Cluster>` is used to create multi-host
+:py:mod:`driver<goblin.driver>`, :py:mod:`~goblin.app.Goblin` provides the
+:py:class:`Cluster<goblin.driver.Cluster>` object.
+:py:class:`Cluster<goblin.driver.Cluster>` is used to create multi-host
 clients that leverage connection pooling and sharing. Its interface is based
 on the TinkerPop Java driver::
 
@@ -18,19 +18,19 @@ on the TinkerPop Java driver::
     ...     print(msg)
     >>> await cluster.close()  # Close all connections to all hosts
 
-And that is it. While :py:class:`Cluster<goblin.driver.cluster.Cluster>`
+And that is it. While :py:class:`Cluster<goblin.driver.Cluster>`
 is simple to learn and use, it provides a wide variety of configuration options.
 
-Configuring :py:class:`Cluster<goblin.driver.cluster.Cluster>`
+Configuring :py:class:`Cluster<goblin.driver.Cluster>`
 --------------------------------------------------------------
 
 Configuration options can be set on
-:py:class:`Cluster<goblin.driver.cluster.Cluster>` in one of two ways, either
+:py:class:`Cluster<goblin.driver.Cluster>` in one of two ways, either
 passed as keyword arguments to
-:py:meth:`open<goblin.driver.cluster.Cluster.open>`, or stored in a configuration
-file and passed to the :py:meth:`open<goblin.driver.cluster.Cluster.open>`
+:py:meth:`open<goblin.driver.Cluster.open>`, or stored in a configuration
+file and passed to the :py:meth:`open<goblin.driver.Cluster.open>`
 using the kwarg `configfile`. Configuration files can be either YAML or JSON
-format. Currently, :py:class:`Cluster<goblin.driver.cluster.Cluster>`
+format. Currently, :py:class:`Cluster<goblin.driver.Cluster>`
 uses the following configuration:
 
 +-------------------+----------------------------------------------+-------------+
@@ -70,7 +70,7 @@ uses the following configuration:
 +-------------------+----------------------------------------------+-------------+
 |message_serializer |String denoting the class used for message    |'classpath'  |
 |                   |serialization, currently only supports        |             |
-|                   |basic GraphSONMessageSerializer              |             |
+|                   |basic GraphSONMessageSerializer               |             |
 +-------------------+----------------------------------------------+-------------+
 
 

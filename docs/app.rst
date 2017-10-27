@@ -37,7 +37,7 @@ Contents of `config.yml`::
     max_inflight: 64
     message_serializer: 'goblin.driver.GraphSONMessageSerializer'
 
-Special :py:mod:`Goblin` App Configuration
+Special :py:mod:`Goblin<goblin>` App Configuration
 --------------------------------------------------------------
 
 :py:class:`Goblin<goblin.app.Goblin>` supports two additional configuration
@@ -70,4 +70,5 @@ its values to produces a hashable id::
     ...     id_hash = functools.reduce(operator.xor, hashes, 0)
     ...     return id_hash
 
-Look for provider specific :py:mod:`Goblin` libraries in the near future!
+Look for provider specific :py:mod:`Goblin<goblin>` libraries in the near
+future!
