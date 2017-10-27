@@ -1,11 +1,9 @@
 import logging
 
 import inflection
-
 from gremlin_python.process.traversal import Cardinality
 
 from goblin import abc, exception, mapper, properties
-
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +11,11 @@ logger = logging.getLogger(__name__)
 class ElementMeta(type):
     """
     Metaclass for graph elements. Responsible for creating the
-    :py:class:`Mapping<mapper.Mapping>` object and replacing user defined
-    :py:class:`property.Property` with :py:class:`property.PropertyDescriptor`.
+    :py:class:`Mapping<goblin.mapper.Mapping>` object and replacing user defined
+    :py:class:`goblin.properties.Property` with
+    :py:class:`goblin.properties.PropertyDescriptor`.
     """
+
     def __new__(cls, name, bases, namespace, **kwds):
         props = {}
         if name == 'VertexProperty':
@@ -42,11 +42,11 @@ class ElementMeta(type):
                 props[k] = v
                 if k != 'id':
                     if not v.db_name:
-                        v.db_name = v.db_name_factory(k, namespace['__label__'])
+                        v.db_name = v.db_name_factory(k,
+                                                      namespace['__label__'])
                 v = v.__descriptor__(k, v)
             new_namespace[k] = v
-        new_namespace['__mapping__'] = mapper.create_mapping(namespace,
-                                                             props)
+        new_namespace['__mapping__'] = mapper.create_mapping(namespace, props)
         new_namespace['__properties__'] = props
         result = type.__new__(cls, name, bases, new_namespace)
         return result
@@ -54,16 +54,17 @@ class ElementMeta(type):
 
 class Element(metaclass=ElementMeta):
     """Base class for classes that implement the Element property interface"""
+
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
-            if not (hasattr(self, key) and
-                    isinstance(getattr(self, key), properties.PropertyDescriptor)):
+            if not (hasattr(self, key) and isinstance(
+                    getattr(self, key), properties.PropertyDescriptor)):
                 raise AssertionError(
-                    "No such property: {} for element {}".format(key, self.__class__.__name__))
+                    "No such property: {} for element {}".format(
+                        key, self.__class__.__name__))
             setattr(self, key, value)
 
     id = properties.IdProperty(properties.Generic)
-
 
 
 class VertexPropertyDescriptor:
@@ -84,7 +85,7 @@ class VertexPropertyDescriptor:
         if obj is None:
             return getattr(objtype.__mapping__, self._prop_name)
         default = self._default
-        if default is not None :
+        if default is not None:
 
             default = self._data_type.validate_vertex_prop(
                 default, self._cardinality, self._vertex_property,
@@ -103,8 +104,13 @@ class VertexProperty(Element, abc.BaseProperty):
 
     __descriptor__ = VertexPropertyDescriptor
 
-    def __init__(self, data_type, *, default=None, db_name=None,
-                 card=None, db_name_factory=None):
+    def __init__(self,
+                 data_type,
+                 *,
+                 default=None,
+                 db_name=None,
+                 card=None,
+                 db_name_factory=None):
         if not db_name_factory:
             db_name_factory = lambda x, y: None  # noop
         if isinstance(data_type, type):
@@ -119,7 +125,11 @@ class VertexProperty(Element, abc.BaseProperty):
         self._cardinality = card
 
     def to_dict(self):
-        result = {'__label__': self.__label__, '__type__': self.__type__, '__value__': self._val}
+        result = {
+            '__label__': self.__label__,
+            '__type__': self.__type__,
+            '__value__': self._val
+        }
         for key, value in self.__properties__.items():
             prop = getattr(self, key, None)
             result[key] = prop
@@ -199,7 +209,8 @@ class Vertex(Element):
                         getattr(elem, key)[-1].from_dict(prop)
 
                 elif isinstance(getattr(elem, key), set):
-                    getattr(elem, key)(first_prop['__value__']).from_dict(first_prop)
+                    getattr(elem,
+                            key)(first_prop['__value__']).from_dict(first_prop)
                     for prop in value[1:]:
                         val = prop['__value__']
                         getattr(elem, key).add(val)
@@ -212,7 +223,6 @@ class Vertex(Element):
             else:
                 setattr(elem, key, value)
         return elem
-
 
 
 class GenericVertex(Vertex):
@@ -230,6 +240,7 @@ class Edge(Element):
     :param Vertex source: Source (outV) vertex
     :param Vertex target: Target (inV) vertex
     """
+
     def __init__(self, source=None, target=None):
         self.source = source
         self.target = target
@@ -239,8 +250,12 @@ class Edge(Element):
             source = self.source.to_dict()
         if not target:
             target = self.target.to_dict()
-        result = {'__label__': self.__label__, '__type__': self.__type__, 'source': source,
-                  'target': target}
+        result = {
+            '__label__': self.__label__,
+            '__type__': self.__type__,
+            'source': source,
+            'target': target
+        }
         for key, value in self.__properties__.items():
             prop = getattr(self, key, None)
             result[key] = prop
@@ -277,7 +292,6 @@ class Edge(Element):
     def deltarget(self):
         del self._target
 
-
     target = property(gettarget, settarget, deltarget)
 
 
@@ -287,4 +301,3 @@ class GenericEdge(Edge):
     Generally not instantiated by end user.
     """
     pass
-

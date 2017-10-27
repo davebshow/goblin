@@ -15,6 +15,7 @@ tests_require = [
     'pytest-cov>=2.5.1',
     'pytest-pep8>=1.0.6',
     'pytest>=3.2.1',
+    'uvloop>=0.8.1',
 ]
 
 extras_require = {

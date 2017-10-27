@@ -30,7 +30,7 @@ async def test_register_from_module_string(app):
 
 @pytest.mark.asyncio
 async def test_registry(app, person, place, knows, lives_in):
-    assert len(app.vertices) ==  2
+    assert len(app.vertices) == 2
     assert len(app.edges) == 2
     assert person.__class__ == app.vertices['person']
     assert place.__class__ == app.vertices['place']

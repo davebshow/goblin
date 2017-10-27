@@ -8,16 +8,14 @@ import weakref
 import aiogremlin
 from aiogremlin.driver.protocol import Message
 from aiogremlin.driver.resultset import ResultSet
-from gremlin_python.driver.remote_connection import RemoteTraversal
 from aiogremlin.process.graph_traversal import __
-from gremlin_python.process.traversal import (
-    Cardinality, Traverser, Binding, Traverser)
-from gremlin_python.structure.graph import Vertex, Edge
+from gremlin_python.driver.remote_connection import RemoteTraversal
+from gremlin_python.process.traversal import Binding, Cardinality, Traverser
+from gremlin_python.structure.graph import Edge, Vertex
 
 from goblin import exception, mapper
-from goblin.element import GenericVertex, GenericEdge, VertexProperty
+from goblin.element import GenericEdge, GenericVertex, VertexProperty
 from goblin.manager import VertexPropertyManager
-
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +47,7 @@ class Session:
     instead use :py:meth:`Goblin.session<goblin.app.Goblin.session>`.
 
     :param goblin.app.Goblin app:
-    :param goblin.driver.connection conn:
+    :param goblin.driver.Connection conn:
     """
 
     def __init__(self, app, remote_connection, get_hashable_id):
@@ -97,7 +95,7 @@ class Session:
         Get a simple traversal source.
 
         :returns:
-            :py:class:`goblin.gremlin_python.process.GraphTraversalSource`
+            `gremlin_python.process.GraphTraversalSource`
             object
         """
         return self.traversal()
@@ -119,7 +117,7 @@ class Session:
             class that will dictate the element type (vertex/edge) as well as
             the label for the traversal source
 
-        :returns: :py:class:`AsyncGraphTraversal`
+        :returns: `aiogremlin.process.graph_traversal.AsyncGraphTraversal`
         """
         traversal = self.graph.traversal().withRemote(self)
         if element_class:
@@ -139,17 +137,16 @@ class Session:
         :param dict bindings: A mapping of bindings for Gremlin script.
 
         :returns:
-            :py:class:`TraversalResponse<goblin.traversal.TraversalResponse>`
+            `gremlin_python.driver.remove_connection.RemoteTraversal`
             object
         """
         await self.flush()
         remote_traversal = await self.remote_connection.submit(bytecode)
         traversers = remote_traversal.traversers
         side_effects = remote_traversal.side_effects
-        result_set = ResultSet(traversers.request_id,
-                               traversers._timeout, self._loop)
-        self._loop.create_task(
-            self._receive(traversers, result_set))
+        result_set = ResultSet(traversers.request_id, traversers._timeout,
+                               self._loop)
+        self._loop.create_task(self._receive(traversers, result_set))
         return RemoteTraversal(result_set, side_effects)
 
     async def _receive(self, traversers, result_set):
@@ -184,8 +181,7 @@ class Session:
                             props.get('label'), GenericEdge)()
                         current.source = GenericVertex()
                         current.target = GenericVertex()
-                element = current.__mapping__.mapper_func(
-                    obj, props, current)
+                element = current.__mapping__.mapper_func(obj, props, current)
                 self.current[hashable_id] = element
                 return Traverser(element, bulk)
             else:
@@ -293,8 +289,8 @@ class Session:
         elif elem.__type__ == 'edge':
             result = await self.save_edge(elem)
         else:
-            raise exception.ElementError(
-                "Unknown element type: {}".format(elem.__type__))
+            raise exception.ElementError("Unknown element type: {}".format(
+                elem.__type__))
         return result
 
     async def save_vertex(self, vertex):
@@ -306,9 +302,7 @@ class Session:
         :returns: :py:class:`Vertex<goblin.element.Vertex>` object
         """
         result = await self._save_element(
-            vertex, self._check_vertex,
-            self._add_vertex,
-            self._update_vertex)
+            vertex, self._check_vertex, self._add_vertex, self._update_vertex)
         hashable_id = self._get_hashable_id(result.id)
         self.current[hashable_id] = result
         return result
@@ -324,10 +318,8 @@ class Session:
         if not (hasattr(edge, 'source') and hasattr(edge, 'target')):
             raise exception.ElementError(
                 "Edges require both source/target vertices")
-        result = await self._save_element(
-            edge, self._check_edge,
-            self._add_edge,
-            self._update_edge)
+        result = await self._save_element(edge, self._check_edge,
+                                          self._add_edge, self._update_edge)
         hashable_id = self._get_hashable_id(result.id)
         self.current[hashable_id] = result
         return result
@@ -393,15 +385,10 @@ class Session:
                 props = await self._get_vertex_properties(elem.id, label)
             elif element.__type__ == 'edge':
                 props = await self._g.E(elem.id).valueMap(True).next()
-            elem = element.__mapping__.mapper_func(
-                elem, props, element)
+            elem = element.__mapping__.mapper_func(elem, props, element)
         return elem
 
-    async def _save_element(self,
-                            elem,
-                            check_func,
-                            create_func,
-                            update_func):
+    async def _save_element(self, elem, check_func, create_func, update_func):
         if hasattr(elem, 'id'):
             exists = await check_func(elem)
             if not exists:
@@ -462,12 +449,18 @@ class Session:
                         card = Cardinality.set_
                     else:
                         card = Cardinality.single
-                    metas = [j for i in zip(
-                        metaprops.keys(), metaprops.values()) for j in i]
+                    metas = [
+                        j
+                        for i in zip(metaprops.keys(), metaprops.values())
+                        for j in i
+                    ]
                     traversal = traversal.property(card, key, val, *metas)
                 else:
-                    metas = [j for i in zip(
-                        metaprops.keys(), metaprops.values()) for j in i]
+                    metas = [
+                        j
+                        for i in zip(metaprops.keys(), metaprops.values())
+                        for j in i
+                    ]
                     traversal = traversal.property(key, val, *metas)
                 binding += 1
         return await self._simple_traversal(traversal, elem)

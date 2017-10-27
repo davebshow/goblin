@@ -1,17 +1,14 @@
 import asyncio
+import base64
 import json
 
-import base64
-import pytest
-
 import aiohttp
+import pytest
+from aiogremlin import exception
 from aiohttp import web
-
 from gremlin_python.driver import request
 
-from goblin import driver
-from aiogremlin import exception
-from goblin import provider
+from goblin import driver, provider
 
 
 @pytest.mark.asyncio
@@ -35,8 +32,9 @@ async def test_conn_context_manager(connection):
 async def test_submit(connection):
     async with connection:
         message = request.RequestMessage(
-            processor='', op='eval',
-            args={'gremlin': '1 + 1'})
+            processor='', op='eval', args={
+                'gremlin': '1 + 1'
+            })
         stream = await connection.write(message)
         results = []
         async for msg in stream:
@@ -50,8 +48,11 @@ async def test_204_empty_stream(connection, aliases):
     resp = False
     async with connection:
         message = request.RequestMessage(
-            processor='', op='eval',
-            args={'gremlin': 'g.V().has("unlikely", "even less likely")'})
+            processor='',
+            op='eval',
+            args={
+                'gremlin': 'g.V().has("unlikely", "even less likely")'
+            })
         stream = await connection.write(message)
         async for msg in stream:
             resp = True
@@ -62,8 +63,9 @@ async def test_204_empty_stream(connection, aliases):
 async def test_server_error(connection):
     async with connection:
         message = request.RequestMessage(
-            processor='', op='eval',
-            args={'gremlin': 'g. V jla;sdf'})
+            processor='', op='eval', args={
+                'gremlin': 'g. V jla;sdf'
+            })
         with pytest.raises(exception.GremlinServerError):
             stream = await connection.write(message)
             async for msg in stream:
@@ -80,8 +82,9 @@ async def test_cant_connect(event_loop, gremlin_server, unused_server_url):
 async def test_resp_queue_removed_from_conn(connection):
     async with connection:
         message = request.RequestMessage(
-            processor='', op='eval',
-            args={'gremlin': '1 + 1'})
+            processor='', op='eval', args={
+                'gremlin': '1 + 1'
+            })
         stream = await connection.write(message)
         async for msg in stream:
             pass
@@ -94,8 +97,9 @@ async def test_resp_queue_removed_from_conn(connection):
 async def test_stream_done(connection):
     async with connection:
         message = request.RequestMessage(
-            processor='', op='eval',
-            args={'gremlin': '1 + 1'})
+            processor='', op='eval', args={
+                'gremlin': '1 + 1'
+            })
         stream = await connection.write(message)
         async for msg in stream:
             pass
@@ -106,8 +110,9 @@ async def test_stream_done(connection):
 async def test_connection_response_timeout(connection):
     async with connection:
         message = request.RequestMessage(
-            processor='', op='eval',
-            args={'gremlin': '1 + 1'})
+            processor='', op='eval', args={
+                'gremlin': '1 + 1'
+            })
         connection._response_timeout = 0.0000001
         with pytest.raises(exception.ResponseTimeoutError):
             stream = await connection.write(message)

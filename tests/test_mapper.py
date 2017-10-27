@@ -17,11 +17,12 @@ def test_property_mapping(person, lives_in):
     ogm_name, data_type = person.__mapping__._db_properties['name']
     assert ogm_name == 'name'
     assert isinstance(data_type, properties.String)
-    ogm_name, data_type = person.__mapping__._db_properties['custom__person__age']
+    ogm_name, data_type = person.__mapping__._db_properties[
+        'custom__person__age']
     assert ogm_name == 'age'
     assert isinstance(data_type, properties.Integer)
     ogm_name, data_type = lives_in.__mapping__._db_properties['notes']
-    assert  ogm_name == 'notes'
+    assert ogm_name == 'notes'
     assert isinstance(data_type, properties.String)
 
 
@@ -49,11 +50,11 @@ def test_mapper_func(place, knows):
 
 def test_getattr_getdbname(person, lives_in):
     db_name = person.__mapping__.name
-    assert  db_name == 'name'
+    assert db_name == 'name'
     db_name = person.__mapping__.age
-    assert  db_name == 'custom__person__age'
+    assert db_name == 'custom__person__age'
     db_name = lives_in.__mapping__.notes
-    assert  db_name == 'notes'
+    assert db_name == 'notes'
 
 
 def test_getattr_doesnt_exist(person):

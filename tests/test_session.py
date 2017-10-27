@@ -1,22 +1,21 @@
 """Functional sessions tests"""
 
 import pytest
+from gremlin_python.process.traversal import Binding
 
 from goblin import element
 from goblin.session import bindprop
 
-from gremlin_python.process.traversal import Binding
-
 
 def test_bindprop(person_class):
-    db_val, (binding, val) = bindprop(person_class, 'name', 'dave', binding='n1')
+    db_val, (binding, val) = bindprop(
+        person_class, 'name', 'dave', binding='n1')
     assert db_val == 'name'
     assert binding == 'n1'
     assert val == 'dave'
 
 
 class TestCreationApi:
-
     @pytest.mark.asyncio
     async def test_create_vertex(self, app, person_class):
         session = await app.session()
@@ -186,7 +185,6 @@ class TestCreationApi:
         assert person is session1.current[rid]
         await app.close()
 
-
     @pytest.mark.asyncio
     async def test_remove_edge(self, app, person_class, place_class,
                                lives_in_class):
@@ -209,7 +207,7 @@ class TestCreationApi:
 
     @pytest.mark.asyncio
     async def test_remove_edge_foreign_session(self, app, person_class,
-                                              place_class, lives_in_class):
+                                               place_class, lives_in_class):
         session1 = await app.session()
         session2 = await app.session()
         jon = person_class()
@@ -247,7 +245,8 @@ class TestCreationApi:
         assert not result.age
         await app.close()
 
-    @pytest.mark.skipif(pytest.config.getoption('provider') == 'dse', reason='DSE')
+    @pytest.mark.skipif(
+        pytest.config.getoption('provider') == 'dse', reason='DSE')
     @pytest.mark.asyncio
     async def test_update_edge(self, app, person_class, knows):
         session = await app.session()
@@ -268,7 +267,6 @@ class TestCreationApi:
 
 
 class TestTraversalApi:
-
     @pytest.mark.asyncio
     async def test_all(self, app, person_class):
         session = await app.session()
@@ -303,23 +301,23 @@ class TestTraversalApi:
         itziri.name = 'itziri'
         result1 = await session.save(itziri)
         bound_name = bindprop(person_class, 'name', 'itziri', binding='v1')
-        p1 = await session.traversal(person_class).has(
-        *bound_name).next()
+        p1 = await session.traversal(person_class).has(*bound_name).next()
         await app.close()
 
     @pytest.mark.asyncio
     async def test_next_none(self, app):
         session = await app.session()
-        none = await session.g.V().hasLabel(
-            'a very unlikey label').next()
+        none = await session.g.V().hasLabel('a very unlikey label').next()
         assert not none
         await app.close()
 
     @pytest.mark.asyncio
     async def test_vertex_deserialization(self, app, person_class):
         session = await app.session()
-        resp = await session.g.addV('person').property(
-            person_class.name, 'leif').property('place_of_birth', 'detroit').next()
+        resp = await session.g.addV('person').property(person_class.name,
+                                                       'leif').property(
+                                                           'place_of_birth',
+                                                           'detroit').next()
         assert isinstance(resp, person_class)
         assert resp.name == 'leif'
         assert resp.place_of_birth == 'detroit'
@@ -331,9 +329,8 @@ class TestTraversalApi:
         p1 = await session.g.addV('person').next()
         p2 = await session.g.addV('person').next()
         e1 = await session.g.V(Binding('p1_id', p1.id)).addE('knows').to(
-        session.g.V(Binding('p2_id', p2.id))).property(
-            knows_class.notes, 'somehow').property(
-            'how_long', 1).next()
+            session.g.V(Binding('p2_id', p2.id))).property(
+                knows_class.notes, 'somehow').property('how_long', 1).next()
         assert isinstance(e1, knows_class)
         assert e1.notes == 'somehow'
         assert e1.how_long == 1
@@ -342,8 +339,8 @@ class TestTraversalApi:
     @pytest.mark.asyncio
     async def test_unregistered_vertex_deserialization(self, app):
         session = await app.session()
-        dave = await session.g.addV(
-            'unregistered').property('name', 'dave').next()
+        dave = await session.g.addV('unregistered').property('name',
+                                                             'dave').next()
         assert isinstance(dave, element.GenericVertex)
         assert dave.name == 'dave'
         assert dave.__label__ == 'unregistered'
@@ -354,8 +351,10 @@ class TestTraversalApi:
         session = await app.session()
         p1 = await session.g.addV('person').next()
         p2 = await session.g.addV('person').next()
-        e1 = await session.g.V(Binding('p1_id', p1.id)).addE('unregistered').to(
-        session.g.V(Binding('p2_id', p2.id))).property('how_long', 1).next()
+        e1 = await session.g.V(Binding(
+            'p1_id', p1.id)).addE('unregistered').to(
+                session.g.V(Binding('p2_id', p2.id))).property('how_long',
+                                                               1).next()
         assert isinstance(e1, element.GenericEdge)
         assert e1.how_long == 1
         assert e1.__label__ == 'unregistered'
@@ -365,8 +364,7 @@ class TestTraversalApi:
     async def test_property_deserialization(self, app):
         # In a future version this should deserialize to a Goblin vert prop???
         session = await app.session()
-        p1 = await session.g.addV('person').property(
-        'name', 'leif').next()
+        p1 = await session.g.addV('person').property('name', 'leif').next()
         traversal = session.g.V(Binding('p1_id', p1.id)).properties('name')
         name = await traversal.next()
         assert name.value == 'leif'
@@ -376,23 +374,25 @@ class TestTraversalApi:
     @pytest.mark.asyncio
     async def test_non_element_deserialization(self, app):
         session = await app.session()
-        p1 = await session.g.addV('person').property(
-        'name', 'leif').next()
+        p1 = await session.g.addV('person').property('name', 'leif').next()
         one = await session.g.V(Binding('p1_id', p1.id)).count().next()
         assert one == 1
         await app.close()
 
-
     @pytest.mark.asyncio
     async def test_deserialize_nested_map(self, app, person_class):
         session = await app.session()
-        await session.g.addV('person').property(
-            person_class.name, 'leif').property('place_of_birth', 'detroit').next()
+        await session.g.addV('person').property(person_class.name,
+                                                'leif').property(
+                                                    'place_of_birth',
+                                                    'detroit').next()
 
-        await session.g.addV('person').property(person_class.name, 'David').property(
-            person_class.nicknames, 'davebshow').next()
-        traversal = session.g.V().hasLabel('person').as_(
-            'x').valueMap().as_('y').select('x', 'y').fold()
+        await session.g.addV('person').property(person_class.name,
+                                                'David').property(
+                                                    person_class.nicknames,
+                                                    'davebshow').next()
+        traversal = session.g.V().hasLabel('person').as_('x').valueMap().as_(
+            'y').select('x', 'y').fold()
         resp = await traversal.next()
         for item in resp:
             #BROKEN

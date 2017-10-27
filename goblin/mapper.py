@@ -1,7 +1,7 @@
 """Helper functions and class to map between OGM Elements <-> DB Elements"""
 
-import logging
 import functools
+import logging
 
 from goblin import exception
 
@@ -18,8 +18,8 @@ def map_props_to_db(element, mapping):
             card = None
             for v in val:
                 metaprops = get_metaprops(v, v.__mapping__)
-                property_tuples.append(
-                    (card, db_name, data_type.to_db(v.value), metaprops))
+                property_tuples.append((card, db_name, data_type.to_db(
+                    v.value), metaprops))
                 card = v.cardinality
         else:
             if hasattr(val, '__mapping__'):
@@ -27,8 +27,8 @@ def map_props_to_db(element, mapping):
                 val = val.value
             else:
                 metaprops = None
-            property_tuples.append(
-                (None, db_name, data_type.to_db(val), metaprops))
+            property_tuples.append((None, db_name, data_type.to_db(val),
+                                    metaprops))
     return property_tuples
 
 
@@ -86,6 +86,7 @@ def map_vertex_to_ogm(result, props, element, *, mapping=None):
     setattr(element, 'id', result.id)
     return element
 
+
 # temp hack
 def get_hashable_id(val):
     #Use the value "as-is" by default.
@@ -106,7 +107,8 @@ def map_vertex_property_to_ogm(result, element, *, mapping=None):
                 if isinstance(current, list):
                     for vp in current:
                         if not hasattr(vp, '_id'):
-                            element.vp_map[get_hashable_id(metaprops['id'])] = vp
+                            element.vp_map[get_hashable_id(
+                                metaprops['id'])] = vp
                             current = vp
                             break
         elif isinstance(element, set):
@@ -163,16 +165,13 @@ def create_mapping(namespace, properties):
     element_type = namespace['__type__']
     if element_type == 'vertex':
         mapping_func = map_vertex_to_ogm
-        mapping = Mapping(
-            namespace, element_type, mapping_func, properties)
+        mapping = Mapping(namespace, element_type, mapping_func, properties)
     elif element_type == 'edge':
         mapping_func = map_edge_to_ogm
-        mapping = Mapping(
-            namespace, element_type, mapping_func, properties)
+        mapping = Mapping(namespace, element_type, mapping_func, properties)
     elif element_type == 'vertexproperty':
         mapping_func = map_vertex_property_to_ogm
-        mapping = Mapping(
-            namespace, element_type, mapping_func, properties)
+        mapping = Mapping(namespace, element_type, mapping_func, properties)
     else:
         mapping = None
     return mapping
@@ -183,6 +182,7 @@ class Mapping:
     This class stores the information necessary to map between an OGM element
     and a DB element.
     """
+
     def __init__(self, namespace, element_type, mapper_func, properties):
         self._label = namespace['__label__']
         self._element_type = element_type

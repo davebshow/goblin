@@ -2,7 +2,6 @@
 
 
 class VertexPropertyManager:
-
     def __init__(self, data_type, vertex_prop, card):
         self._data_type = data_type
         self._vertex_prop = vertex_prop
@@ -26,7 +25,6 @@ class VertexPropertyManager:
 
 
 class ListVertexPropertyManager(list, VertexPropertyManager):
-
     def __init__(self, data_type, vertex_prop, card, obj):
         VertexPropertyManager.__init__(self, data_type, vertex_prop, card)
         list.__init__(self, obj)
@@ -43,7 +41,6 @@ class ListVertexPropertyManager(list, VertexPropertyManager):
 
 
 class SetVertexPropertyManager(set, VertexPropertyManager):
-
     def __init__(self, data_type, vertex_prop, card, obj):
         VertexPropertyManager.__init__(self, data_type, vertex_prop, card)
         set.__init__(self, obj)
