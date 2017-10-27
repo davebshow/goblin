@@ -3,8 +3,8 @@ dist: trusty
 
 language: python
 python:
-    - 3.5
-    - 3.6
+  - 3.5
+  - 3.6
 
 services:
   - docker
@@ -13,14 +13,14 @@ before_install:
   - docker pull leifurhauks/gremlin-server-tinkergraph
 
 install:
-  - pip install -r requirements.txt
+  - pip install -e .[all]
   - docker run -d --name gst -p 8182:8182 leifurhauks/gremlin-server-tinkergraph
 
 before_script:
   - sleep 30
 
 script:
-  - coverage run --source=goblin setup.py test
+  - python setup.py test
 
 after_success:
   - coveralls
