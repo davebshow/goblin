@@ -1,0 +1,5 @@
+include *.txt
+include *.yml
+include LICENSE NOTICE
+prune tests
+prune docs
