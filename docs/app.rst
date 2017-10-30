@@ -14,7 +14,6 @@ be passed as keyword arguments, or loaded from a config file::
     >>> import asyncio
     >>> from goblin import Goblin
 
-
     >>> loop = asyncio.get_event_loop()
 
     >>> app = loop.run_until_complete(Goblin.open(loop))

@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+"""Module defining graph elements."""
+
 import logging
 
 import inflection
@@ -11,8 +14,8 @@ logger = logging.getLogger(__name__)
 class ElementMeta(type):
     """
     Metaclass for graph elements. Responsible for creating the
-    :py:class:`Mapping<goblin.mapper.Mapping>` object and replacing user defined
-    :py:class:`goblin.properties.Property` with
+    :py:class:`Mapping<goblin.mapper.Mapping>` object and replacing user
+    defined :py:class:`goblin.properties.Property` with
     :py:class:`goblin.properties.PropertyDescriptor`.
     """
 
@@ -112,7 +115,8 @@ class VertexProperty(Element, abc.BaseProperty):
                  card=None,
                  db_name_factory=None):
         if not db_name_factory:
-            db_name_factory = lambda x, y: None  # noop
+            def db_name_factory(x, y):
+                pass
         if isinstance(data_type, type):
             data_type = data_type()
         self._db_name_factory = db_name_factory

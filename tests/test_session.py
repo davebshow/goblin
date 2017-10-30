@@ -395,7 +395,7 @@ class TestTraversalApi:
             'y').select('x', 'y').fold()
         resp = await traversal.next()
         for item in resp:
-            #BROKEN
+            # FIXME BROKEN
             # assert isinstance(item['x'], person_class)
             assert isinstance(item['y'], dict)
         await app.close()

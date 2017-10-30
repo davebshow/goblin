@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+"""Test model properties."""
+
 import pytest
 from gremlin_python.statics import long
 
@@ -222,27 +225,27 @@ class TestFloat:
 
 class TestBoolean:
     def test_validation_true(self, boolean):
-        assert boolean.validate(True) == True
+        assert boolean.validate(True)
 
     def test_validation_false(self, boolean):
-        assert boolean.validate(False) == False
+        assert not boolean.validate(False)
 
     def test_to_db_true(self, boolean):
-        assert boolean.to_db(True) == True
+        assert boolean.to_db(True)
 
     def test_to_db_false(self, boolean):
-        assert boolean.to_db(False) == False
+        assert not boolean.to_db(False)
 
     def test_to_ogm_true(self, boolean):
-        assert boolean.to_ogm(True) == True
+        assert boolean.to_ogm(True)
 
     def test_to_ogm_false(self, boolean):
-        assert boolean.to_ogm(False) == False
+        assert not boolean.to_ogm(False)
 
     def test_initval_to_db_true(self, boolean_class):
         boolean = boolean_class(True)
-        assert boolean.to_db() == True
+        assert boolean.to_db()
 
     def test_initval_to_db_true(self, boolean_class):
         boolean = boolean_class(False)
-        assert boolean.to_db() == False
+        assert not boolean.to_db()

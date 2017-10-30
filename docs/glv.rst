@@ -15,9 +15,9 @@ connection class, either
     >>> loop = asyncio.get_event_loop()
     >>> remote_conn = loop.run_until_complete(
     ...     goblin.DriverRemoteConnection.open(
-    ...         "http://localhost:8182/gremlin", loop))
-    >>> graph = driver.Graph()
-    >>> g = goblin.traversal().withRemote(remote_conn)
+    ...         "http://localhost:8182/gremlin", 'g'))
+    >>> graph = goblin.driver.Graph()
+    >>> g = graph.traversal().withRemote(remote_conn)
 
 Once you have a traversal source, it's all Gremlin...::
 
@@ -28,10 +28,11 @@ Once you have a traversal source, it's all Gremlin...::
 implements the Python 3.5 asynchronous iterator protocol::
 
     >>> async def iterate_traversal(traversal):
-    >>>     async for msg in traversal:
-    >>>         print(msg)
+    ...     async for msg in traversal:
+    ...         print(msg)
 
     >>> loop.run_until_complete(iterate_traversal(traversal))
+    v[...]
 
 :py:class:`AsyncGraphTraversal<aiogremlin.process.graph_traversal.AsyncGraphTraversal>` also
 provides several convenience coroutine methods to help iterate over results:
@@ -56,6 +57,7 @@ class. This allows side effects to be retrieved after executing the traversal::
 
     >>> traversal = g.V().aggregate('a')
     >>> loop.run_until_complete(traversal.iterate())
+    [['V'], ['aggregate', 'a']]
 
 Calling
 :py:meth:`keys<aiogremlin.driver_remote_side_effects.AsyncRemoteTraversalSideEffects.keys>`
@@ -67,6 +69,7 @@ side effects:
     ...     print(keys)
 
     >>> loop.run_until_complete(get_side_effect_keys(traversal))
+    {'a'}
 
 Then calling
 :py:meth:`get<aiogremlin.driver_remote_side_effects.AsyncRemoteTraversalSideEffects.get>`
@@ -78,6 +81,7 @@ using a valid key will return the cached side effects::
 
 
     >>> loop.run_until_complete(get_side_effects(traversal))
+    {v[1]: 1, ...}
 
 And that's it! For more information on Gremlin Language Variants, please
 visit the `Apache TinkerPop GLV Documentation`_.

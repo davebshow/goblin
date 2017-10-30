@@ -89,7 +89,7 @@ def map_vertex_to_ogm(result, props, element, *, mapping=None):
 
 # temp hack
 def get_hashable_id(val):
-    #Use the value "as-is" by default.
+    """Use the value "as-is" by default."""
     if isinstance(val, dict) and "@type" in val and "@value" in val:
         if val["@type"] == "janusgraph:RelationIdentifier":
             val = val["@value"]["value"]

@@ -11,12 +11,15 @@ To take advantage of the higher level features of the
 clients that leverage connection pooling and sharing. Its interface is based
 on the TinkerPop Java driver::
 
-    >>> cluster = await driver.Cluster.open()  # opens a cluster with default config
-    >>> client = await cluster.connect()
-    >>> resp = await client.submit(gremlin='1 + 1')  # round robin requests to available hosts
-    >>> async for msg in resp:
-    ...     print(msg)
-    >>> await cluster.close()  # Close all connections to all hosts
+    >>> async def print_results(gremlin='1+1'):
+    ...     # opens a cluster with default config
+    ...     cluster = await driver.Cluster.open('')
+    ...     client = await cluster.connect()
+    ...     # round robin requests to available hosts
+    ...     resp = await client.submit(gremlin=gremlin)
+    ...     async for msg in resp:
+    ...         print(msg)
+    ...     await cluster.close()  # Close all connections to all hosts
 
 And that is it. While :py:class:`Cluster<goblin.driver.Cluster>`
 is simple to learn and use, it provides a wide variety of configuration options.

@@ -98,7 +98,8 @@ def test_cluster_config_from_module(event_loop, cluster_class, conf_module):
     assert cluster.config['scheme'] == 'wss'
     assert cluster.config['hosts'] == ['localhost']
     assert cluster.config['port'] == 8183
-    assert cluster.config['message_serializer'] is driver.GraphSONMessageSerializer
+    assert cluster.config['message_serializer'] is \
+        driver.GraphSONMessageSerializer
 
 
 @pytest.mark.asyncio

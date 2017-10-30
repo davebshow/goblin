@@ -151,14 +151,17 @@ async def test_connection_response_timeout(connection):
 #     aiohttp_app = web.Application(loop=event_loop)
 #     aiohttp_app.router.add_route('GET', '/gremlin', fake_auth)
 #     handler = aiohttp_app.make_handler()
-#     srv = await event_loop.create_server(handler, '0.0.0.0', unused_tcp_port)
+#     srv = await event_loop.create_server(handler, '0.0.0.0',
+#                                          unused_tcp_port)
 #
 #     async with aiohttp.ClientSession(loop=event_loop) as session:
 #         url = 'ws://0.0.0.0:{}/gremlin'.format(unused_tcp_port)
 #         async with session.ws_connect(url) as ws_client:
 #             connection = driver.Connection(
-#                 url=url, ws=ws_client, loop=event_loop, client_session=session,
-#                 username=username, password=password, max_inflight=64, response_timeout=None,
+#                 url=url, ws=ws_client, loop=event_loop,
+#                 client_session=session,
+#                 username=username, password=password, max_inflight=64,
+#                 response_timeout=None,
 #                 message_serializer=driver.GraphSONMessageSerializer,
 #                 provider=provider.TinkerGraph
 #             )
@@ -170,7 +173,8 @@ async def test_connection_response_timeout(connection):
 #             auth_request = await authentication_request_queue.get()
 #             print(auth_request)
 #             auth_str = auth_request['args']['sasl']
-#             assert base64.b64decode(auth_str).decode().split('\x00')[1:] == [username, password]
+#             assert base64.b64decode(auth_str).decode().split(
+#                 '\x00')[1:] == [username, password]
 #             assert auth_request['requestId'] == initial_request['requestId']
 #             resp = await task
 #             resp.close()

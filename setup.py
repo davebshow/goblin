@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Python toolkit for Tinker Pop 3 Gremlin Server"""
+"""Python toolkit for Tinker Pop 3 Gremlin Server."""
 
 import os
 
@@ -48,6 +48,7 @@ with open(os.path.join('goblin', 'version.py'), 'rt') as fp:
     exec(fp.read(), g)
     version = g['__version__']
 
+print(packages)
 
 setup(
     name='goblin',

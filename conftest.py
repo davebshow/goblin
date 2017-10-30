@@ -24,7 +24,8 @@ def pytest_addoption(parser):
     parser.addoption('--gremlin-port', default='8182')
 
 
-db_name_factory = lambda x, y: "{}__{}".format(y, x)
+def db_name_factory(x, y):
+    return "{}__{}".format(y, x)
 
 
 class HistoricalName(element.VertexProperty):
@@ -77,8 +78,8 @@ def provider(request):
             import goblin_dse
         except ImportError:
             raise RuntimeError(
-                "Couldn't run tests with DSEGraph provider: the goblin_dse package "
-                "must be installed")
+                "Couldn't run tests with DSEGraph provider: the goblin_dse "
+                "package must be installed")
         else:
             return goblin_dse.DSEGraph
 
@@ -317,3 +318,29 @@ def flt_class():
 @pytest.fixture
 def boolean_class():
     return properties.Boolean
+
+
+@pytest.fixture(autouse=True)
+def add_doctest_default(doctest_namespace, tmpdir, event_loop, app):
+    doctest_namespace['Person'] = Person
+    doctest_namespace['loop'] = event_loop
+    doctest_namespace['app'] = app
+    config = tmpdir.join('config.yml')
+    config.write(
+        "scheme: 'ws'\n"
+        "hosts: ['localhost']\n"
+        "port': 8182\n"
+        "ssl_certfile: ''\n"
+        "ssl_keyfile: ''\n"
+        "ssl_password: ''\n"
+        "username: ''\n"
+        "password: ''\n"
+        "response_timeout: None\n"
+        "max_conns: 4\n"
+        "min_conns: 1\n"
+        "max_times_acquired: 16\n"
+        "max_inflight: 64\n"
+        "message_serializer: 'goblin.driver.GraphSONMessageSerializer'\n"
+    )
+    with tmpdir.as_cwd():
+        yield

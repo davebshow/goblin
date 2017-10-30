@@ -34,7 +34,8 @@ async def test_submit_traversal(remote_graph, remote_connection):
 @pytest.mark.asyncio
 async def test_side_effects(remote_graph, remote_connection):
     async with remote_connection:
-        remote_connection._message_serializer = driver.GraphSONMessageSerializer
+        remote_connection._message_serializer = \
+            driver.GraphSONMessageSerializer
         g = remote_graph.traversal().withRemote(remote_connection)
         # create some nodes
         resp = g.addV('person').property('name', 'leifur')

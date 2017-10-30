@@ -103,8 +103,8 @@ database::
     ...         print(person)
 
     >>> loop.run_until_complete(go(app))
-    # <__main__.Person object at 0x7fba0b7fa6a0>
-    # <__main__.Person object at 0x7fba0b7fae48>
+    <__main__.Person object at ...>
+    ...
 
 Note that a :py:mod:`Goblin` session does not necessarily correspond to a Gremlin Server session.
 Instead, all elements created using a session are 'live' in the sense that if the
@@ -122,7 +122,7 @@ Generate and submit Gremlin traversals in native Python::
 
     >>> async def go(loop):
     ...    remote_connection = await DriverRemoteConnection.open(
-    ...        'ws://localhost:8182/gremlin', 'g')
+    ...        'http://localhost:8182/gremlin', 'g')
     ...    g = Graph().traversal().withRemote(remote_connection)
     ...    vertices = await g.V().toList()
     ...    await remote_connection.close()
@@ -130,11 +130,11 @@ Generate and submit Gremlin traversals in native Python::
 
     >>> results = loop.run_until_complete(go(loop))
     >>> results
-    # [v[1], v[2], v[3], v[4], v[5], v[6]]
+    [v[...], ...]
 
 
-    >>> loop.run_until_complete(go(g))
-    # {'properties': {'name': [{'value': 'Leif', 'id': 3}]}, 'label': 'developer', 'id': 2, 'type': 'vertex'}
+    >>> loop.run_until_complete(go(loop))
+    [v[...], ...]
 
 For more information on using the :py:class:`Graph<aiogremlin.structure.graph.Graph>`,
 see the `aiogremlin`_ documentation or the :doc:`GLV docs</glv>`
@@ -151,16 +151,17 @@ Submit scripts and bindings to the `Gremlin Server`_::
     >>> loop = asyncio.get_event_loop()
 
     >>> async def go(loop):
-    ...     cluster = await Cluster.open('ws://localhost:8182/gremlin', loop)
+    ...     cluster = await Cluster.open(loop)
     ...     client = await cluster.connect()
     ...     resp = await client.submit(
     ...         "g.addV('developer').property(k1, v1)",
     ...         bindings={'k1': 'name', 'v1': 'Leif'})
-    ...         async for msg in resp:
-    ...             print(msg)
-    ...      await cluster.close()
+    ...     async for msg in resp:
+    ...         print(msg)
+    ...     await cluster.close()
 
     >>> loop.run_until_complete(go(loop))
+    v[...]
 
 For more information on using the driver, see the `aiogremlin`_ documentation or the :doc:`Driver docs</driver>`
 
