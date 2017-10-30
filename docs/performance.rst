@@ -25,7 +25,7 @@ Install :py:mod:`ujson` to speed up serialzation::
 
 
 Use :py:mod:`uvloop`
--------------------
+--------------------
 
 Install :py:mod:`uvloop`, a Cython implementation of an event loop::
 
