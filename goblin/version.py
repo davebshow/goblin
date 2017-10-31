@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Version information for Goblin.
 
 This file is imported by ``goblin.__init__``,

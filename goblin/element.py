@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Module defining graph elements."""
 
 import logging

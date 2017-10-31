@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test model properties."""
 
 import pytest

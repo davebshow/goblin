@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Python toolkit for Tinker Pop 3 Gremlin Server."""
 
 from goblin.app import Goblin
