@@ -6,7 +6,7 @@
 Goblin - Async Python toolkit for the TinkerPop 3 Gremlin Server
 ================================================================
 
-:py:mod:`Goblin` is an asynchronous Python toolkit for the `TinkerPop 3`_
+:py:mod:`Goblin<goblin>` is an asynchronous Python toolkit for the `TinkerPop 3`_
 `Gremlin Server`_. In order to leverage Python's support for asynchronous
 programming paradigms, :py:mod:`Goblin<goblin>` is implemented using the async/await
 syntax introduced in Python 3.5, and does not support earlier Python versions. Goblin
@@ -106,10 +106,11 @@ database::
     <__main__.Person object at ...>
     ...
 
-Note that a :py:mod:`Goblin` session does not necessarily correspond to a Gremlin Server session.
-Instead, all elements created using a session are 'live' in the sense that if the
-results of a traversal executed against the session result in different property values
-for an element, that element will be updated to reflect these changes.
+Note that a :py:mod:`Goblin session<goblin.session>` does not necessarily
+correspond to a Gremlin Server session. Instead, all elements created using
+a session are 'live' in the sense that if the results of a traversal executed
+against the session result in different property values for an element, that
+element will be updated to reflect these changes.
 
 For more information on using the OGM, see the :doc:`OGM docs</ogm>`
 

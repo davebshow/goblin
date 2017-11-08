@@ -47,7 +47,7 @@ class Session:
     instead use :py:meth:`Goblin.session<goblin.app.Goblin.session>`.
 
     :param goblin.app.Goblin app:
-    :param goblin.driver.Connection conn:
+    :param aiogremlin.driver.connection.Connection conn:
     """
 
     def __init__(self, app, remote_connection, get_hashable_id):

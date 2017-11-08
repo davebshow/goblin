@@ -37,9 +37,9 @@ implements the Python 3.5 asynchronous iterator protocol::
 :py:class:`AsyncGraphTraversal<aiogremlin.process.graph_traversal.AsyncGraphTraversal>` also
 provides several convenience coroutine methods to help iterate over results:
 
-- :py:meth:`next<aiogremlin.process.traversal.AsyncGraphTraversal.next>`
-- :py:meth:`toList<aiogremlin.process.traversal.AsyncGraphTraversal.toList>`
-- :py:meth:`toSet<aiogremlin.process.traversal.AsyncGraphTraversal.toSet>`
+- :py:meth:`next<aiogremlin.process.graph_traversal.AsyncGraphTraversal.next>`
+- :py:meth:`toList<aiogremlin.process.graph_traversal.AsyncGraphTraversal.toList>`
+- :py:meth:`toSet<aiogremlin.process.graph_traversal.AsyncGraphTraversal.toSet>`
 
 Notice the mixedCase? Not very pythonic? Well no, but it maintains continuity
 with the Gremlin query language, and that's what the GLV is all about...
@@ -51,8 +51,8 @@ The Side Effect Interface
 -------------------------
 
 When using TinkerPop 3.2.2+ with the default
-:py:mod:`Goblin` provides an asynchronous side effects interface using the
-:py:class:`AsyncRemoteTraversalSideEffects<aiogremlin.driver_remote_side_effects.AsyncRemoteTraversalSideEffects>`
+:py:mod:`Goblin<goblin.app.Goblin>` provides an asynchronous side effects interface using the
+:py:class:`AsyncRemoteTraversalSideEffects<aiogremlin.remote.driver_remote_side_effects.AsyncRemoteTraversalSideEffects>`
 class. This allows side effects to be retrieved after executing the traversal::
 
     >>> traversal = g.V().aggregate('a')
@@ -60,7 +60,7 @@ class. This allows side effects to be retrieved after executing the traversal::
     [['V'], ['aggregate', 'a']]
 
 Calling
-:py:meth:`keys<aiogremlin.driver_remote_side_effects.AsyncRemoteTraversalSideEffects.keys>`
+:py:meth:`keys<aiogremlin.remote.driver_remote_side_effects.AsyncRemoteTraversalSideEffects.keys>`
 will return an asynchronous iterator containing all keys for cached
 side effects:
 
@@ -72,7 +72,7 @@ side effects:
     {'a'}
 
 Then calling
-:py:meth:`get<aiogremlin.driver_remote_side_effects.AsyncRemoteTraversalSideEffects.get>`
+:py:meth:`get<aiogremlin.remote.driver_remote_side_effects.AsyncRemoteTraversalSideEffects.get>`
 using a valid key will return the cached side effects::
 
     >>> async def get_side_effects(traversal):

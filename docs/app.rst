@@ -2,9 +2,9 @@ Configuring the :py:mod:`Goblin<goblin>` App Object
 ===================================================
 
 The :py:class:`Goblin<goblin.app.Goblin>` object generally supports the same
-configuration options as :py:class:`Cluster<goblin.driver.Cluster>`. Please
-see the :doc:`driver docs</driver>` for a complete list of configuration
-parameters.
+configuration options as
+:py:class:`Cluster<aiogremlin.driver.cluster.Cluster>`. Please see the
+:doc:`driver docs</driver>` for a complete list of configuration parameters.
 
 
 The :py:class:`Goblin<goblin.app.Goblin>` object should be created using the

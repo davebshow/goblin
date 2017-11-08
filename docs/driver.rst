@@ -1,15 +1,15 @@
 Using the Driver
 ================
 
-Connecting to a :py:class:`Cluster<goblin.driver.Cluster>`
-----------------------------------------------------------
+Connecting to a :py:class:`Cluster<aiogremlin.driver.cluster.Cluster>`
+----------------------------------------------------------------------
 
 To take advantage of the higher level features of the
 :py:mod:`driver<goblin.driver>`, :py:mod:`~goblin.app.Goblin` provides the
-:py:class:`Cluster<goblin.driver.Cluster>` object.
-:py:class:`Cluster<goblin.driver.Cluster>` is used to create multi-host
-clients that leverage connection pooling and sharing. Its interface is based
-on the TinkerPop Java driver::
+:py:class:`Cluster<aiogremlin.driver.cluster.Cluster>` object.
+:py:class:`Cluster<aiogremlin.driver.cluster.Cluster>` is used to create
+multi-host clients that leverage connection pooling and sharing. Its interface
+is based on the TinkerPop Java driver::
 
     >>> async def print_results(gremlin='1+1'):
     ...     # opens a cluster with default config
@@ -21,20 +21,21 @@ on the TinkerPop Java driver::
     ...         print(msg)
     ...     await cluster.close()  # Close all connections to all hosts
 
-And that is it. While :py:class:`Cluster<goblin.driver.Cluster>`
-is simple to learn and use, it provides a wide variety of configuration options.
+And that is it. While :py:class:`Cluster<aiogremlin.driver.cluster.Cluster>` is
+simple to learn and use, it provides a wide variety of configuration options.
 
-Configuring :py:class:`Cluster<goblin.driver.Cluster>`
---------------------------------------------------------------
+Configuring :py:class:`Cluster<aiogremlin.driver.cluster.Cluster>`
+------------------------------------------------------------------
 
 Configuration options can be set on
-:py:class:`Cluster<goblin.driver.Cluster>` in one of two ways, either
-passed as keyword arguments to
-:py:meth:`open<goblin.driver.Cluster.open>`, or stored in a configuration
-file and passed to the :py:meth:`open<goblin.driver.Cluster.open>`
-using the kwarg `configfile`. Configuration files can be either YAML or JSON
-format. Currently, :py:class:`Cluster<goblin.driver.Cluster>`
-uses the following configuration:
+:py:class:`Cluster<aiogremlin.driver.cluster.Cluster>` in one of two ways,
+either passed as keyword arguments to
+:py:meth:`open<aiogremlin.driver.cluster.Cluster.open>`, or stored in
+a configuration file and passed to the
+:py:meth:`open<aiogremlin.driver.cluster.Cluster.open>` using the kwarg
+`configfile`. Configuration files can be either YAML or JSON format. Currently,
+:py:class:`Cluster<aiogremlin.driver.cluster.Cluster>` uses the following
+configuration:
 
 +-------------------+----------------------------------------------+-------------+
 |Key                |Description                                   |Default      |

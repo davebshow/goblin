@@ -8,30 +8,30 @@ software stack i.e., the websocket client, the event loop implementation, etc.
 If necessary, a few tricks can boost its performance.
 
 
-Use :py:mod:`Cython`
---------------------
+Use ``cython``
+--------------
 
-Before installing :py:mod:`Goblin`, install :py:mod:`Cython`::
+Before installing :py:mod:`Goblin<goblin>`, install ``cython``::
 
     $ pip install cython
 
 
-Use :py:mod:`ujson`
--------------------
+Use ``ujson``
+-------------
 
-Install :py:mod:`ujson` to speed up serialzation::
+Install ``ujson`` to speed up serialzation::
 
     $ pip install ujson
 
 
-Use :py:mod:`uvloop`
---------------------
+Use ``uvloop``
+--------------
 
-Install :py:mod:`uvloop`, a Cython implementation of an event loop::
+Install ``uvloop``, a Cython implementation of an event loop::
 
     $ pip install uvloop
 
-Then, in application code, set the :py:func:`asyncio.event_loop_policy`::
+Then, in application code, set the :py:func:`asyncio.set_event_loop_policy`::
 
     >>> import asyncio
     >>> import uvloop
