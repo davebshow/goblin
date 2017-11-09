@@ -4,8 +4,8 @@ import pytest
 from gremlin_python.process.traversal import Cardinality
 
 from goblin import Goblin, driver, element, properties
-from goblin.driver import Connection, DriverRemoteConnection, \
-    GraphSONMessageSerializer
+from goblin.driver import (
+    Connection, DriverRemoteConnection, GraphSONMessageSerializer)
 from goblin.provider import TinkerGraph
 
 
