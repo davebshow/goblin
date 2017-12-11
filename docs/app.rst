@@ -30,7 +30,7 @@ Contents of `config.yml`::
     ssl_password: ''
     username: ''
     password: ''
-    response_timeout: None
+    response_timeout: null
     max_conns: 4
     min_conns: 1
     max_times_acquired: 16
