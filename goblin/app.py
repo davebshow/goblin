@@ -5,8 +5,8 @@ import importlib
 import logging
 
 import aiogremlin
-from goblin import element, provider, session
 
+from goblin import element, provider, session
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +24,16 @@ class Goblin:
     :param dict config: Config parameters for application
     """
 
-    def __init__(self, cluster, *, provider=provider.TinkerGraph, get_hashable_id=None, aliases=None):
+    def __init__(self,
+                 cluster,
+                 *,
+                 provider=provider.TinkerGraph,
+                 get_hashable_id=None,
+                 aliases=None):
         self._cluster = cluster
         self._loop = self._cluster._loop
         self._cluster = cluster
-        self._vertices = collections.defaultdict(
-            lambda: element.GenericVertex)
+        self._vertices = collections.defaultdict(lambda: element.GenericVertex)
         self._edges = collections.defaultdict(lambda: element.GenericEdge)
         self._provider = provider
         if not get_hashable_id:
@@ -40,15 +44,22 @@ class Goblin:
         self._aliases = aliases
 
     @classmethod
-    async def open(cls, loop, *, provider=provider.TinkerGraph,
-                   get_hashable_id=None, aliases=None, **config):
+    async def open(cls,
+                   loop,
+                   *,
+                   provider=provider.TinkerGraph,
+                   get_hashable_id=None,
+                   aliases=None,
+                   **config):
         # App currently only supports GraphSON 1
         # aiogremlin does not yet support providers
         cluster = await aiogremlin.Cluster.open(
-            loop, aliases=aliases,
-            **config)
-        app = Goblin(cluster, provider=provider,
-                     get_hashable_id=get_hashable_id, aliases=aliases)
+            loop, aliases=aliases, **config)
+        app = Goblin(
+            cluster,
+            provider=provider,
+            get_hashable_id=get_hashable_id,
+            aliases=aliases)
         return app
 
     @property
@@ -118,18 +129,15 @@ class Goblin:
                 elements.append(item)
         self.register(*elements)
 
-    async def session(self, *, processor='', op='eval',
-                      aliases=None):
+    async def session(self, *, processor='', op='eval', aliases=None):
         """
         Create a session object.
 
         :returns: :py:class:`Session<goblin.session.Session>` object
         """
         remote_connection = await aiogremlin.DriverRemoteConnection.using(
-                self._cluster, aliases=self._aliases)
-        return session.Session(self,
-                               remote_connection,
-                               self._get_hashable_id)
+            self._cluster, aliases=self._aliases)
+        return session.Session(self, remote_connection, self._get_hashable_id)
 
     async def close(self):
         await self._cluster.close()

@@ -3,8 +3,7 @@ import logging
 
 from gremlin_python.process.traversal import Cardinality
 
-from goblin import manager, element, exception
-
+from goblin import element, exception, manager
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +13,7 @@ class DataType(abc.ABC):
     Abstract base class for Goblin Data Types. All custom data types should
     inherit from :py:class:`DataType`.
     """
+
     def __init__(self, val=None):
         if val:
             val = self.validate(val)
@@ -52,8 +52,8 @@ class DataType(abc.ABC):
                 vp = vertex_prop(data_type, card=card)
                 vp.value = self.validate(v)
                 vertex_props.append(vp)
-            val = manager.ListVertexPropertyManager(
-                data_type, vertex_prop, card, vertex_props)
+            val = manager.ListVertexPropertyManager(data_type, vertex_prop,
+                                                    card, vertex_props)
         elif card == Cardinality.set_:
             if isinstance(val, set):
                 val = val
@@ -69,8 +69,8 @@ class DataType(abc.ABC):
                 else:
                     vp = v
                 vertex_props.add(vp)
-            val = manager.SetVertexPropertyManager(
-                data_type, vertex_prop, card, vertex_props)
+            val = manager.SetVertexPropertyManager(data_type, vertex_prop,
+                                                   card, vertex_props)
         else:
             vp = vertex_prop(data_type)
             vp.value = self.validate(val)
@@ -80,6 +80,7 @@ class DataType(abc.ABC):
 
 class BaseProperty:
     """Abstract base class that implements the property interface"""
+
     @property
     def data_type(self):
         raise NotImplementedError

@@ -2,9 +2,9 @@ Configuring the :py:mod:`Goblin<goblin>` App Object
 ===================================================
 
 The :py:class:`Goblin<goblin.app.Goblin>` object generally supports the same
-configuration options as :py:class:`Cluster<goblin.driver.Cluster>`. Please
-see the :doc:`driver docs</driver>` for a complete list of configuration
-parameters.
+configuration options as
+:py:class:`Cluster<aiogremlin.driver.cluster.Cluster>`. Please see the
+:doc:`driver docs</driver>` for a complete list of configuration parameters.
 
 
 The :py:class:`Goblin<goblin.app.Goblin>` object should be created using the
@@ -13,7 +13,6 @@ be passed as keyword arguments, or loaded from a config file::
 
     >>> import asyncio
     >>> from goblin import Goblin
-
 
     >>> loop = asyncio.get_event_loop()
 
@@ -37,7 +36,7 @@ Contents of `config.yml`::
     max_inflight: 64
     message_serializer: 'goblin.driver.GraphSONMessageSerializer'
 
-Special :py:mod:`Goblin` App Configuration
+Special :py:mod:`Goblin<goblin>` App Configuration
 --------------------------------------------------------------
 
 :py:class:`Goblin<goblin.app.Goblin>` supports two additional configuration
@@ -70,4 +69,5 @@ its values to produces a hashable id::
     ...     id_hash = functools.reduce(operator.xor, hashes, 0)
     ...     return id_hash
 
-Look for provider specific :py:mod:`Goblin` libraries in the near future!
+Look for provider specific :py:mod:`Goblin<goblin>` libraries in the near
+future!

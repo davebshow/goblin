@@ -18,7 +18,8 @@ async def test_add_update_property(app, person):
     await app.close()
 
 
-@pytest.mark.xfail(pytest.config.getoption('provider') == 'dse', reason='temporary')
+@pytest.mark.xfail(
+    pytest.config.getoption('provider') == 'dse', reason='temporary')
 @pytest.mark.asyncio
 async def test_add_update_list_card_property(app, person):
     session = await app.session()
@@ -27,8 +28,8 @@ async def test_add_update_list_card_property(app, person):
     assert [v.value for v in result.nicknames] == ['db', 'dirtydb']
     person.nicknames.append('davebshow')
     result = await session.save(person)
-    assert [v.value for v in result.nicknames] == [
-        'db', 'dirtydb', 'davebshow']
+    assert [v.value
+            for v in result.nicknames] == ['db', 'dirtydb', 'davebshow']
     person.nicknames = []
     result = await session.save(person)
     assert not result.nicknames
@@ -41,7 +42,9 @@ async def test_add_update_list_card_property(app, person):
     await app.close()
 
 
-@pytest.mark.skipif(pytest.config.getoption('provider') == 'dse', reason='set cardinality unsupported')
+@pytest.mark.skipif(
+    pytest.config.getoption('provider') == 'dse',
+    reason='set cardinality unsupported')
 @pytest.mark.asyncio
 async def test_add_update_set_card_property(app, place):
     session = await app.session()
@@ -92,17 +95,24 @@ async def test_metas(app, place, remote_connection):
     new_session = await app.session()
     new_detroit = await new_session.g.V(detroit.id).next()
     assert new_detroit.zipcode == detroit.zipcode
-    assert new_detroit.historical_name[-1].value == detroit.historical_name[-1].value
-    assert new_detroit.historical_name[-1].notes == detroit.historical_name[-1].notes
-    assert new_detroit.historical_name[-1].year == detroit.historical_name[-1].year
-    assert new_detroit.historical_name[0].value == detroit.historical_name[0].value
-    assert new_detroit.historical_name[0].notes == detroit.historical_name[0].notes
-    assert new_detroit.historical_name[0].year == detroit.historical_name[0].year
+    assert new_detroit.historical_name[-1].value == detroit.historical_name[
+        -1].value
+    assert new_detroit.historical_name[-1].notes == detroit.historical_name[
+        -1].notes
+    assert new_detroit.historical_name[-1].year == detroit.historical_name[
+        -1].year
+    assert new_detroit.historical_name[0].value == detroit.historical_name[
+        0].value
+    assert new_detroit.historical_name[0].notes == detroit.historical_name[
+        0].notes
+    assert new_detroit.historical_name[0].year == detroit.historical_name[
+        0].year
     await remote_connection.close()
     await app.close()
 
 
-@pytest.mark.xfail(pytest.config.getoption('provider') == 'dse', reason='temporary')
+@pytest.mark.xfail(
+    pytest.config.getoption('provider') == 'dse', reason='temporary')
 @pytest.mark.asyncio
 async def test_add_update_metas(app, place):
     session = await app.session()
@@ -132,7 +142,8 @@ async def test_add_update_metas(app, place):
     await app.close()
 
 
-@pytest.mark.xfail(pytest.config.getoption('provider') == 'dse', reason='temporary')
+@pytest.mark.xfail(
+    pytest.config.getoption('provider') == 'dse', reason='temporary')
 @pytest.mark.asyncio
 async def test_add_update_metas_list_card(app, place):
     session = await app.session()

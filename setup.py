@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Python toolkit for Tinker Pop 3 Gremlin Server"""
+"""Python toolkit for Tinker Pop 3 Gremlin Server."""
 
 import os
 
@@ -15,6 +14,7 @@ tests_require = [
     'pytest-cov>=2.5.1',
     'pytest-pep8>=1.0.6',
     'pytest>=3.2.1',
+    'uvloop>=0.8.1',
 ]
 
 extras_require = {
@@ -46,7 +46,6 @@ g = {}
 with open(os.path.join('goblin', 'version.py'), 'rt') as fp:
     exec(fp.read(), g)
     version = g['__version__']
-
 
 setup(
     name='goblin',

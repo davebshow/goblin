@@ -1,4 +1,5 @@
 import asyncio
+
 import pytest
 
 
@@ -26,7 +27,7 @@ async def test_acquire_release(connection_pool):
 async def test_acquire_multiple(connection_pool):
     conn1 = await connection_pool.acquire()
     conn2 = await connection_pool.acquire()
-    assert not conn1 is conn2
+    assert conn1 is not conn2
     assert len(connection_pool._acquired) == 2
     await connection_pool.close()
 
@@ -47,10 +48,10 @@ async def test_acquire_multiple_and_share(connection_pool):
     connection_pool._max_times_acquired = 2
     conn1 = await connection_pool.acquire()
     conn2 = await connection_pool.acquire()
-    assert not conn1 is conn2
+    assert conn1 is not conn2
     conn3 = await connection_pool.acquire()
     conn4 = await connection_pool.acquire()
-    assert not conn3 is conn4
+    assert conn3 is not conn4
     assert conn3 is conn1
     assert conn4 is conn2
     await connection_pool.close()

@@ -1,12 +1,10 @@
 import os
 
+import config_module
 import pytest
 
 import goblin
 from goblin import driver, exception
-
-import config_module
-
 
 dirname = os.path.dirname(os.path.dirname(__file__))
 
@@ -49,8 +47,8 @@ async def test_app_default_config(event_loop):
 
 
 def test_cluster_custom_config(event_loop, cluster_class):
-    cluster = cluster_class(event_loop, username='dave', password='mypass',
-                            hosts=['127.0.0.1'])
+    cluster = cluster_class(
+        event_loop, username='dave', password='mypass', hosts=['127.0.0.1'])
     assert cluster.config['scheme'] == 'ws'
     assert cluster.config['hosts'] == ['127.0.0.1']
     assert cluster.config['port'] == 8182
@@ -100,7 +98,9 @@ def test_cluster_config_from_module(event_loop, cluster_class, conf_module):
     assert cluster.config['scheme'] == 'wss'
     assert cluster.config['hosts'] == ['localhost']
     assert cluster.config['port'] == 8183
-    assert cluster.config['message_serializer'] is driver.GraphSONMessageSerializer
+    assert cluster.config['message_serializer'] is \
+        driver.GraphSONMessageSerializer
+
 
 @pytest.mark.asyncio
 async def test_app_config_from_json(app):

@@ -1,5 +1,6 @@
 include *.txt
 include *.yml
+include .editorconfig
 include LICENSE NOTICE
 prune tests
 prune docs

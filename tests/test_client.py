@@ -33,7 +33,8 @@ async def test_alias(cluster):
 #     session = str(uuid.uuid4())
 #     client = await cluster.connect(session=session)
 #     assert isinstance(client.cluster, GremlinServer)
-#     resp = await client.submit("v = g.addV('person').property('name', 'joe').next(); v")
+#     resp = await client.submit("v = g.addV('person').property(
+#         name', 'joe').next(); v")
 #     async for msg in resp:
 #         try:
 #             assert msg['properties']['name'][0]['value'] == 'joe'

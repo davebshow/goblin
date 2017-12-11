@@ -1,6 +1,8 @@
 import asyncio
+
 import pytest
 from gremlin_python.process.traversal import Cardinality
+
 from goblin import Goblin, driver, element, properties
 from goblin.driver import (
     Connection, DriverRemoteConnection, GraphSONMessageSerializer)
@@ -13,13 +15,18 @@ def pytest_generate_tests(metafunc):
 
 
 def pytest_addoption(parser):
-    parser.addoption('--provider', default='tinkergraph',
-                     choices=('tinkergraph', 'dse',))
+    parser.addoption(
+        '--provider', default='tinkergraph', choices=(
+            'tinkergraph',
+            'dse',
+        ))
     parser.addoption('--gremlin-host', default='localhost')
     parser.addoption('--gremlin-port', default='8182')
 
 
-db_name_factory = lambda x,y: "{}__{}".format(y, x)
+def db_name_factory(x, y):
+    return "{}__{}".format(y, x)
+
 
 class HistoricalName(element.VertexProperty):
     notes = properties.Property(properties.String)
@@ -29,17 +36,19 @@ class HistoricalName(element.VertexProperty):
 class Person(element.Vertex):
     __label__ = 'person'
     name = properties.Property(properties.String)
-    age = properties.Property(properties.Integer,
-                              db_name='custom__person__age')
+    age = properties.Property(
+        properties.Integer, db_name='custom__person__age')
     birthplace = element.VertexProperty(properties.String)
     nicknames = element.VertexProperty(
-        properties.String, card=Cardinality.list_,
+        properties.String,
+        card=Cardinality.list_,
         db_name_factory=db_name_factory)
 
 
 class Place(element.Vertex):
     name = properties.Property(properties.String)
-    zipcode = properties.Property(properties.Integer, db_name_factory=db_name_factory)
+    zipcode = properties.Property(
+        properties.Integer, db_name_factory=db_name_factory)
     historical_name = HistoricalName(properties.String, card=Cardinality.list_)
     important_numbers = element.VertexProperty(
         properties.Integer, card=Cardinality.set_)
@@ -68,8 +77,9 @@ def provider(request):
         try:
             import goblin_dse
         except ImportError:
-            raise RuntimeError("Couldn't run tests with DSEGraph provider: the goblin_dse package "
-                               "must be installed")
+            raise RuntimeError(
+                "Couldn't run tests with DSEGraph provider: the goblin_dse "
+                "package must be installed")
         else:
             return goblin_dse.DSEGraph
 
@@ -108,23 +118,22 @@ def gremlin_url(gremlin_host, gremlin_port):
 
 
 @pytest.fixture
-def cluster(request, gremlin_host, gremlin_port, event_loop, provider, aliases):
+def cluster(request, gremlin_host, gremlin_port, event_loop, provider,
+            aliases):
     if request.param == 'c1':
         cluster = driver.Cluster(
             event_loop,
             hosts=[gremlin_host],
             port=gremlin_port,
             aliases=aliases,
-            provider=provider
-        )
+            provider=provider)
     elif request.param == 'c2':
         cluster = driver.Cluster(
             event_loop,
             hosts=[gremlin_host],
             port=gremlin_port,
             aliases=aliases,
-            provider=provider
-        )
+            provider=provider)
     return cluster
 
 
@@ -133,10 +142,10 @@ def connection(gremlin_url, event_loop, provider):
     try:
         conn = event_loop.run_until_complete(
             driver.Connection.open(
-                gremlin_url, event_loop,
+                gremlin_url,
+                event_loop,
                 message_serializer=GraphSONMessageSerializer,
-                provider=provider
-            ))
+                provider=provider))
     except OSError:
         pytest.skip('Gremlin Server is not running')
     return conn
@@ -156,20 +165,34 @@ def remote_connection(event_loop, gremlin_url):
 @pytest.fixture
 def connection_pool(gremlin_url, event_loop, provider):
     return driver.ConnectionPool(
-        gremlin_url, event_loop, None, '', '', 4, 1, 16,
-        64, None, driver.GraphSONMessageSerializer, provider=provider)
+        gremlin_url,
+        event_loop,
+        None,
+        '',
+        '',
+        4,
+        1,
+        16,
+        64,
+        None,
+        driver.GraphSONMessageSerializer,
+        provider=provider)
 
 
 @pytest.fixture
 def remote_graph():
-     return driver.Graph()
+    return driver.Graph()
 
 
 @pytest.fixture
 def app(gremlin_host, gremlin_port, event_loop, provider, aliases):
     app = event_loop.run_until_complete(
-        Goblin.open(event_loop, provider=provider, aliases=aliases, hosts=[gremlin_host],
-                    port=gremlin_port))
+        Goblin.open(
+            event_loop,
+            provider=provider,
+            aliases=aliases,
+            hosts=[gremlin_host],
+            port=gremlin_port))
 
     app.register(Person, Place, Knows, LivesIn)
     return app
@@ -295,3 +318,29 @@ def flt_class():
 @pytest.fixture
 def boolean_class():
     return properties.Boolean
+
+
+@pytest.fixture(autouse=True)
+def add_doctest_default(doctest_namespace, tmpdir, event_loop, app):
+    doctest_namespace['Person'] = Person
+    doctest_namespace['loop'] = event_loop
+    doctest_namespace['app'] = app
+    config = tmpdir.join('config.yml')
+    config.write(
+        "scheme: 'ws'\n"
+        "hosts: ['localhost']\n"
+        "port': 8182\n"
+        "ssl_certfile: ''\n"
+        "ssl_keyfile: ''\n"
+        "ssl_password: ''\n"
+        "username: ''\n"
+        "password: ''\n"
+        "response_timeout: None\n"
+        "max_conns: 4\n"
+        "min_conns: 1\n"
+        "max_times_acquired: 16\n"
+        "max_inflight: 64\n"
+        "message_serializer: 'goblin.driver.GraphSONMessageSerializer'\n"
+    )
+    with tmpdir.as_cwd():
+        yield

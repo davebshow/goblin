@@ -6,7 +6,6 @@ from gremlin_python.statics import long
 
 from goblin import abc, exception
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -54,7 +53,11 @@ class Property(abc.BaseProperty):
 
     __descriptor__ = PropertyDescriptor
 
-    def __init__(self, data_type, *, db_name=None, default=None,
+    def __init__(self,
+                 data_type,
+                 *,
+                 db_name=None,
+                 default=None,
                  db_name_factory=None):
         if not db_name_factory:
             db_name_factory = noop_factory  # noop
@@ -87,7 +90,6 @@ class Property(abc.BaseProperty):
 
 
 class IdPropertyDescriptor:
-
     def __init__(self, name, prop):
         assert name == 'id', 'ID properties must be named "id"'
         self._data_type = prop.data_type
@@ -136,7 +138,6 @@ class IdProperty(abc.BaseProperty):
 
 # Data types
 class Generic(abc.DataType):
-
     def validate(self, val):
         return super().validate(val)
 
@@ -187,6 +188,7 @@ class Integer(abc.DataType):
 
 class Float(abc.DataType):
     """Simple float datatype"""
+
     def validate(self, val):
         try:
             val = float(val)
@@ -204,6 +206,7 @@ class Float(abc.DataType):
 
 class Boolean(abc.DataType):
     """Simple boolean datatype"""
+
     def validate(self, val):
         try:
             val = bool(val)

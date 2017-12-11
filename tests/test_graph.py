@@ -1,9 +1,8 @@
 import pytest
-
-from goblin import driver
-
 from aiogremlin import process
 from gremlin_python.process.traversal import Binding
+
+from goblin import driver
 
 
 @pytest.mark.asyncio
@@ -11,7 +10,8 @@ async def test_generate_traversal(remote_graph, remote_connection):
     async with remote_connection:
         g = remote_graph.traversal().withRemote(remote_connection)
         traversal = g.V().hasLabel(('v1', 'person'))
-        assert isinstance(traversal, process.graph_traversal.AsyncGraphTraversal)
+        assert isinstance(traversal,
+                          process.graph_traversal.AsyncGraphTraversal)
         assert traversal.bytecode.bindings['v1'] == 'person'
 
 
@@ -29,11 +29,13 @@ async def test_submit_traversal(remote_graph, remote_connection):
     await remote_connection.close()
 
 
-@pytest.mark.skipif(pytest.config.getoption('provider') == 'dse', reason="need custom alias")
+@pytest.mark.skipif(
+    pytest.config.getoption('provider') == 'dse', reason="need custom alias")
 @pytest.mark.asyncio
 async def test_side_effects(remote_graph, remote_connection):
     async with remote_connection:
-        remote_connection._message_serializer = driver.GraphSONMessageSerializer
+        remote_connection._message_serializer = \
+            driver.GraphSONMessageSerializer
         g = remote_graph.traversal().withRemote(remote_connection)
         # create some nodes
         resp = g.addV('person').property('name', 'leifur')
