@@ -34,9 +34,9 @@ setup_requires = [
 ]
 
 install_requires = [
-    'aiogremlin==3.2.6rc1',
-    'gremlinpython==3.2.6',
-    'inflection==0.3.1',
+    'aiogremlin>=3.2.6',
+    'gremlinpython>=3.2.6',
+    'inflection>=0.3.1',
 ]
 
 packages = find_packages()
