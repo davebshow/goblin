@@ -215,7 +215,7 @@ class Mapping:
         try:
             mapping, _ = self._ogm_properties[value]
             return mapping
-        except:
+        except KeyError:
             raise exception.MappingError(
                 "unrecognized property {} for class: {}".format(
                     value, self._element_type))

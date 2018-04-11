@@ -6,7 +6,7 @@ class ClientError(Exception):
     pass
 
 
-class MappingError(Exception):
+class MappingError(AttributeError):
     pass
 
 
