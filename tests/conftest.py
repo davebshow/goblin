@@ -33,12 +33,17 @@ class HistoricalName(element.VertexProperty):
     year = properties.Property(properties.Integer)  # this is dumb but handy
 
 
+class Location(element.VertexProperty):
+    year = properties.Property(properties.Integer)
+
+
 class Person(element.Vertex):
     __label__ = 'person'
     name = properties.Property(properties.String)
     age = properties.Property(
         properties.Integer, db_name='custom__person__age')
     birthplace = element.VertexProperty(properties.String)
+    location = Location(properties.String, card=Cardinality.list_)
     nicknames = element.VertexProperty(
         properties.String,
         card=Cardinality.list_,
