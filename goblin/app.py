@@ -35,6 +35,7 @@ class Goblin:
         self._cluster = cluster
         self._vertices = collections.defaultdict(lambda: element.GenericVertex)
         self._edges = collections.defaultdict(lambda: element.GenericEdge)
+        self._vertex_properties = {}
         self._provider = provider
         if not get_hashable_id:
             get_hashable_id = self._provider.get_hashable_id
@@ -76,6 +77,11 @@ class Goblin:
         return self._vertices
 
     @property
+    def vertex_properties(self):
+        """Registered vertex classes"""
+        return self._vertex_properties
+
+    @property
     def edges(self):
         """Registered edge classes"""
         return self._edges
@@ -96,6 +102,8 @@ class Goblin:
                 self._vertices[element.__label__] = element
             if element.__type__ == 'edge':
                 self._edges[element.__label__] = element
+            if element.__type__ == 'vertexproperty':
+                self._vertex_properties[element.__label__] = element
 
     def config_from_file(self, filename):
         """
