@@ -17,9 +17,9 @@ AdjList = collections.namedtuple("AdjList", "vertex inE outE")
 vp_id = 10
 
 
-def dump(fpath, *adj_lists):
+def dump(fpath, *adj_lists, mode="w"):
     """Convert Goblin elements to GraphSON"""
-    with open(fpath, "w") as f:
+    with open(fpath, mode) as f:
         for adj_list in adj_lists:
             dumped = dumps(adj_list)
             f.write(dumped + '\n')
