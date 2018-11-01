@@ -1,5 +1,6 @@
 """Helper functions and class to map between OGM Elements <-> DB Elements"""
 
+from gremlin_python.process.traversal import T
 import functools
 import logging
 
@@ -125,8 +126,8 @@ def map_vertex_property_to_ogm(result, element, *, mapping=None):
 
 def map_edge_to_ogm(result, props, element, *, mapping=None):
     """Map an edge returned by DB to OGM edge"""
-    props.pop('id')
-    label = props.pop('label')
+    props.pop(T.id)
+    label = props.pop(T.label)
     for db_name, value in props.items():
         name, data_type = mapping.db_properties.get(db_name, (db_name, None))
         if data_type:
