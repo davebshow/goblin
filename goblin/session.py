@@ -9,6 +9,7 @@ import aiogremlin
 from aiogremlin.driver.protocol import Message
 from aiogremlin.driver.resultset import ResultSet
 from aiogremlin.process.graph_traversal import __
+from gremlin_python.process.traversal import T
 from gremlin_python.driver.remote_connection import RemoteTraversal
 from gremlin_python.process.traversal import Binding, Cardinality, Traverser
 from gremlin_python.structure.graph import Edge, Vertex
@@ -178,7 +179,7 @@ class Session:
                     props = await self._g.E(obj.id).valueMap(True).next()
                     if not current:
                         current = self.app.edges.get(
-                            props.get('label'), GenericEdge)()
+                            props.get(T.label), GenericEdge)()
                         current.source = GenericVertex()
                         current.target = GenericVertex()
                 element = current.__mapping__.mapper_func(obj, props, current)

@@ -4,7 +4,7 @@ try:
 except ImportError:
     import json
 
-from gremlin_python.structure.io import graphson
+from gremlin_python.structure.io import graphsonV3d0 as graphson
 from goblin.element import Vertex, Edge, VertexProperty
 from goblin.manager import ListVertexPropertyManager
 
@@ -28,16 +28,20 @@ def dump(fpath, *adj_lists, mode="w"):
 def dumps(adj_list):
     """Convert Goblin elements to GraphSON"""
     vertex = _prep_vertex(adj_list.vertex)
-    for inE in adj_list.inE:
-        prepped = _prep_edge(inE, "inV")
-        label = inE.__label__
-        vertex["inE"].setdefault(label, [])
-        vertex["inE"][label].append(prepped)
-    for outE in adj_list.outE:
-        prepped = _prep_edge(outE, "outV")
-        label = outE.__label__
-        vertex["outE"].setdefault(label, [])
-        vertex["outE"][label].append(prepped)
+    if adj_list.inE:
+        for inE in adj_list.inE:
+            prepped = _prep_edge(inE, "inV")
+            label = inE.__label__
+            vertex.setdefault("inE", {})
+            vertex["inE"].setdefault(label, [])
+            vertex["inE"][label].append(prepped)
+    if adj_list.outE:
+        for outE in adj_list.outE:
+            prepped = _prep_edge(outE, "outV")
+            label = outE.__label__
+            vertex.setdefault("outE", {})
+            vertex["outE"].setdefault(label, [])
+            vertex["outE"][label].append(prepped)
     return json.dumps(vertex)
 
 
@@ -52,18 +56,21 @@ def _prep_edge(e, t):
         raise RuntimeError('Invalid edge type')
     edge = {
         "id": {
-            "@type": "g:Int32",
+            "@type": "g:Int64",
             "@value": e.id,
 
         },
         other: {
-            "@type": "g:Int32",
+            "@type": "g:Int64",
             "@value": other_id,
-        },
-        "properties": {}
+        }
     }
     for db_name, (ogm_name, _) in e.__mapping__.db_properties.items():
-        edge["properties"][db_name] = writer.toDict(getattr(e, ogm_name))
+        data = writer.toDict(getattr(e, ogm_name))
+        if not data:
+            continue
+        edge.setdefault("properties", {})
+        edge["properties"][db_name] = data
 
     return edge
 
@@ -74,20 +81,15 @@ def _prep_vertex(v):
     properties = v.__properties__
     vertex = {
             "id": {
-                "@type": "g:Int32",
+                "@type": "g:Int64",
                 "@value": v.id
             },
-            "label": v.__label__,
-            "properties": {},
-            "outE": {},
-            "inE": {}
+            "label": v.__label__
     }
-
-
 
     for db_name, (ogm_name, _) in mapping.db_properties.items():
         prop = properties[ogm_name]
-        vertex["properties"].setdefault(db_name, [])
+        vertex.setdefault("properties", {})
         if isinstance(prop, VertexProperty):
             prop = getattr(v, ogm_name)
             if isinstance(prop, ListVertexPropertyManager):
@@ -95,14 +97,18 @@ def _prep_vertex(v):
                     value = p.value
                     vp = _prep_vp(p, value, v, db_name)
                     vp_id += 1
+                    vertex["properties"].setdefault(db_name, [])
                     vertex["properties"][db_name].append(vp)
                 continue
             else:
+                if not prop:
+                    continue
                 value = prop.value
         else:
             value = getattr(v, ogm_name)
         vp = _prep_vp(prop, value, v, db_name)
         vp_id += 1
+        vertex["properties"].setdefault(db_name, [])
         vertex["properties"][db_name].append(vp)
     return vertex
 
@@ -114,14 +120,12 @@ def _prep_vp(prop, value, v, db_name):
                 "@value": vp_id
             },
             "value": writer.toDict(value),
-            "properties": {}
     }
     if isinstance(prop, VertexProperty):
         for db_name, (ogm_name, _) in prop.__mapping__.db_properties.items():
-            vp["properties"][db_name] = writer.toDict(getattr(prop, ogm_name))
+            data = writer.toDict(getattr(prop, ogm_name))
+            if not data:
+                continue
+            vp.setdefault("properties", {})
+            vp["properties"][db_name] = data
     return vp
-
-
-
-def _dump_edge(e):
-    pass
